@@ -179,27 +179,65 @@ export class SupabaseStorageService {
         }),
       });
 
-      const json = await res.json();
-      if (res.ok && json.success) {
-        console.log('Upload para Supabase concluído com sucesso via servidor:', json.publicUrl);
-        return {
-          success: true,
-          publicUrl: json.publicUrl,
-          fileName: nomeFormatado,
-          fileSizeMB: tamanhoEmMB,
-          bucket: json.bucket || config.bucket,
-          timestamp: new Date().toISOString(),
-        };
-      }
-
-      if (json.error) {
-        console.warn('Servidor retornou erro, tentando SDK direto...', json.error);
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const json = await res.json();
+        if (res.ok && json.success) {
+          console.log('Upload para Supabase concluído com sucesso via servidor:', json.publicUrl);
+          return {
+            success: true,
+            publicUrl: json.publicUrl,
+            fileName: nomeFormatado,
+            fileSizeMB: tamanhoEmMB,
+            bucket: json.bucket || config.bucket,
+            timestamp: new Date().toISOString(),
+          };
+        }
+        if (json.error) {
+          console.warn('Servidor retornou erro, tentando REST API direta...', json.error);
+        }
+      } else {
+        console.warn('Servidor API indisponível (hospedagem estática Vercel), tentando Storage REST API direta...');
       }
     } catch (serverErr: any) {
-      console.warn('Falha no upload via servidor, tentando SDK cliente...', serverErr?.message || serverErr);
+      console.warn('Falha no upload via servidor, tentando Storage REST API direta...', serverErr?.message || serverErr);
     }
 
-    // Método 2: Envio direto via SDK no navegador (Fallback)
+    // Método 2: Envio direto via Supabase Storage REST API (Compatível com Anon e Service Role / Secret keys)
+    try {
+      const restUploadUrl = `${cleanUrl}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodeURIComponent(nomeFormatado)}`;
+      const restRes = await fetch(restUploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.key.trim()}`,
+          'apikey': config.key.trim(),
+          'Content-Type': 'application/pdf',
+          'x-upsert': 'true',
+        },
+        body: arquivoPdf,
+      });
+
+      if (restRes.ok) {
+        const publicUrl = `${cleanUrl}/storage/v1/object/public/${encodeURIComponent(config.bucket)}/${encodeURIComponent(nomeFormatado)}`;
+        console.log('Upload direto via Storage REST API concluído:', publicUrl);
+
+        return {
+          success: true,
+          publicUrl,
+          fileName: nomeFormatado,
+          fileSizeMB: tamanhoEmMB,
+          bucket: config.bucket,
+          timestamp: new Date().toISOString(),
+        };
+      } else {
+        const errText = await restRes.text();
+        console.warn('Falha no REST API upload, tentando SDK cliente...', errText);
+      }
+    } catch (restErr: any) {
+      console.warn('Exceção no REST API upload:', restErr?.message || restErr);
+    }
+
+    // Método 3: Envio direto via SDK no navegador (Fallback final)
     try {
       const supabase = this.getClient();
       if (supabase) {
@@ -216,7 +254,7 @@ export class SupabaseStorageService {
             .getPublicUrl(nomeFormatado);
 
           const publicUrl = linkData?.publicUrl || '';
-          console.log('Upload direto no Supabase concluído:', publicUrl);
+          console.log('Upload direto no Supabase concluído via SDK:', publicUrl);
 
           return {
             success: true,
