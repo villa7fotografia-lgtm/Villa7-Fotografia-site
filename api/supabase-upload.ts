@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { Buffer } from 'buffer';
 
 const DEFAULT_BUCKET = 'Villa7 Fotografia';
 
@@ -17,9 +17,9 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const targetUrl = (supabaseUrl || process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
-    const targetKey = (supabaseKey || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY || '').trim();
-    let requestedBucket = (bucket || process.env.VITE_SUPABASE_BUCKET || DEFAULT_BUCKET).trim();
+    const targetUrl = (supabaseUrl || process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
+    const targetKey = (supabaseKey || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY || '').trim().replace(/^["']|["']$/g, '');
+    let requestedBucket = (bucket || process.env.VITE_SUPABASE_BUCKET || DEFAULT_BUCKET).trim().replace(/^["']|["']$/g, '');
 
     if (requestedBucket.includes('@') || requestedBucket.includes("'") || requestedBucket.length < 2) {
       requestedBucket = DEFAULT_BUCKET;
@@ -32,10 +32,6 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const supabase = createClient(targetUrl, targetKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
     const cleanFileName = fileName
       .replace(/^\/+/, '')
       .replace(/[\u0300-\u036f]/g, '')
@@ -44,65 +40,121 @@ export default async function handler(req: any, res: any) {
     const buffer = Buffer.from(pdfBase64, 'base64');
     const fileSizeMB = buffer.length / (1024 * 1024);
 
-    console.log(`[Vercel Supabase Upload] Gravando "${cleanFileName}" (${fileSizeMB.toFixed(2)} MB) no bucket "${requestedBucket}"...`);
+    console.log(`[Supabase Upload REST] Gravando "${cleanFileName}" (${fileSizeMB.toFixed(2)} MB) no bucket "${requestedBucket}"...`);
 
-    // 1. List buckets to check existence
-    const { data: existingBuckets } = await supabase.storage.listBuckets();
-    const bucketList = existingBuckets || [];
+    const headers = {
+      'Authorization': `Bearer ${targetKey}`,
+      'apikey': targetKey,
+    };
+
+    // 1. List buckets via REST API
     let targetBucketId = requestedBucket;
-
-    const matchedBucket = bucketList.find(
-      (b: any) =>
-        b.name?.toLowerCase() === requestedBucket.toLowerCase() ||
-        b.id?.toLowerCase() === requestedBucket.toLowerCase() ||
-        b.name?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase() ||
-        b.id?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase()
-    );
-
-    if (matchedBucket) {
-      targetBucketId = matchedBucket.id || matchedBucket.name;
-    } else {
-      const { data: newBucket, error: createErr } = await supabase.storage.createBucket(requestedBucket, {
-        public: true,
-        fileSizeLimit: 52428800,
+    try {
+      const bucketsRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
+        method: 'GET',
+        headers,
       });
-
-      if (!createErr && newBucket) {
-        targetBucketId = requestedBucket;
-      } else if (bucketList.length > 0) {
-        targetBucketId = bucketList[0].id || bucketList[0].name;
+      if (bucketsRes.ok) {
+        const buckets = await bucketsRes.json();
+        const found = (buckets || []).find(
+          (b: any) =>
+            b.name?.toLowerCase() === requestedBucket.toLowerCase() ||
+            b.id?.toLowerCase() === requestedBucket.toLowerCase() ||
+            b.name?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase() ||
+            b.id?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase()
+        );
+        if (found) {
+          targetBucketId = found.id || found.name;
+        } else {
+          // Try to create bucket
+          const createRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
+            method: 'POST',
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: requestedBucket,
+              name: requestedBucket,
+              public: true,
+              file_size_limit: 52428800,
+            }),
+          });
+          if (createRes.ok) {
+            targetBucketId = requestedBucket;
+          } else {
+            // Try slug format if creation failed
+            const slug = requestedBucket.replace(/\s+/g, '-').toLowerCase();
+            const createSlugRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
+              method: 'POST',
+              headers: {
+                ...headers,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                id: slug,
+                name: slug,
+                public: true,
+                file_size_limit: 52428800,
+              }),
+            });
+            if (createSlugRes.ok) {
+              targetBucketId = slug;
+            } else if (buckets && buckets.length > 0) {
+              targetBucketId = buckets[0].id || buckets[0].name;
+            }
+          }
+        }
       }
+    } catch (e) {
+      console.warn('[Supabase Upload REST] Aviso ao listar/criar bucket, prosseguindo com upload direto:', e);
     }
 
-    // 2. Upload
-    const { error: uploadError } = await supabase.storage
-      .from(targetBucketId)
-      .upload(cleanFileName, buffer, {
-        contentType: 'application/pdf',
-        upsert: true,
-      });
+    // 2. Upload Object via REST API
+    const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(targetBucketId)}/${encodeURIComponent(cleanFileName)}`;
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/pdf',
+        'x-upsert': 'true',
+      },
+      body: buffer,
+    });
 
-    if (uploadError) {
-      // Try slug bucket retry
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      // Try slug bucket fallback
       const slugBucket = targetBucketId.replace(/\s+/g, '-').toLowerCase();
-      const { error: retryErr } = await supabase.storage
-        .from(slugBucket)
-        .upload(cleanFileName, buffer, {
-          contentType: 'application/pdf',
-          upsert: true,
+      if (slugBucket !== targetBucketId) {
+        const retryUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(slugBucket)}/${encodeURIComponent(cleanFileName)}`;
+        const retryRes = await fetch(retryUrl, {
+          method: 'POST',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/pdf',
+            'x-upsert': 'true',
+          },
+          body: buffer,
         });
-
-      if (retryErr) {
-        return res.status(400).json({ success: false, error: retryErr.message });
+        if (retryRes.ok) {
+          targetBucketId = slugBucket;
+        } else {
+          const retryErr = await retryRes.text();
+          return res.status(400).json({
+            success: false,
+            error: `Erro no Supabase Storage (${uploadRes.status}): ${errText || retryErr}. Dica: Verifique se a chave SUPABASE_SECRET_KEY na Vercel é a chave "service_role" do seu projeto e se o bucket "${requestedBucket}" existe.`,
+          });
+        }
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: `Erro no Supabase Storage (${uploadRes.status}): ${errText}. Dica: Verifique se a chave SUPABASE_SECRET_KEY na Vercel é a chave "service_role" do seu projeto.`,
+        });
       }
-      targetBucketId = slugBucket;
     }
 
-    const { data: publicData } = supabase.storage
-      .from(targetBucketId)
-      .getPublicUrl(cleanFileName);
-
-    const publicUrl = publicData?.publicUrl || `${targetUrl}/storage/v1/object/public/${encodeURIComponent(targetBucketId)}/${encodeURIComponent(cleanFileName)}`;
+    const publicUrl = `${targetUrl}/storage/v1/object/public/${encodeURIComponent(targetBucketId)}/${encodeURIComponent(cleanFileName)}`;
 
     return res.status(200).json({
       success: true,
