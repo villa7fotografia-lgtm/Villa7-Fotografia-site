@@ -14,6 +14,8 @@ import {
   FileCheck,
   Send,
   Printer,
+  Database,
+  Cloud,
 } from 'lucide-react';
 import { AlbumProject, PhotoItem } from '../../types';
 import { generateAlbumPDF, PDFGenerationProgress } from '../../services/pdfGenerator';
@@ -52,6 +54,31 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
   );
   const [isSentSuccessfully, setIsSentSuccessfully] = useState<boolean>(false);
   const [supabaseResult, setSupabaseResult] = useState<SupabaseUploadResult | null>(null);
+
+  const [supabaseConfig, setSupabaseConfig] = useState(() => SupabaseStorageService.getConfig());
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [testResult, setTestResult] = useState<{ success?: boolean; message?: string } | null>(null);
+  const [showSupabaseSettings, setShowSupabaseSettings] = useState(false);
+
+  const handleSaveSupabaseConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = SupabaseStorageService.saveConfig(supabaseConfig);
+    setSupabaseConfig(updated);
+    setTestResult({ success: true, message: 'Configurações salvas com sucesso no navegador!' });
+  };
+
+  const handleTestSupabaseConnection = async () => {
+    setIsTestingSupabase(true);
+    setTestResult(null);
+    try {
+      const res = await SupabaseStorageService.testConnection();
+      setTestResult({ success: res.success, message: res.message });
+    } catch (err: any) {
+      setTestResult({ success: false, message: err?.message || 'Erro ao testar conexão.' });
+    } finally {
+      setIsTestingSupabase(false);
+    }
+  };
 
   // Build a map of photo id to photo item for quick lookups
   const photosMap = new Map<string, PhotoItem>();
@@ -154,6 +181,110 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
         <p className="text-sm sm:text-base text-[#7A685B] mt-2">
           Revise a composição completa e clique em <strong>Aprovar e Enviar para a Produção</strong>. O arquivo de alta resolução será enviado e uma cópia será baixada em seu dispositivo.
         </p>
+      </div>
+
+      {/* Supabase Integration & Direct Test Panel */}
+      <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E8DFD5] shadow-xs space-y-4">
+        <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowSupabaseSettings(!showSupabaseSettings)}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#EFE8DE] text-[#8C5E3C] flex items-center justify-center">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-serif text-base font-bold text-[#2C2420]">
+                Integração com Supabase Storage (Painel de Configuração)
+              </h3>
+              <p className="text-xs text-[#7A685B]">
+                Configure suas chaves do Supabase aqui para garantir o recebimento dos PDFs gerados.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="text-xs font-semibold text-[#8C5E3C] hover:underline"
+          >
+            {showSupabaseSettings ? 'Ocultar Configuração ▲' : 'Configurar / Testar Conexão ▼'}
+          </button>
+        </div>
+
+        {showSupabaseSettings && (
+          <form onSubmit={handleSaveSupabaseConfig} className="pt-4 border-t border-[#E8DFD5] space-y-4 animate-in fade-in duration-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#5A4638] mb-1">
+                  Supabase URL (Project URL)
+                </label>
+                <input
+                  type="text"
+                  value={supabaseConfig.url}
+                  onChange={(e) => setSupabaseConfig({ ...supabaseConfig, url: e.target.value })}
+                  placeholder="https://seu-projeto.supabase.co"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-white border border-[#DDD3C5] text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#5A4638] mb-1">
+                  Supabase Service Role / Secret Key
+                </label>
+                <input
+                  type="password"
+                  value={supabaseConfig.key}
+                  onChange={(e) => setSupabaseConfig({ ...supabaseConfig, key: e.target.value })}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-white border border-[#DDD3C5] text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#5A4638] mb-1">
+                  Nome do Bucket (Ex: Villa7 Fotografia)
+                </label>
+                <input
+                  type="text"
+                  value={supabaseConfig.bucket}
+                  onChange={(e) => setSupabaseConfig({ ...supabaseConfig, bucket: e.target.value })}
+                  placeholder="Villa7 Fotografia"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-white border border-[#DDD3C5] text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-[#3D2C24] text-white text-xs font-bold hover:bg-[#2C2420] transition-colors cursor-pointer"
+                >
+                  Salvar Configuração
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTestSupabaseConnection}
+                  disabled={isTestingSupabase}
+                  className="px-4 py-2 rounded-xl bg-[#EFE8DE] text-[#5A4638] text-xs font-semibold hover:bg-[#E5DCD0] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isTestingSupabase ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 text-emerald-700" />}
+                  Testar Conexão e Criar Bucket
+                </button>
+              </div>
+
+              {testResult && (
+                <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${testResult.success ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                  {testResult.message}
+                </span>
+              )}
+            </div>
+          </form>
+        )}
+
+        {supabaseResult && (
+          <div className={`p-3 rounded-xl text-xs flex items-center justify-between gap-2 ${supabaseResult.success ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' : 'bg-rose-50 text-rose-900 border border-rose-200'}`}>
+            <span>
+              <strong>Último Envio:</strong> {supabaseResult.success ? `Sucesso! Arquivo enviado para ${supabaseResult.publicUrl || supabaseResult.bucket}` : supabaseResult.error}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Summary Cards Row */}
