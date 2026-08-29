@@ -1,0 +1,6 @@
+{
+  "name": "Villa7 Álbuns — Diagramação de Álbuns Fotográficos",
+  "description": "Plataforma personalizada para diagramação, aprovação de capa e produção de álbuns fotográficos com proporção real de impressão.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
