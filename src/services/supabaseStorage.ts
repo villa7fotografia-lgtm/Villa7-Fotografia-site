@@ -17,8 +17,8 @@ export interface SupabaseUploadResult {
 }
 
 export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
-  url: '',
-  key: '',
+  url: 'https://twfhqhkzabvlzkgofjyj.supabase.co',
+  key: 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem',
   bucket: 'Villa7 Fotografia',
 };
 

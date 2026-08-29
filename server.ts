@@ -10,8 +10,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Supabase environment constants (server-side secure storage)
-const SERVER_SUPABASE_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
-const SERVER_SUPABASE_SECRET_KEY = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY || '').trim().replace(/^["']|["']$/g, '');
+const SERVER_SUPABASE_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://twfhqhkzabvlzkgofjyj.supabase.co').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
+const SERVER_SUPABASE_SECRET_KEY = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY || 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem').trim().replace(/^["']|["']$/g, '');
 const DEFAULT_BUCKET = 'Villa7 Fotografia';
 
 // Health check endpoint
