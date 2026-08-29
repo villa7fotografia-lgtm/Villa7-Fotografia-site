@@ -31,25 +31,40 @@ export class SupabaseStorageService {
   static getConfig(): SupabaseConfig {
     if (this.cachedConfig) return this.cachedConfig;
 
+    const viteEnv = (import.meta as any).env || {};
+    const envUrl = (viteEnv.VITE_SUPABASE_URL || '').trim();
+    const envKey = (viteEnv.VITE_SUPABASE_KEY || viteEnv.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+    const envBucket = (viteEnv.VITE_SUPABASE_BUCKET || '').trim();
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Automatically upgrade if it was using the generic supabase.co or had invalid bucket string
         if (parsed.url === 'https://supabase.co' || parsed.url === 'http://supabase.co' || !parsed.url) {
-          parsed.url = DEFAULT_SUPABASE_CONFIG.url;
+          parsed.url = envUrl || DEFAULT_SUPABASE_CONFIG.url;
+        }
+        if (!parsed.key && envKey) {
+          parsed.key = envKey;
         }
         if (parsed.bucket && (parsed.bucket.includes('@') || parsed.bucket.includes("'") || parsed.bucket.length < 2)) {
-          parsed.bucket = DEFAULT_SUPABASE_CONFIG.bucket;
+          parsed.bucket = envBucket || DEFAULT_SUPABASE_CONFIG.bucket;
         }
-        this.cachedConfig = { ...DEFAULT_SUPABASE_CONFIG, ...parsed };
+        this.cachedConfig = {
+          url: parsed.url || envUrl || DEFAULT_SUPABASE_CONFIG.url,
+          key: parsed.key || envKey || DEFAULT_SUPABASE_CONFIG.key,
+          bucket: parsed.bucket || envBucket || DEFAULT_SUPABASE_CONFIG.bucket,
+        };
         return this.cachedConfig;
       }
     } catch {
       // fallback
     }
 
-    this.cachedConfig = { ...DEFAULT_SUPABASE_CONFIG };
+    this.cachedConfig = {
+      url: envUrl || DEFAULT_SUPABASE_CONFIG.url,
+      key: envKey || DEFAULT_SUPABASE_CONFIG.key,
+      bucket: envBucket || DEFAULT_SUPABASE_CONFIG.bucket,
+    };
     return this.cachedConfig;
   }
 
