@@ -17,18 +17,14 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const targetUrl = (supabaseUrl || process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
-    const targetKey = (supabaseKey || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY || '').trim().replace(/^["']|["']$/g, '');
-    let requestedBucket = (bucket || process.env.VITE_SUPABASE_BUCKET || DEFAULT_BUCKET).trim().replace(/^["']|["']$/g, '');
-
-    if (requestedBucket.includes('@') || requestedBucket.includes("'") || requestedBucket.length < 2) {
-      requestedBucket = DEFAULT_BUCKET;
-    }
+    const targetUrl = (supabaseUrl || 'https://twfhqhkzabvlzkgofjyj.supabase.co').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
+    const targetKey = (supabaseKey || 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem').trim().replace(/^["']|["']$/g, '');
+    const requestedBucket = (bucket || DEFAULT_BUCKET).trim().replace(/^["']|["']$/g, '');
 
     if (!targetUrl || !targetKey) {
       return res.status(400).json({
         success: false,
-        error: 'Credenciais do Supabase não configuradas no servidor (SUPABASE_URL e SUPABASE_SECRET_KEY).',
+        error: 'URL ou Chave do Supabase não fornecidas.',
       });
     }
 
@@ -40,130 +36,122 @@ export default async function handler(req: any, res: any) {
     const buffer = Buffer.from(pdfBase64, 'base64');
     const fileSizeMB = buffer.length / (1024 * 1024);
 
-    console.log(`[Supabase Upload REST] Gravando "${cleanFileName}" (${fileSizeMB.toFixed(2)} MB) no bucket "${requestedBucket}"...`);
+    console.log(`[Supabase Upload Robust] Enviando "${cleanFileName}" (${fileSizeMB.toFixed(2)} MB) para URL: ${targetUrl}`);
 
     const headers = {
       'Authorization': `Bearer ${targetKey}`,
       'apikey': targetKey,
     };
 
-    // 1. List buckets via REST API
-    let targetBucketId = requestedBucket;
-    try {
-      const bucketsRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
-        method: 'GET',
-        headers,
-      });
-      if (bucketsRes.ok) {
-        const buckets = await bucketsRes.json();
-        const found = (buckets || []).find(
-          (b: any) =>
-            b.name?.toLowerCase() === requestedBucket.toLowerCase() ||
-            b.id?.toLowerCase() === requestedBucket.toLowerCase() ||
-            b.name?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase() ||
-            b.id?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase()
-        );
-        if (found) {
-          targetBucketId = found.id || found.name;
-        } else {
-          // Try to create bucket
-          const createRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
+    // Candidates of bucket names to try
+    const bucketCandidates = Array.from(new Set([
+      requestedBucket,
+      DEFAULT_BUCKET,
+      'Villa7_Fotografia',
+      'villa7-fotografia',
+      'villa7fotografia',
+      'public',
+      'storage'
+    ]));
+
+    let successBucket = null;
+    let lastErrorMsg = '';
+
+    for (const bName of bucketCandidates) {
+      const bucketId = bName.replace(/\s+/g, '-').toLowerCase();
+      const rawBucketId = bName;
+
+      // Try uploading to bucketId (slug) and rawBucketId
+      for (const targetId of [bucketId, rawBucketId]) {
+        try {
+          const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(targetId)}/${encodeURIComponent(cleanFileName)}`;
+          console.log(`[Supabase Upload Robust] Tentando upload no bucket ID: "${targetId}"...`);
+
+          const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
               ...headers,
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/pdf',
+              'x-upsert': 'true',
             },
-            body: JSON.stringify({
-              id: requestedBucket,
-              name: requestedBucket,
-              public: true,
-              file_size_limit: 52428800,
-            }),
+            body: buffer,
           });
-          if (createRes.ok) {
-            targetBucketId = requestedBucket;
+
+          if (uploadRes.ok) {
+            successBucket = targetId;
+            break;
           } else {
-            // Try slug format if creation failed
-            const slug = requestedBucket.replace(/\s+/g, '-').toLowerCase();
-            const createSlugRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
-              method: 'POST',
-              headers: {
-                ...headers,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                id: slug,
-                name: slug,
-                public: true,
-                file_size_limit: 52428800,
-              }),
-            });
-            if (createSlugRes.ok) {
-              targetBucketId = slug;
-            } else if (buckets && buckets.length > 0) {
-              targetBucketId = buckets[0].id || buckets[0].name;
-            }
+            const errText = await uploadRes.text();
+            lastErrorMsg = `Bucket "${targetId}" (${uploadRes.status}): ${errText}`;
+            console.warn(`[Supabase Upload Robust] Falha no bucket "${targetId}":`, errText);
           }
+        } catch (err: any) {
+          lastErrorMsg = err?.message || 'Erro de rede';
         }
       }
-    } catch (e) {
-      console.warn('[Supabase Upload REST] Aviso ao listar/criar bucket, prosseguindo com upload direto:', e);
-    }
 
-    // 2. Upload Object via REST API
-    const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(targetBucketId)}/${encodeURIComponent(cleanFileName)}`;
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        ...headers,
-        'Content-Type': 'application/pdf',
-        'x-upsert': 'true',
-      },
-      body: buffer,
-    });
+      if (successBucket) break;
 
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text();
-      // Try slug bucket fallback
-      const slugBucket = targetBucketId.replace(/\s+/g, '-').toLowerCase();
-      if (slugBucket !== targetBucketId) {
-        const retryUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(slugBucket)}/${encodeURIComponent(cleanFileName)}`;
-        const retryRes = await fetch(retryUrl, {
+      // Try creating bucket if it doesn't exist
+      try {
+        const createRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
           method: 'POST',
           headers: {
             ...headers,
-            'Content-Type': 'application/pdf',
-            'x-upsert': 'true',
+            'Content-Type': 'application/json',
           },
-          body: buffer,
+          body: JSON.stringify({
+            id: bucketId,
+            name: rawBucketId,
+            public: true,
+            file_size_limit: 52428800,
+          }),
         });
-        if (retryRes.ok) {
-          targetBucketId = slugBucket;
-        } else {
-          const retryErr = await retryRes.text();
-          return res.status(400).json({
-            success: false,
-            error: `Erro no Supabase Storage (${uploadRes.status}): ${errText || retryErr}. Dica: Verifique se a chave SUPABASE_SECRET_KEY na Vercel é a chave "service_role" do seu projeto e se o bucket "${requestedBucket}" existe.`,
+
+        if (createRes.ok) {
+          console.log(`[Supabase Upload Robust] Bucket "${bucketId}" criado com sucesso. Tentando upload novamente...`);
+          const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(bucketId)}/${encodeURIComponent(cleanFileName)}`;
+          const uploadRes = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+              ...headers,
+              'Content-Type': 'application/pdf',
+              'x-upsert': 'true',
+            },
+            body: buffer,
           });
+
+          if (uploadRes.ok) {
+            successBucket = bucketId;
+            break;
+          }
         }
-      } else {
-        return res.status(400).json({
-          success: false,
-          error: `Erro no Supabase Storage (${uploadRes.status}): ${errText}. Dica: Verifique se a chave SUPABASE_SECRET_KEY na Vercel é a chave "service_role" do seu projeto.`,
-        });
+      } catch (createErr) {
+        // ignore creation error and continue
       }
     }
 
-    const publicUrl = `${targetUrl}/storage/v1/object/public/${encodeURIComponent(targetBucketId)}/${encodeURIComponent(cleanFileName)}`;
+    if (!successBucket) {
+      return res.status(400).json({
+        success: false,
+        error: `Não foi possível enviar o PDF para nenhum bucket do Supabase. Último erro: ${lastErrorMsg}. Certifique-se de que a chave fornecida é válida e que o bucket "${requestedBucket}" existe no painel do Supabase.`,
+      });
+    }
+
+    const publicUrl = `${targetUrl}/storage/v1/object/public/${encodeURIComponent(successBucket)}/${encodeURIComponent(cleanFileName)}`;
+    console.log(`[Supabase Upload Robust] Sucesso total! URL pública: ${publicUrl}`);
 
     return res.status(200).json({
       success: true,
       publicUrl,
-      bucket: targetBucketId,
+      bucket: successBucket,
       fileName: cleanFileName,
     });
   } catch (err: any) {
-    console.error('[Vercel Supabase Upload Error]:', err);
-    return res.status(500).json({ success: false, error: err?.message || 'Erro interno no upload para o Supabase.' });
+    console.error('[Supabase Upload Robust Exception]:', err);
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'Erro crítico interno no upload para o Supabase.',
+    });
   }
 }

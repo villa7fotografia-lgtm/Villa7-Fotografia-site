@@ -225,15 +225,18 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-[#5A4638] mb-1">
-                  Supabase Service Role / Secret Key
+                  Supabase Service Role / Secret Key <span className="text-[#8C5E3C] font-normal">(Chave secreta service_role)</span>
                 </label>
                 <input
                   type="password"
                   value={supabaseConfig.key}
                   onChange={(e) => setSupabaseConfig({ ...supabaseConfig, key: e.target.value })}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 ou service_role..."
                   className="w-full px-3.5 py-2 text-xs rounded-xl bg-white border border-[#DDD3C5] text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]"
                 />
+                <p className="text-[11px] text-[#8A7565] mt-1">
+                  ⚠️ <strong>Atenção:</strong> Não utilize chaves publicáveis (`sb_publishable_...`), pois elas bloqueiam o envio por regras de segurança (RLS). Copie a chave <strong>service_role</strong> em <em>Project Settings &gt; API &gt; Project API keys</em>.
+                </p>
               </div>
 
               <div>
