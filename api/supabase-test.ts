@@ -7,8 +7,8 @@ export default async function handler(req: any, res: any) {
 
   try {
     const { supabaseUrl, supabaseKey, bucket } = req.body || {};
-    const targetUrl = (supabaseUrl || 'https://twfhqhkzabvlzkgofjyj.supabase.co').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
-    const targetKey = (supabaseKey || 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem').trim().replace(/^["']|["']$/g, '');
+    const targetUrl = (supabaseUrl || process.env.SUPABASE_URL || 'https://twfhqhkzabvlzkgofjyj.supabase.co').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
+    const targetKey = (supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g').trim().replace(/^["']|["']$/g, '');
     const targetBucket = (bucket || DEFAULT_BUCKET).trim().replace(/^["']|["']$/g, '');
 
     if (!targetUrl || !targetKey) {

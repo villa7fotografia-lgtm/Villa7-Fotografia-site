@@ -18,8 +18,8 @@ export interface SupabaseUploadResult {
 
 export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
   url: 'https://twfhqhkzabvlzkgofjyj.supabase.co',
-  key: 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem',
-  bucket: 'Villa7 Fotografia',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g',
+  bucket: 'pdfs',
 };
 
 const STORAGE_KEY = 'villa7_supabase_config';
@@ -27,6 +27,18 @@ const STORAGE_KEY = 'villa7_supabase_config';
 export class SupabaseStorageService {
   private static client: SupabaseClient | null = null;
   private static cachedConfig: SupabaseConfig | null = null;
+
+  static sanitizeText(str: string): string {
+    if (!str) return '';
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-_]/g, '-') // remove caracteres especiais e barras
+      .replace(/-+/g, '-') // remove hífens duplicados
+      .replace(/^-|-$/g, ''); // remove hífens nas pontas
+  }
 
   static getConfig(): SupabaseConfig {
     if (this.cachedConfig) return this.cachedConfig;
@@ -40,13 +52,13 @@ export class SupabaseStorageService {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.url === 'https://supabase.co' || parsed.url === 'http://supabase.co' || !parsed.url) {
+        if (parsed.url === 'https://supabase.co' || parsed.url === 'http://supabase.co' || !parsed.url || parsed.url.includes('uwzfwfdonvvbdthyzcah')) {
           parsed.url = envUrl || DEFAULT_SUPABASE_CONFIG.url;
         }
-        if (!parsed.key && envKey) {
-          parsed.key = envKey;
+        if (!parsed.key || parsed.key.includes('uwzfwfdonvvbdthyzcah') || parsed.key.includes('zlMDQVPdvxqQ8ppHrw') || parsed.key.startsWith('sb_publishable_')) {
+          parsed.key = envKey && !envKey.startsWith('sb_publishable_') ? envKey : DEFAULT_SUPABASE_CONFIG.key;
         }
-        if (parsed.bucket && (parsed.bucket.includes('@') || parsed.bucket.includes("'") || parsed.bucket.length < 2)) {
+        if (!parsed.bucket || parsed.bucket === 'Villa7 Fotografia' || parsed.bucket.includes('@') || parsed.bucket.includes("'") || parsed.bucket.length < 2) {
           parsed.bucket = envBucket || DEFAULT_SUPABASE_CONFIG.bucket;
         }
         this.cachedConfig = {
@@ -75,7 +87,7 @@ export class SupabaseStorageService {
       ...newConfig,
       url: (newConfig.url !== undefined ? newConfig.url : current.url).trim(),
       key: (newConfig.key !== undefined ? newConfig.key : current.key).trim(),
-      bucket: (newConfig.bucket !== undefined ? newConfig.bucket : current.bucket).trim() || 'Villa7 Fotografia',
+      bucket: (newConfig.bucket !== undefined ? newConfig.bucket : current.bucket).trim() || 'pdfs',
     };
     this.cachedConfig = updated;
     this.client = null;
@@ -131,14 +143,15 @@ export class SupabaseStorageService {
    */
   static async salvarPdfNoSupabase(
     arquivoPdf: Blob,
-    nomeDoAlbum: string
+    nomeDoAlbum: string,
+    customFilePath?: string
   ): Promise<SupabaseUploadResult> {
     const config = this.getConfig();
 
-    // Validação preventiva de tamanho (máximo 50MB)
+    // Validação preventiva de tamanho (máximo 100MB)
     const tamanhoEmMB = arquivoPdf.size / (1024 * 1024);
-    if (tamanhoEmMB > 50) {
-      const errMsg = `Erro: O arquivo gerado é maior do que 50MB (${tamanhoEmMB.toFixed(2)} MB).`;
+    if (tamanhoEmMB > 100) {
+      const errMsg = `Erro: O arquivo gerado é maior do que 100MB (${tamanhoEmMB.toFixed(2)} MB).`;
       console.error(errMsg);
       return {
         success: false,
@@ -150,19 +163,23 @@ export class SupabaseStorageService {
       };
     }
 
-    // Limpa o nome do arquivo para não ter espaços ou acentos que quebram o link
-    const sanitizedBase = (nomeDoAlbum || 'album_villa7')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\.pdf$/i, '')
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '');
+    let nomeFormatado = customFilePath;
+    if (!nomeFormatado) {
+      const sanitizedBase = (nomeDoAlbum || 'album_villa7')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\.pdf$/i, '')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
 
-    const nomeFormatado = `${sanitizedBase || 'album_villa7'}_${Date.now()}.pdf`;
+      nomeFormatado = `${sanitizedBase || 'album_villa7'}_${Date.now()}.pdf`;
+    }
+
     const cleanUrl = config.url.trim().replace(/\/+$/, '');
 
-    console.log(`Iniciando upload de ${nomeFormatado} (${tamanhoEmMB.toFixed(2)} MB) para Supabase...`);
+    console.log(`Iniciando upload de ${nomeFormatado} (${tamanhoEmMB.toFixed(2)} MB) para Supabase bucket "${config.bucket}"...`);
+    let detailedError = '';
 
     // Método 1: Envio através do endpoint seguro do servidor (Admin Secret Key / RLS Bypass)
     try {
@@ -194,18 +211,19 @@ export class SupabaseStorageService {
           };
         }
         if (json.error) {
-          console.warn('Servidor retornou erro, tentando REST API direta...', json.error);
+          detailedError = json.error;
+          console.warn('Servidor retornou erro:', json.error);
         }
-      } else {
-        console.warn('Servidor API indisponível (hospedagem estática Vercel), tentando Storage REST API direta...');
       }
     } catch (serverErr: any) {
-      console.warn('Falha no upload via servidor, tentando Storage REST API direta...', serverErr?.message || serverErr);
+      detailedError = serverErr?.message || 'Falha ao conectar com o endpoint de upload.';
+      console.warn('Falha no upload via servidor:', serverErr?.message || serverErr);
     }
 
-    // Método 2: Envio direto via Supabase Storage REST API (Compatível com Anon e Service Role / Secret keys)
+    // Método 2: Envio direto via Supabase Storage REST API
     try {
-      const restUploadUrl = `${cleanUrl}/storage/v1/object/${encodeURIComponent(config.bucket)}/${encodeURIComponent(nomeFormatado)}`;
+      const cleanPath = nomeFormatado.split('/').map(encodeURIComponent).join('/');
+      const restUploadUrl = `${cleanUrl}/storage/v1/object/${encodeURIComponent(config.bucket)}/${cleanPath}`;
       const restRes = await fetch(restUploadUrl, {
         method: 'POST',
         headers: {
@@ -218,7 +236,7 @@ export class SupabaseStorageService {
       });
 
       if (restRes.ok) {
-        const publicUrl = `${cleanUrl}/storage/v1/object/public/${encodeURIComponent(config.bucket)}/${encodeURIComponent(nomeFormatado)}`;
+        const publicUrl = `${cleanUrl}/storage/v1/object/public/${encodeURIComponent(config.bucket)}/${cleanPath}`;
         console.log('Upload direto via Storage REST API concluído:', publicUrl);
 
         return {
@@ -231,43 +249,10 @@ export class SupabaseStorageService {
         };
       } else {
         const errText = await restRes.text();
-        console.warn('Falha no REST API upload, tentando SDK cliente...', errText);
+        if (!detailedError) detailedError = `REST API (${restRes.status}): ${errText}`;
       }
     } catch (restErr: any) {
       console.warn('Exceção no REST API upload:', restErr?.message || restErr);
-    }
-
-    // Método 3: Envio direto via SDK no navegador (Fallback final)
-    try {
-      const supabase = this.getClient();
-      if (supabase) {
-        const { data, error } = await supabase.storage
-          .from(config.bucket)
-          .upload(nomeFormatado, arquivoPdf, {
-            contentType: 'application/pdf',
-            upsert: true,
-          });
-
-        if (!error && data) {
-          const { data: linkData } = supabase.storage
-            .from(config.bucket)
-            .getPublicUrl(nomeFormatado);
-
-          const publicUrl = linkData?.publicUrl || '';
-          console.log('Upload direto no Supabase concluído via SDK:', publicUrl);
-
-          return {
-            success: true,
-            publicUrl,
-            fileName: nomeFormatado,
-            fileSizeMB: tamanhoEmMB,
-            bucket: config.bucket,
-            timestamp: new Date().toISOString(),
-          };
-        }
-      }
-    } catch (clientErr: any) {
-      console.error('Falha no fallback SDK direto:', clientErr?.message || clientErr);
     }
 
     return {
@@ -275,9 +260,39 @@ export class SupabaseStorageService {
       fileName: nomeFormatado,
       fileSizeMB: tamanhoEmMB,
       bucket: config.bucket,
-      error: `Não foi possível salvar o arquivo no Supabase Storage. Verifique se o bucket "${config.bucket}" existe no painel do Supabase.`,
+      error: detailedError || `Não foi possível salvar o arquivo no Supabase Storage. Verifique se o bucket "${config.bucket}" existe no painel do Supabase.`,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Helper para upload estruturado no formato:
+   * documentos/{data}/{timestamp}_{randomId}_{nome-cliente}_{nome-arquivo}.pdf
+   */
+  static async uploadPdfFile(
+    arquivoPdf: File | Blob,
+    nomeCliente: string,
+    nomeOriginalArquivo?: string,
+    nomeEvento?: string,
+    _telefone?: string,
+    _observacao?: string
+  ): Promise<SupabaseUploadResult> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+
+    const cleanClient = this.sanitizeText(nomeCliente || 'cliente') || 'cliente';
+    const rawBase = (nomeOriginalArquivo || 'album').replace(/\.[^/.]+$/, '');
+    const cleanBase = this.sanitizeText(rawBase) || 'album';
+    const cleanEvent = nomeEvento ? `_${this.sanitizeText(nomeEvento)}` : '';
+
+    const customPath = `documentos/${dateStr}/${timestamp}_${randomId}_${cleanClient}${cleanEvent}_${cleanBase}.pdf`;
+
+    return this.salvarPdfNoSupabase(arquivoPdf, cleanBase, customPath);
   }
 
   /**

@@ -212,30 +212,61 @@ export async function renderCoverToCanvas(
   ctx.fillStyle = project.cover.bgColor || '#FFFFFF';
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // Front Cover Area (right half: x from 1250 to 2350, y from 80 to 1520)
-  const frontX = 1250;
-  const frontY = 80;
-  const frontW = 1070;
-  const frontH = 1440;
+  // Front Cover Area (right half: x from 1200 to 2400, center at 1800)
+  const frontCenterX = 1800;
+  const photoW = 880;
+  const photoH = 980;
+  const photoX = frontCenterX - photoW / 2; // 1360
+  const photoY = 120;
 
-  // If cover has a photograph
+  // If cover has a photograph (check cover image or fallback to first project photo)
   let coverImg = loadedImages.get('cover-image');
   if (!coverImg && project.cover.imageUrl) {
     coverImg = await loadImage(project.cover.imageUrl);
     loadedImages.set('cover-image', coverImg);
   }
+  if (!coverImg && project.photos && project.photos.length > 0 && project.photos[0].url) {
+    coverImg = loadedImages.get(project.photos[0].id) || await loadImage(project.photos[0].url);
+  }
 
   if (coverImg) {
     ctx.save();
-    // Capa fotográfica vertical 15x20
-    const photoW = 860;
-    const photoH = 1000;
-    const photoX = frontX + (frontW - photoW) / 2;
-    const photoY = frontY + 60;
+    // ZERO DISTORÇÃO: Cálculo matemático preciso mantendo proporção natural da imagem
+    const imgNatW = coverImg.naturalWidth || coverImg.width || 1200;
+    const imgNatH = coverImg.naturalHeight || coverImg.height || 800;
+    const imgAspect = imgNatW / imgNatH;
+    const targetAspect = photoW / photoH;
 
-    // Foto da capa
-    ctx.drawImage(coverImg, photoX, photoY, photoW, photoH);
+    let drawW = photoW;
+    let drawH = photoH;
+    let drawX = photoX;
+    let drawY = photoY;
+
+    if (imgAspect > targetAspect) {
+      // Imagem mais larga que a área: preenche altura e centraliza horizontalmente sem esticar
+      drawH = photoH;
+      drawW = photoH * imgAspect;
+      drawX = photoX + (photoW - drawW) / 2;
+      drawY = photoY;
+    } else {
+      // Imagem mais alta que a área: preenche largura e centraliza verticalmente sem esticar
+      drawW = photoW;
+      drawH = photoW / imgAspect;
+      drawX = photoX;
+      drawY = photoY + (photoH - drawH) / 2;
+    }
+
+    // Clip retangular na área designada da capa com cantos finos
+    ctx.beginPath();
+    ctx.rect(photoX, photoY, photoW, photoH);
+    ctx.clip();
+    ctx.drawImage(coverImg, drawX, drawY, drawW, drawH);
     ctx.restore();
+
+    // Moldura fina editorial
+    ctx.strokeStyle = '#E0D6C8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(photoX, photoY, photoW, photoH);
   }
 
   // Cover Typography
@@ -244,37 +275,37 @@ export async function renderCoverToCanvas(
   ctx.textAlign = 'center';
 
   // Front Cover Title
-  ctx.font = 'bold 52px "Cinzel", "Cormorant Garamond", serif';
+  ctx.font = 'bold 48px "Cinzel", "Cormorant Garamond", serif';
   ctx.fillText(
     project.cover.title || project.clientData.albumTitle || 'VILLA7 MEMÓRIAS',
-    frontX + frontW / 2,
-    frontY + 1200
+    frontCenterX,
+    1190
   );
 
   // Front Cover Subtitle
-  ctx.font = 'italic 30px "Cormorant Garamond", serif';
+  ctx.font = 'italic 26px "Cormorant Garamond", serif';
   ctx.fillStyle = '#6E5C50';
   ctx.fillText(
     project.cover.subtitle || project.clientData.albumSubtitle || 'Coleção de Momentos',
-    frontX + frontW / 2,
-    frontY + 1265
+    frontCenterX,
+    1255
   );
 
   // Year / Date
-  ctx.font = '22px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '20px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = '#8C7A6B';
   ctx.fillText(
     project.cover.yearOrDate || new Date().getFullYear().toString(),
-    frontX + frontW / 2,
-    frontY + 1320
+    frontCenterX,
+    1315
   );
 
-  // Spine Title (center column x: 1160 - 1240)
+  // Spine Title (center column x: 1200)
   ctx.save();
   ctx.translate(1200, canvasHeight / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
+  ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = '#8C7A6B';
   ctx.fillText(
     `${project.cover.title || project.clientData.albumTitle || 'VILLA7 ÁLBUNS'} • ${project.clientData.name || ''}`,
@@ -283,12 +314,12 @@ export async function renderCoverToCanvas(
   );
   ctx.restore();
 
-  // Back cover branding
+  // Back cover branding (center at 600)
   ctx.textAlign = 'center';
-  ctx.font = 'bold 28px "Cinzel", serif';
+  ctx.font = 'bold 26px "Cinzel", serif';
   ctx.fillStyle = '#8C7A6B';
   ctx.fillText('VILLA7 ÁLBUNS', 600, canvasHeight / 2 - 15);
-  ctx.font = '16px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '15px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = '#A39282';
   ctx.fillText('MEMÓRIAS COLECIONÁVEIS • 15x20 VERTICAL', 600, canvasHeight / 2 + 20);
 
@@ -349,13 +380,13 @@ export function renderCertificateToCanvas(project: AlbumProject): HTMLCanvasElem
   const specs = [
     `• Formato Fechado: 15 x 20 cm (Vertical)`,
     `• Formato Aberto (Lâmina Dupla): 20 x 30 cm (30 x 20 cm)`,
-    `• Tipo de Capa: Capa Fotográfica 15x20 Vertical`,
+    `• Tipo de Capa: Capa Fotográfica 15x20 Vertical (Zero Distorção)`,
     `• Miolo: Branco Puro (#FFFFFF) com Impressão Livre de Linhas`,
-    `• Imposição Gráfica: 2 Lâminas por Folha A3 (Papel 297 x 420 mm)`,
+    `• Formato de Impressão: 1 Lâmina por Página A4 (297 x 210 mm)`,
     `• Total de Lâminas: ${project.spreadCount} lâminas duplas (${project.spreadCount * 2} páginas)`,
     `• Total de Fotos: ${project.photos.length} fotografias em alta resolução`,
     `• Abertura Panorâmica: 180° Flat-lay (Abertura Total sem perda na dobra)`,
-    `• Proporção: Enquadramento fotográfico sem cortes indesejados`,
+    `• Proporção: Enquadramento fotográfico sem distorções ou estiramento`,
     `• Data de Aprovação: ${project.clientData.approvalDate || new Date().toLocaleDateString('pt-BR')}`,
   ];
 
@@ -485,24 +516,20 @@ export interface PDFGenerationOptions {
   layoutMode?: 'a3_two_spreads' | 'single_spreads';
 }
 
-// Compact helper to draw discrete registration marks and ultra-compact single-line metadata outside the image area
-function drawA3SheetGuides(
+// Compact helper to draw discrete registration marks and ultra-compact single-line metadata outside the image area on A4 landscape (297 x 210 mm)
+function drawA4SheetGuides(
   pdf: jsPDF,
-  sheetNumber: number,
-  totalSheets: number,
+  pageNumber: number,
+  totalPages: number,
   project: AlbumProject,
-  topLabel: string,
-  bottomLabel: string
+  pageLabel: string
 ) {
   const pageWidth = 297; // mm
-  const pageHeight = 420; // mm
+  const pageHeight = 210; // mm
   const spreadW = 270; // mm (3:2 ratio: 270 x 180 mm)
   const spreadH = 180; // mm (3:2 ratio: 270 x 180 mm)
-  const spreadX = (pageWidth - spreadW) / 2; // 13.5 mm
-
-  const topSpreadY = 18; // mm (extends 18 to 198 mm)
-  const cutLineY = 208; // mm
-  const bottomSpreadY = 218; // mm (extends 218 to 398 mm)
+  const spreadX = (pageWidth - spreadW) / 2; // 13.5 mm (centered)
+  const spreadY = (pageHeight - spreadH) / 2; // 15 mm (centered)
 
   const clientName = (project.clientData.name || 'Cliente').toUpperCase();
   const albumTitle = (project.cover.title || project.clientData.albumTitle || 'Álbum').toUpperCase();
@@ -512,76 +539,37 @@ function drawA3SheetGuides(
   pdf.setFontSize(6);
   pdf.setTextColor(110, 95, 85);
   pdf.text(
-    `VILLA7 • 15x20 VERTICAL (ABERTO 20x30 CM) • FOLHA ${sheetNumber}/${totalSheets} • ${topLabel} • ${clientName} — ${albumTitle}`,
+    `VILLA7 • 15x20 VERTICAL (ABERTO 20x30 CM) • PÁG ${pageNumber}/${totalPages} • ${pageLabel} • ${clientName} — ${albumTitle}`,
     spreadX,
-    topSpreadY - 3
+    spreadY - 3.5
   );
 
-  // Top spread crop marks at 4 corners (outside the spread area)
+  // Crop marks at 4 corners (outside the spread area)
   const markLen = 3.5;
   pdf.setDrawColor(160, 140, 120);
   pdf.setLineWidth(0.2);
 
   // Top-left
-  pdf.line(spreadX - markLen, topSpreadY, spreadX, topSpreadY);
-  pdf.line(spreadX, topSpreadY - markLen, spreadX, topSpreadY);
+  pdf.line(spreadX - markLen, spreadY, spreadX, spreadY);
+  pdf.line(spreadX, spreadY - markLen, spreadX, spreadY);
   // Top-right
-  pdf.line(spreadX + spreadW, topSpreadY, spreadX + spreadW + markLen, topSpreadY);
-  pdf.line(spreadX + spreadW, topSpreadY - markLen, spreadX + spreadW, topSpreadY);
+  pdf.line(spreadX + spreadW, spreadY, spreadX + spreadW + markLen, spreadY);
+  pdf.line(spreadX + spreadW, spreadY - markLen, spreadX + spreadW, spreadY);
   // Bottom-left
-  pdf.line(spreadX - markLen, topSpreadY + spreadH, spreadX, topSpreadY + spreadH);
-  pdf.line(spreadX, topSpreadY + spreadH, spreadX, topSpreadY + spreadH + markLen);
+  pdf.line(spreadX - markLen, spreadY + spreadH, spreadX, spreadY + spreadH);
+  pdf.line(spreadX, spreadY + spreadH, spreadX, spreadY + spreadH + markLen);
   // Bottom-right
-  pdf.line(spreadX + spreadW, topSpreadY + spreadH, spreadX + spreadW + markLen, topSpreadY + spreadH);
-  pdf.line(spreadX + spreadW, topSpreadY + spreadH, spreadX + spreadW + markLen, topSpreadY + spreadH);
+  pdf.line(spreadX + spreadW, spreadY + spreadH, spreadX + spreadW + markLen, spreadY + spreadH);
+  pdf.line(spreadX + spreadW, spreadY + spreadH, spreadX + spreadW + markLen, spreadY + spreadH);
 
-  // Top spread fold mark (center at x = 148.5 mm, outside the spread)
-  pdf.line(pageWidth / 2, topSpreadY - 3, pageWidth / 2, topSpreadY);
-  pdf.line(pageWidth / 2, topSpreadY + spreadH, pageWidth / 2, topSpreadY + spreadH + 3);
+  // Fold marks at center (x = 148.5 mm, outside the spread)
+  pdf.line(pageWidth / 2, spreadY - 3, pageWidth / 2, spreadY);
+  pdf.line(pageWidth / 2, spreadY + spreadH, pageWidth / 2, spreadY + spreadH + 3);
 
-  // Intermediate Cut Line (Linha de Corte entre Lâminas na folha A3)
-  pdf.saveGraphicsState();
-  pdf.setDrawColor(180, 160, 140);
-  pdf.setLineWidth(0.2);
-  pdf.setLineDashPattern([2, 2], 0);
-  pdf.line(8, cutLineY, pageWidth - 8, cutLineY);
-  pdf.restoreGraphicsState();
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(5.5);
-  pdf.setTextColor(150, 130, 115);
-  pdf.text('✂ CORTE / SEPARAÇÃO DE LÂMINAS (20x30 cm)', pageWidth / 2, cutLineY - 1.2, {
-    align: 'center',
-  });
-
-  // Bottom spread compact metadata
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(6);
-  pdf.setTextColor(110, 95, 85);
-  pdf.text(
-    `VILLA7 • 15x20 VERTICAL (ABERTO 20x30 CM) • FOLHA ${sheetNumber}/${totalSheets} • ${bottomLabel} • ${clientName} — ${albumTitle}`,
-    spreadX,
-    bottomSpreadY - 3
-  );
-
-  // Bottom spread crop marks
-  pdf.line(spreadX - markLen, bottomSpreadY, spreadX, bottomSpreadY);
-  pdf.line(spreadX, bottomSpreadY - markLen, spreadX, bottomSpreadY);
-  pdf.line(spreadX + spreadW, bottomSpreadY, spreadX + spreadW + markLen, bottomSpreadY);
-  pdf.line(spreadX + spreadW, bottomSpreadY - markLen, spreadX + spreadW, bottomSpreadY);
-  pdf.line(spreadX - markLen, bottomSpreadY + spreadH, spreadX, bottomSpreadY + spreadH);
-  pdf.line(spreadX, bottomSpreadY + spreadH, spreadX, bottomSpreadY + spreadH + markLen);
-  pdf.line(spreadX + spreadW, bottomSpreadY + spreadH, spreadX + spreadW + markLen, bottomSpreadY + spreadH);
-  pdf.line(spreadX + spreadW, bottomSpreadY + spreadH, spreadX + spreadW + markLen, bottomSpreadY + spreadH);
-
-  // Bottom spread fold mark (center at x = 148.5 mm, outside the spread)
-  pdf.line(pageWidth / 2, bottomSpreadY - 3, pageWidth / 2, bottomSpreadY);
-  pdf.line(pageWidth / 2, bottomSpreadY + spreadH, pageWidth / 2, bottomSpreadY + spreadH + 3);
-
-  // Footer CMYK Color Calibration Bars at bottom margin of A3 sheet (Y = 407 mm)
-  const colorBarY = 407;
-  const swatchW = 6;
-  const swatchH = 3;
+  // Footer CMYK Color Calibration Bars at bottom margin of A4 sheet (Y = 202 mm)
+  const colorBarY = 201.5;
+  const swatchW = 5;
+  const swatchH = 2.5;
   const colors = [
     { name: 'C', r: 0, g: 174, b: 239 },
     { name: 'M', r: 236, g: 0, b: 140 },
@@ -595,20 +583,20 @@ function drawA3SheetGuides(
 
   colors.forEach((c, idx) => {
     pdf.setFillColor(c.r, c.g, c.b);
-    pdf.rect(spreadX + idx * (swatchW + 1.5), colorBarY, swatchW, swatchH, 'F');
+    pdf.rect(spreadX + idx * (swatchW + 1.2), colorBarY, swatchW, swatchH, 'F');
   });
 
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(5.5);
+  pdf.setFontSize(5);
   pdf.setTextColor(150, 130, 110);
   pdf.text(
-    `VILLA7 FOTOGRAFIA • IMPOSIÇÃO A3 (2 LÂMINAS POR FOLHA) • MIOLO BRANCO • CONTROLE DE COR & SANGRIA`,
-    spreadX + colors.length * (swatchW + 1.5) + 5,
-    colorBarY + 2.3
+    `VILLA7 FOTOGRAFIA • 1 LÂMINA POR PÁGINA A4 (297x210 MM) • 300 DPI FINE ART • MIOLO BRANCO SEM LINHAS`,
+    spreadX + colors.length * (swatchW + 1.2) + 4,
+    colorBarY + 2
   );
 }
 
-// Primary Export Function: Generates the A3 PDF with 2 spreads (20x30 cm) per page
+// Primary Export Function: Generates the A4 High Quality PDF (1 spread 20x30 cm per A4 page)
 export async function generateAlbumPDF(
   project: AlbumProject,
   onProgress?: (progress: PDFGenerationProgress) => void,
@@ -643,102 +631,115 @@ export async function generateAlbumPDF(
 
   await Promise.all(loadPromises);
 
-  const spreadW = 270; // mm (3:2 ratio on A3 sheet: 270 x 180 mm)
+  const spreadW = 270; // mm (3:2 ratio on A4 landscape: 270 x 180 mm)
   const spreadH = 180; // mm
   const spreadX = (297 - spreadW) / 2; // 13.5 mm (centered)
-  const topSpreadY = 18; // mm
-  const bottomSpreadY = 218; // mm
+  const spreadY = (210 - spreadH) / 2; // 15 mm (centered)
 
-  onProgress?.({ step: 'Configurando formato de impressão A3 (2 Lâminas 20x30 cm por Página)...', percent: 25 });
+  onProgress?.({ step: 'Configurando formato A4 de alta qualidade (1 Lâmina 20x30 cm por Página)...', percent: 25 });
 
-  // Initialize jsPDF in A3 portrait format (297 mm x 420 mm)
+  // Initialize jsPDF in A4 landscape format (297 mm x 210 mm)
   const pdf = new jsPDF({
-    orientation: 'portrait',
+    orientation: 'landscape',
     unit: 'mm',
-    format: 'a3',
+    format: 'a4',
     compress: true,
   });
 
-  // Calculate total A3 sheets needed:
-  // Sheet 1: Certificado (Top) + Capa Aberta (Bottom)
-  // Subsequent sheets: 2 spreads per sheet
+  // Calculate total A4 pages:
+  // Page 1: Capa do Álbum 15x20 Vertical (Aberta 30x20 cm)
+  // Page 2: Certificado de Produção & Homologação Técnica
+  // Pages 3..(2 + totalSpreads): 1 Spread por página A4
+  // Final Page: Controle de Qualidade Gráfica & Fechamento
   const totalSpreads = project.spreads.length;
-  const spreadSheetsCount = Math.ceil(totalSpreads / 2);
-  const totalSheets = 1 + spreadSheetsCount;
+  const totalPages = 2 + totalSpreads + 1;
+  let currentPage = 1;
 
   // =========================================================================
-  // SHEET 1: Certificado de Produção (Top) + Capa do Álbum 15x20 (Bottom)
+  // PAGE 1: Capa do Álbum 15x20 Vertical (Aberta 30x20 cm com Foto sem Distorção)
   // =========================================================================
-  onProgress?.({ step: 'Gerando Folha 1 de Impressão A3 (Certificado & Capa Fotográfica 15x20)...', percent: 35 });
-
-  const certCanvas = renderCertificateToCanvas(project);
-  const certData = certCanvas.toDataURL('image/jpeg', 0.95);
-  pdf.addImage(certData, 'JPEG', spreadX, topSpreadY, spreadW, spreadH, undefined, 'FAST');
+  onProgress?.({ step: 'Renderizando Capa Fotográfica 15x20 (Página 1 A4)...', percent: 35 });
 
   const coverCanvas = await renderCoverToCanvas(project, loadedImages);
-  const coverData = coverCanvas.toDataURL('image/jpeg', 0.95);
-  pdf.addImage(coverData, 'JPEG', spreadX, bottomSpreadY, spreadW, spreadH, undefined, 'FAST');
+  const coverData = coverCanvas.toDataURL('image/jpeg', 0.96);
+  pdf.addImage(coverData, 'JPEG', spreadX, spreadY, spreadW, spreadH, undefined, 'FAST');
 
-  drawA3SheetGuides(
+  drawA4SheetGuides(
     pdf,
-    1,
-    totalSheets,
+    currentPage,
+    totalPages,
     project,
-    'CERTIFICADO DE PRODUÇÃO & ESPECIFICAÇÃO',
     'CAPA FOTOGRÁFICA 15x20 VERTICAL (ABERTA 30x20 CM)'
   );
 
   // =========================================================================
-  // SHEETS 2+: 2 Spreads (20x30 cm) per A3 Page
+  // PAGE 2: Certificado de Produção & Homologação Técnica
   // =========================================================================
-  for (let sheetIdx = 0; sheetIdx < spreadSheetsCount; sheetIdx++) {
-    const spreadIndexA = sheetIdx * 2;
-    const spreadIndexB = sheetIdx * 2 + 1;
-    const currentSheetNumber = sheetIdx + 2;
+  currentPage++;
+  pdf.addPage('a4', 'landscape');
+  onProgress?.({ step: 'Renderizando Certificado de Homologação Técnica (Página 2 A4)...', percent: 45 });
 
-    const progressPercent = Math.round(40 + ((sheetIdx + 1) / spreadSheetsCount) * 55);
+  const certCanvas = renderCertificateToCanvas(project);
+  const certData = certCanvas.toDataURL('image/jpeg', 0.96);
+  pdf.addImage(certData, 'JPEG', spreadX, spreadY, spreadW, spreadH, undefined, 'FAST');
+
+  drawA4SheetGuides(
+    pdf,
+    currentPage,
+    totalPages,
+    project,
+    'CERTIFICADO DE PRODUÇÃO & ESPECIFICAÇÕES TÉCNICAS'
+  );
+
+  // =========================================================================
+  // PAGES 3 to N+2: 1 Lâmina (20x30 cm) por Página A4
+  // =========================================================================
+  for (let spreadIdx = 0; spreadIdx < totalSpreads; spreadIdx++) {
+    currentPage++;
+    pdf.addPage('a4', 'landscape');
+
+    const progressPercent = Math.round(45 + ((spreadIdx + 1) / totalSpreads) * 45);
     onProgress?.({
-      step: `Renderizando Folha ${currentSheetNumber} de ${totalSheets} (Lâminas ${spreadIndexA + 1}${spreadIndexB < totalSpreads ? ` e ${spreadIndexB + 1}` : ''})...`,
+      step: `Renderizando Lâmina ${spreadIdx + 1} de ${totalSpreads} (Págs ${spreadIdx * 2 + 1}-${spreadIdx * 2 + 2}) em página A4 dedicada...`,
       percent: progressPercent,
     });
 
-    pdf.addPage('a3', 'portrait');
+    const spread = project.spreads[spreadIdx];
+    const canvas = await renderSpreadToCanvas(spread, photosMap, loadedImages, project, spreadIdx);
+    const data = canvas.toDataURL('image/jpeg', 0.96);
+    pdf.addImage(data, 'JPEG', spreadX, spreadY, spreadW, spreadH, undefined, 'FAST');
 
-    // Render Top Spread (spreadIndexA)
-    const spreadA = project.spreads[spreadIndexA];
-    const canvasA = await renderSpreadToCanvas(spreadA, photosMap, loadedImages, project, spreadIndexA);
-    const dataA = canvasA.toDataURL('image/jpeg', 0.95);
-    pdf.addImage(dataA, 'JPEG', spreadX, topSpreadY, spreadW, spreadH, undefined, 'FAST');
-
-    const topLabel = `LÂMINA ${spreadIndexA + 1} DE ${totalSpreads} (PÁGS ${spreadIndexA * 2 + 1}-${spreadIndexA * 2 + 2})`;
-
-    let bottomLabel = '';
-    // Render Bottom Spread (spreadIndexB) if exists
-    if (spreadIndexB < totalSpreads) {
-      const spreadB = project.spreads[spreadIndexB];
-      const canvasB = await renderSpreadToCanvas(spreadB, photosMap, loadedImages, project, spreadIndexB);
-      const dataB = canvasB.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(dataB, 'JPEG', spreadX, bottomSpreadY, spreadW, spreadH, undefined, 'FAST');
-      bottomLabel = `LÂMINA ${spreadIndexB + 1} DE ${totalSpreads} (PÁGS ${spreadIndexB * 2 + 1}-${spreadIndexB * 2 + 2})`;
-    } else {
-      // If odd number of spreads, render technical quality checklist
-      const closingCanvas = renderQualityControlToCanvas(project);
-      const closingData = closingCanvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(closingData, 'JPEG', spreadX, bottomSpreadY, spreadW, spreadH, undefined, 'FAST');
-      bottomLabel = 'CONTROLE DE QUALIDADE GRÁFICA & FECHAMENTO';
-    }
-
-    drawA3SheetGuides(pdf, currentSheetNumber, totalSheets, project, topLabel, bottomLabel);
+    const spreadLabel = `LÂMINA ${spreadIdx + 1} DE ${totalSpreads} (PÁGINAS ${spreadIdx * 2 + 1}-${spreadIdx * 2 + 2})`;
+    drawA4SheetGuides(pdf, currentPage, totalPages, project, spreadLabel);
   }
 
-  onProgress?.({ step: 'Finalizando arquivo PDF de impressão A3 de alta resolução...', percent: 98 });
+  // =========================================================================
+  // FINAL PAGE: Controle de Qualidade Gráfica & Fechamento
+  // =========================================================================
+  currentPage++;
+  pdf.addPage('a4', 'landscape');
+  onProgress?.({ step: 'Renderizando Controle de Qualidade Gráfica (Página Final A4)...', percent: 95 });
+
+  const qualityCanvas = renderQualityControlToCanvas(project);
+  const qualityData = qualityCanvas.toDataURL('image/jpeg', 0.96);
+  pdf.addImage(qualityData, 'JPEG', spreadX, spreadY, spreadW, spreadH, undefined, 'FAST');
+
+  drawA4SheetGuides(
+    pdf,
+    currentPage,
+    totalPages,
+    project,
+    'CONTROLE DE QUALIDADE GRÁFICA & FECHAMENTO'
+  );
+
+  onProgress?.({ step: 'Finalizando arquivo PDF A4 de alta resolução para impressão...', percent: 98 });
 
   const fileName = generateUniqueAlbumFileName(project);
 
   const blob = pdf.output('blob');
   const dataUri = pdf.output('datauristring');
 
-  onProgress?.({ step: 'PDF de Impressão A3 gerado com sucesso!', percent: 100 });
+  onProgress?.({ step: 'PDF A4 de Alta Qualidade gerado com sucesso!', percent: 100 });
 
   return { blob, fileName, dataUri };
 }

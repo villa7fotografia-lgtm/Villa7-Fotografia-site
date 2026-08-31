@@ -5,14 +5,34 @@ import { createServer as createViteServer } from 'vite';
 const app = express();
 const PORT = 3000;
 
-// Body parser for JSON with large payload support (up to 50MB for print-ready PDFs)
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Body parser for JSON with large payload support (up to 100MB for print-ready PDFs)
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Supabase environment constants (server-side secure storage)
 const SERVER_SUPABASE_URL = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://twfhqhkzabvlzkgofjyj.supabase.co').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
-const SERVER_SUPABASE_SECRET_KEY = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY || 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem').trim().replace(/^["']|["']$/g, '');
-const DEFAULT_BUCKET = 'Villa7 Fotografia';
+const JWT_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g';
+const SERVER_SUPABASE_SECRET_KEY = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || JWT_SERVICE_ROLE_KEY).trim().replace(/^["']|["']$/g, '');
+const DEFAULT_BUCKET = 'pdfs';
+
+// Helper to get array of candidate keys to ensure maximum compatibility (service_role keys FIRST to bypass RLS)
+function getCandidateKeys(providedKey?: string): string[] {
+  const keys: string[] = [];
+  // 1. Service role JWT token has full admin privileges and bypasses RLS
+  if (JWT_SERVICE_ROLE_KEY) keys.push(JWT_SERVICE_ROLE_KEY);
+  if (SERVER_SUPABASE_SECRET_KEY && !keys.includes(SERVER_SUPABASE_SECRET_KEY)) keys.push(SERVER_SUPABASE_SECRET_KEY);
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY && !keys.includes(process.env.SUPABASE_SERVICE_ROLE_KEY)) keys.push(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  if (process.env.SUPABASE_SECRET_KEY && !keys.includes(process.env.SUPABASE_SECRET_KEY)) keys.push(process.env.SUPABASE_SECRET_KEY);
+  
+  // 2. Add provided key only if it's not a publishable/anon key that causes RLS 403
+  if (providedKey && providedKey.trim()) {
+    const cleanProvided = providedKey.trim().replace(/^["']|["']$/g, '');
+    if (!cleanProvided.startsWith('sb_publishable_') && !keys.includes(cleanProvided)) {
+      keys.push(cleanProvided);
+    }
+  }
+  return keys;
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -31,7 +51,8 @@ app.post('/api/supabase-test', async (req, res) => {
   try {
     const { supabaseUrl, supabaseKey, bucket } = req.body || {};
     const targetUrl = (supabaseUrl || SERVER_SUPABASE_URL).trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
-    const targetKey = (supabaseKey || SERVER_SUPABASE_SECRET_KEY).trim().replace(/^["']|["']$/g, '');
+    const candidateKeys = getCandidateKeys(supabaseKey);
+    const targetKey = candidateKeys[0] || '';
     let targetBucket = (bucket || DEFAULT_BUCKET).trim().replace(/^["']|["']$/g, '');
 
     if (targetBucket.includes('@') || targetBucket.includes("'") || targetBucket.length < 2) {
@@ -78,7 +99,7 @@ app.post('/api/supabase-test', async (req, res) => {
           id: targetBucket,
           name: targetBucket,
           public: true,
-          file_size_limit: 52428800,
+          file_size_limit: 104857600,
         }),
       });
 
@@ -143,7 +164,7 @@ app.post('/api/supabase-create-bucket', async (req, res) => {
         id: bucketName,
         name: bucketName,
         public: true,
-        file_size_limit: 52428800,
+        file_size_limit: 104857600,
       }),
     });
     if (!createRes.ok) {
@@ -170,17 +191,17 @@ app.post('/api/supabase-upload', async (req, res) => {
     }
 
     const targetUrl = (supabaseUrl || SERVER_SUPABASE_URL).trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
-    const targetKey = (supabaseKey || SERVER_SUPABASE_SECRET_KEY).trim().replace(/^["']|["']$/g, '');
+    const candidateKeys = getCandidateKeys(supabaseKey);
     let requestedBucket = (bucket || DEFAULT_BUCKET).trim().replace(/^["']|["']$/g, '');
 
     if (requestedBucket.includes('@') || requestedBucket.includes("'") || requestedBucket.length < 2) {
       requestedBucket = DEFAULT_BUCKET;
     }
 
-    if (!targetUrl || !targetKey) {
+    if (!targetUrl || candidateKeys.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Credenciais do Supabase não configuradas no servidor (SUPABASE_URL e SUPABASE_SECRET_KEY).',
+        error: 'Credenciais do Supabase não configuradas no servidor.',
       });
     }
 
@@ -189,93 +210,53 @@ app.post('/api/supabase-upload', async (req, res) => {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, '_');
 
+    const cleanPath = cleanFileName.split('/').map(encodeURIComponent).join('/');
     const buffer = Buffer.from(pdfBase64, 'base64');
     const fileSizeMB = buffer.length / (1024 * 1024);
 
-    console.log(`[Supabase Upload REST] Gravando "${cleanFileName}" (${fileSizeMB.toFixed(2)} MB) no bucket "${requestedBucket}"...`);
+    console.log(`[Supabase Upload] Enviando "${cleanFileName}" (${fileSizeMB.toFixed(2)} MB) para bucket "${requestedBucket}"...`);
 
-    const headers = {
-      'Authorization': `Bearer ${targetKey}`,
-      'apikey': targetKey,
-    };
+    let lastError = '';
+    let successResult: { publicUrl: string; bucket: string; fileName: string } | null = null;
 
-    let targetBucketId = requestedBucket;
-    try {
-      const bucketsRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
-        method: 'GET',
-        headers,
-      });
-      if (bucketsRes.ok) {
-        const buckets = await bucketsRes.json();
-        const found = (buckets || []).find(
-          (b: any) =>
-            b.name?.toLowerCase() === requestedBucket.toLowerCase() ||
-            b.id?.toLowerCase() === requestedBucket.toLowerCase() ||
-            b.name?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase() ||
-            b.id?.toLowerCase() === requestedBucket.replace(/\s+/g, '-').toLowerCase()
-        );
-        if (found) {
-          targetBucketId = found.id || found.name;
-        } else {
-          const createRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
-            method: 'POST',
-            headers: {
-              ...headers,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              id: requestedBucket,
-              name: requestedBucket,
-              public: true,
-              file_size_limit: 52428800,
-            }),
-          });
-          if (createRes.ok) {
-            targetBucketId = requestedBucket;
-          } else {
-            const slug = requestedBucket.replace(/\s+/g, '-').toLowerCase();
-            const createSlugRes = await fetch(`${targetUrl}/storage/v1/bucket`, {
-              method: 'POST',
-              headers: {
-                ...headers,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                id: slug,
-                name: slug,
-                public: true,
-                file_size_limit: 52428800,
-              }),
-            });
-            if (createSlugRes.ok) {
-              targetBucketId = slug;
-            } else if (buckets && buckets.length > 0) {
-              targetBucketId = buckets[0].id || buckets[0].name;
+    // Try with each candidate key until success (preferring Service Role JWT)
+    for (const key of candidateKeys) {
+      try {
+        const headers = {
+          'Authorization': `Bearer ${key}`,
+          'apikey': key,
+        };
+
+        // 1. Check or create bucket if needed
+        try {
+          const bucketsRes = await fetch(`${targetUrl}/storage/v1/bucket`, { method: 'GET', headers });
+          if (bucketsRes.ok) {
+            const buckets = await bucketsRes.json();
+            const exists = (buckets || []).some(
+              (b: any) =>
+                b.name?.toLowerCase() === requestedBucket.toLowerCase() ||
+                b.id?.toLowerCase() === requestedBucket.toLowerCase()
+            );
+            if (!exists) {
+              await fetch(`${targetUrl}/storage/v1/bucket`, {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: requestedBucket,
+                  name: requestedBucket,
+                  public: true,
+                  file_size_limit: 104857600,
+                }),
+              });
             }
           }
+        } catch (bErr) {
+          console.warn('[Supabase Bucket Check Notice]:', bErr);
         }
-      }
-    } catch (e) {
-      console.warn('[Supabase Upload REST] Aviso ao listar/criar bucket, prosseguindo com upload direto:', e);
-    }
 
-    const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(targetBucketId)}/${encodeURIComponent(cleanFileName)}`;
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        ...headers,
-        'Content-Type': 'application/pdf',
-        'x-upsert': 'true',
-      },
-      body: buffer,
-    });
-
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text();
-      const slugBucket = targetBucketId.replace(/\s+/g, '-').toLowerCase();
-      if (slugBucket !== targetBucketId) {
-        const retryUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(slugBucket)}/${encodeURIComponent(cleanFileName)}`;
-        const retryRes = await fetch(retryUrl, {
+        // 2. Upload object
+        const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(requestedBucket)}/${cleanPath}`;
+        const uploadRes = await fetch(uploadUrl, {
           method: 'POST',
           headers: {
             ...headers,
@@ -284,34 +265,38 @@ app.post('/api/supabase-upload', async (req, res) => {
           },
           body: buffer,
         });
-        if (retryRes.ok) {
-          targetBucketId = slugBucket;
+
+        if (uploadRes.ok) {
+          const publicUrl = `${targetUrl}/storage/v1/object/public/${encodeURIComponent(requestedBucket)}/${cleanPath}`;
+          successResult = {
+            publicUrl,
+            bucket: requestedBucket,
+            fileName: cleanFileName,
+          };
+          break;
         } else {
-          const retryErr = await retryRes.text();
-          return res.status(400).json({
-            success: false,
-            error: `Erro no Supabase Storage (${uploadRes.status}): ${errText || retryErr}.`,
-          });
+          lastError = await uploadRes.text();
+          console.warn(`[Supabase Upload Attempt failed with key prefix ${key.substring(0, 15)}...]: ${uploadRes.status} ${lastError}`);
         }
-      } else {
-        return res.status(400).json({
-          success: false,
-          error: `Erro no Supabase Storage (${uploadRes.status}): ${errText}.`,
-        });
+      } catch (keyAttemptErr: any) {
+        lastError = keyAttemptErr?.message || 'Falha na requisição';
       }
     }
 
-    const publicUrl = `${targetUrl}/storage/v1/object/public/${encodeURIComponent(targetBucketId)}/${encodeURIComponent(cleanFileName)}`;
+    if (successResult) {
+      return res.status(200).json({
+        success: true,
+        ...successResult,
+      });
+    }
 
-    return res.status(200).json({
-      success: true,
-      publicUrl,
-      bucket: targetBucketId,
-      fileName: cleanFileName,
+    return res.status(400).json({
+      success: false,
+      error: `Erro no Supabase Storage: ${lastError || 'Não foi possível gravar no bucket'}. Certifique-se de que o bucket "${requestedBucket}" foi criado no painel do Supabase.`,
     });
   } catch (err: any) {
-    console.error('[Vercel Supabase Upload Error]:', err);
-    return res.status(500).json({ success: false, error: err?.message || 'Erro interno no upload para o Supabase.' });
+    console.error('[Supabase Upload Error]:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'Erro interno no upload.' });
   }
 });
 

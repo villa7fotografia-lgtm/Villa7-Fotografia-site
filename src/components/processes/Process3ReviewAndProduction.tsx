@@ -14,7 +14,6 @@ import {
   FileCheck,
   Send,
   Printer,
-  Database,
   Cloud,
 } from 'lucide-react';
 import { AlbumProject, PhotoItem } from '../../types';
@@ -53,30 +52,41 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
     null
   );
   const [isSentSuccessfully, setIsSentSuccessfully] = useState<boolean>(false);
-  const [supabaseResult, setSupabaseResult] = useState<SupabaseUploadResult | null>(null);
+  const [, setSupabaseResult] = useState<SupabaseUploadResult | null>(null);
 
-  const [supabaseConfig, setSupabaseConfig] = useState(() => SupabaseStorageService.getConfig());
-  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
-  const [testResult, setTestResult] = useState<{ success?: boolean; message?: string } | null>(null);
-  const [showSupabaseSettings, setShowSupabaseSettings] = useState(false);
+  const [isUploadingManual, setIsUploadingManual] = useState(false);
+  const [manualUploadResult, setManualUploadResult] = useState<SupabaseUploadResult | null>(null);
 
-  const handleSaveSupabaseConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    const updated = SupabaseStorageService.saveConfig(supabaseConfig);
-    setSupabaseConfig(updated);
-    setTestResult({ success: true, message: 'Configurações salvas com sucesso no navegador!' });
-  };
+  const handleManualPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handleTestSupabaseConnection = async () => {
-    setIsTestingSupabase(true);
-    setTestResult(null);
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Por favor, selecione um arquivo PDF válido.');
+      return;
+    }
+
+    setIsUploadingManual(true);
+    setManualUploadResult(null);
+
     try {
-      const res = await SupabaseStorageService.testConnection();
-      setTestResult({ success: res.success, message: res.message });
+      const res = await SupabaseStorageService.salvarPdfNoSupabase(file, file.name.replace(/\.[^/.]+$/, ''));
+      setManualUploadResult(res);
+      if (res.success) {
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      }
     } catch (err: any) {
-      setTestResult({ success: false, message: err?.message || 'Erro ao testar conexão.' });
+      setManualUploadResult({
+        success: false,
+        fileName: file.name,
+        fileSizeMB: file.size / (1024 * 1024),
+        bucket: 'pdfs',
+        error: err?.message || 'Erro ao enviar PDF.',
+        timestamp: new Date().toISOString(),
+      });
     } finally {
-      setIsTestingSupabase(false);
+      setIsUploadingManual(false);
+      e.target.value = '';
     }
   };
 
@@ -129,6 +139,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
     try {
       setIsGenerating(true);
       setIsSentSuccessfully(false);
+      setSupabaseResult(null);
 
       // 1. Generate Album PDF
       const generated = await generateAlbumPDF(project, (prog) => {
@@ -136,27 +147,45 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
       });
       setPdfData(generated);
 
-      // 2. Upload silently to Supabase Storage in the background
-      setGenerationProgress({
-        step: 'Finalizando envio para a produção...',
-        percent: 90,
-      });
+      // 2. Prepare structured path for Supabase Storage (bucket 'pdfs')
+      // documentos/{data}/{timestamp}_{id-aleatorio}_{nome-cliente}_{nome-arquivo}.pdf
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 8);
 
-      const albumNameParam = project.clientData.name
-        ? `album_${project.clientData.name}`
-        : 'album_villa7_fotografia';
+      const sanitizeText = (str: string) => {
+        if (!str) return 'cliente';
+        return str
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9-_]/g, '-')
+          .replace(/-+/g, '-');
+      };
 
-      const supRes = await SupabaseStorageService.salvarPdfNoSupabase(
+      const clientNameSanitized = sanitizeText(project.clientData.name || 'cliente');
+      const originalBaseName = generated.fileName.replace(/\.[^/.]+$/, '');
+      const sanitizedBaseName = sanitizeText(originalBaseName);
+      const customPath = `documentos/${dateStr}/${timestamp}_${randomId}_${clientNameSanitized}_${sanitizedBaseName}.pdf`;
+
+      // 3. Upload to Supabase Storage bucket 'pdfs'
+      const uploadRes = await SupabaseStorageService.salvarPdfNoSupabase(
         generated.blob,
-        albumNameParam
+        generated.fileName,
+        customPath
       );
-      setSupabaseResult(supRes);
+      setSupabaseResult(uploadRes);
 
-      // 3. Mark success and trigger local copy download
+      // 4. Mark success and trigger local copy download
       setIsSentSuccessfully(true);
       downloadFile(generated.blob, generated.fileName);
     } catch (err) {
-      console.error('Error generating/uploading PDF:', err);
+      console.error('Error generating or uploading PDF:', err);
     } finally {
       setIsGenerating(false);
     }
@@ -183,109 +212,109 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
         </p>
       </div>
 
-      {/* Supabase Integration & Direct Test Panel */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E8DFD5] shadow-xs space-y-4">
-        <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowSupabaseSettings(!showSupabaseSettings)}>
+      {/* STANDALONE CLIENT PDF UPLOAD FORM (Envio de PDFs para Fila de Produção) */}
+      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border-2 border-[#E8DFD5] shadow-xs space-y-6">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#EFE8DE] text-[#8C5E3C] flex items-center justify-center">
-              <Database className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0 shadow-xs">
+              <Cloud className="w-6 h-6 text-[#EAE0D5]" />
             </div>
             <div>
-              <h3 className="font-serif text-base font-bold text-[#2C2420]">
-                Integração com Supabase Storage (Painel de Configuração)
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C5E3C] bg-[#EFE8DE] px-2.5 py-0.5 rounded-full">
+                Produção & Armazenamento Seguro
+              </span>
+              <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#2C2420] mt-1">
+                Envio Direto de PDF para Impressão
               </h3>
-              <p className="text-xs text-[#7A685B]">
-                Configure suas chaves do Supabase aqui para garantir o recebimento dos PDFs gerados.
+              <p className="text-xs sm:text-sm text-[#7A685B]">
+                Envie seus arquivos PDF diretamente para a fila de homologação e produção da Villa7. Sem perda de qualidade ou compressão.
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="text-xs font-semibold text-[#8C5E3C] hover:underline"
-          >
-            {showSupabaseSettings ? 'Ocultar Configuração ▲' : 'Configurar / Testar Conexão ▼'}
-          </button>
         </div>
 
-        {showSupabaseSettings && (
-          <form onSubmit={handleSaveSupabaseConfig} className="pt-4 border-t border-[#E8DFD5] space-y-4 animate-in fade-in duration-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#5A4638] mb-1">
-                  Supabase URL (Project URL)
-                </label>
-                <input
-                  type="text"
-                  value={supabaseConfig.url}
-                  onChange={(e) => setSupabaseConfig({ ...supabaseConfig, url: e.target.value })}
-                  placeholder="https://seu-projeto.supabase.co"
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-white border border-[#DDD3C5] text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]"
-                />
+        {/* Upload Success Card */}
+        {manualUploadResult && manualUploadResult.success && (
+          <div className="p-6 bg-gradient-to-br from-emerald-50 to-emerald-100/60 rounded-2xl border-2 border-emerald-500/40 text-emerald-950 space-y-3 animate-in fade-in duration-300">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Check className="w-6 h-6 stroke-[3]" />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-[#5A4638] mb-1">
-                  Supabase Service Role / Secret Key <span className="text-[#8C5E3C] font-normal">(Chave secreta service_role)</span>
-                </label>
-                <input
-                  type="password"
-                  value={supabaseConfig.key}
-                  onChange={(e) => setSupabaseConfig({ ...supabaseConfig, key: e.target.value })}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 ou service_role..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-white border border-[#DDD3C5] text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]"
-                />
-                <p className="text-[11px] text-[#8A7565] mt-1">
-                  ⚠️ <strong>Atenção:</strong> Não utilize chaves publicáveis (`sb_publishable_...`), pois elas bloqueiam o envio por regras de segurança (RLS). Copie a chave <strong>service_role</strong> em <em>Project Settings &gt; API &gt; Project API keys</em>.
+                <h4 className="font-serif text-lg font-bold text-emerald-950">
+                  ✓ Arquivo enviado com sucesso!
+                </h4>
+                <p className="text-xs sm:text-sm text-emerald-800">
+                  Recebemos seu PDF. Você já pode fechar esta página.
                 </p>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#5A4638] mb-1">
-                  Nome do Bucket (Ex: Villa7 Fotografia)
-                </label>
-                <input
-                  type="text"
-                  value={supabaseConfig.bucket}
-                  onChange={(e) => setSupabaseConfig({ ...supabaseConfig, bucket: e.target.value })}
-                  placeholder="Villa7 Fotografia"
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-white border border-[#DDD3C5] text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]"
-                />
-              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="flex items-center gap-2">
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-[#3D2C24] text-white text-xs font-bold hover:bg-[#2C2420] transition-colors cursor-pointer"
-                >
-                  Salvar Configuração
-                </button>
-                <button
-                  type="button"
-                  onClick={handleTestSupabaseConnection}
-                  disabled={isTestingSupabase}
-                  className="px-4 py-2 rounded-xl bg-[#EFE8DE] text-[#5A4638] text-xs font-semibold hover:bg-[#E5DCD0] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {isTestingSupabase ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 text-emerald-700" />}
-                  Testar Conexão e Criar Bucket
-                </button>
-              </div>
-
-              {testResult && (
-                <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${testResult.success ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                  {testResult.message}
-                </span>
+            <div className="mt-3 pt-3 border-t border-emerald-200/80 text-xs space-y-1 font-mono text-emerald-900 break-all">
+              <div><strong>Arquivo:</strong> {manualUploadResult.fileName}</div>
+              <div><strong>Tamanho:</strong> {manualUploadResult.fileSizeMB?.toFixed(2)} MB</div>
+              <div><strong>Destino:</strong> Armazenamento Seguro em Nuvem</div>
+              {manualUploadResult.publicUrl && (
+                <div className="pt-1">
+                  <strong>Link:</strong>{' '}
+                  <a href={manualUploadResult.publicUrl} target="_blank" rel="noreferrer" className="underline font-bold text-emerald-800 hover:text-emerald-950">
+                    {manualUploadResult.publicUrl}
+                  </a>
+                </div>
               )}
             </div>
-          </form>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setManualUploadResult(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-white text-emerald-900 font-semibold text-xs border border-emerald-300 hover:bg-emerald-50 transition-colors cursor-pointer"
+              >
+                Enviar Outro Arquivo PDF
+              </button>
+            </div>
+          </div>
         )}
 
-        {supabaseResult && (
-          <div className={`p-3 rounded-xl text-xs flex items-center justify-between gap-2 ${supabaseResult.success ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' : 'bg-rose-50 text-rose-900 border border-rose-200'}`}>
-            <span>
-              <strong>Último Envio:</strong> {supabaseResult.success ? `Sucesso! Arquivo enviado para ${supabaseResult.publicUrl || supabaseResult.bucket}` : supabaseResult.error}
-            </span>
+        {/* Upload Form Area */}
+        {(!manualUploadResult || !manualUploadResult.success) && (
+          <div className="space-y-4">
+            <div className="pt-1 flex flex-wrap items-center gap-3">
+              <label className={`px-6 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-white text-sm font-bold shadow-md transition-all hover:scale-[1.01] cursor-pointer inline-flex items-center gap-2.5 ${isUploadingManual ? 'opacity-50 pointer-events-none' : ''}`}>
+                {isUploadingManual ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                    Enviando seu arquivo...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 rotate-180 text-emerald-400" />
+                    Selecionar Arquivo PDF e Enviar
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={handleManualPdfUpload}
+                  disabled={isUploadingManual}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-xs text-[#7A685B]">
+                Formatos aceitos: <strong>.pdf</strong> (Até 100MB por arquivo)
+              </span>
+            </div>
+
+            {manualUploadResult && !manualUploadResult.success && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2 animate-in fade-in duration-150">
+                <ShieldCheck className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <strong>Erro no envio:</strong> {manualUploadResult.error}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -329,7 +358,8 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
               <div>• {project.spreadCount} Lâminas Duplas ({project.spreadCount * 2} páginas)</div>
               <div>• Formato: 15x20 cm Vertical (Aberto 20x30 cm)</div>
               <div>• Miolo: Branco Puro com Impressão Livre de Linhas</div>
-              <div>• Imposição: 2 Lâminas por Página A3 (Papel 297x420 mm)</div>
+              <div>• Impressão: 1 Lâmina por Página A4 (Papel 297x210 mm)</div>
+              <div>• Capa: Foto Proporcional com Zero Distorção</div>
             </div>
           </div>
         </div>
@@ -468,7 +498,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                   Aprovação Final & Envio para a Produção
                 </h3>
                 <p className="text-xs sm:text-sm text-[#685547] mt-1 leading-relaxed">
-                  Ao clicar no botão abaixo, o arquivo oficial de alta resolução (15x20 cm vertical / 20x30 cm aberto, miolo branco sem linhas, imposição A3 com marcas de corte) será processado e enviado para a produção gráfica, disponibilizando uma cópia em seu dispositivo.
+                  Ao clicar no botão abaixo, o arquivo oficial de alta resolução (15x20 cm vertical / 20x30 cm aberto, capa com foto sem distorção, miolo branco sem linhas, 1 página por lâmina A4 com guias de corte) será processado, enviado para a produção e uma cópia será baixada automaticamente em seu dispositivo.
                 </p>
               </div>
 

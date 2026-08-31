@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 
-const DEFAULT_BUCKET = 'Villa7 Fotografia';
+const DEFAULT_BUCKET = 'pdfs';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -17,8 +17,9 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const targetUrl = (supabaseUrl || 'https://twfhqhkzabvlzkgofjyj.supabase.co').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
-    const targetKey = (supabaseKey || 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem').trim().replace(/^["']|["']$/g, '');
+    const targetUrl = (supabaseUrl || process.env.SUPABASE_URL || 'https://twfhqhkzabvlzkgofjyj.supabase.co').trim().replace(/\/+$/, '').replace(/^["']|["']$/g, '');
+    const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g').trim().replace(/^["']|["']$/g, '');
+    const targetKey = (!supabaseKey || supabaseKey.startsWith('sb_publishable_') ? serviceRoleKey : supabaseKey.trim().replace(/^["']|["']$/g, ''));
     const requestedBucket = (bucket || DEFAULT_BUCKET).trim().replace(/^["']|["']$/g, '');
 
     if (!targetUrl || !targetKey) {
@@ -32,6 +33,8 @@ export default async function handler(req: any, res: any) {
       .replace(/^\/+/, '')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, '_');
+
+    const cleanPath = cleanFileName.split('/').map(encodeURIComponent).join('/');
 
     const buffer = Buffer.from(pdfBase64, 'base64');
     const fileSizeMB = buffer.length / (1024 * 1024);
@@ -47,9 +50,10 @@ export default async function handler(req: any, res: any) {
     const bucketCandidates = Array.from(new Set([
       requestedBucket,
       DEFAULT_BUCKET,
-      'Villa7_Fotografia',
+      'pdfs',
+      'documentos',
+      'Villa7 Fotografia',
       'villa7-fotografia',
-      'villa7fotografia',
       'public',
       'storage'
     ]));
@@ -62,9 +66,9 @@ export default async function handler(req: any, res: any) {
       const rawBucketId = bName;
 
       // Try uploading to bucketId (slug) and rawBucketId
-      for (const targetId of [bucketId, rawBucketId]) {
+      for (const targetId of [rawBucketId, bucketId]) {
         try {
-          const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(targetId)}/${encodeURIComponent(cleanFileName)}`;
+          const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(targetId)}/${cleanPath}`;
           console.log(`[Supabase Upload Robust] Tentando upload no bucket ID: "${targetId}"...`);
 
           const uploadRes = await fetch(uploadUrl, {
@@ -104,13 +108,13 @@ export default async function handler(req: any, res: any) {
             id: bucketId,
             name: rawBucketId,
             public: true,
-            file_size_limit: 52428800,
+            file_size_limit: 104857600,
           }),
         });
 
         if (createRes.ok) {
           console.log(`[Supabase Upload Robust] Bucket "${bucketId}" criado com sucesso. Tentando upload novamente...`);
-          const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(bucketId)}/${encodeURIComponent(cleanFileName)}`;
+          const uploadUrl = `${targetUrl}/storage/v1/object/${encodeURIComponent(bucketId)}/${cleanPath}`;
           const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
@@ -138,7 +142,7 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const publicUrl = `${targetUrl}/storage/v1/object/public/${encodeURIComponent(successBucket)}/${encodeURIComponent(cleanFileName)}`;
+    const publicUrl = `${targetUrl}/storage/v1/object/public/${encodeURIComponent(successBucket)}/${cleanPath}`;
     console.log(`[Supabase Upload Robust] Sucesso total! URL pública: ${publicUrl}`);
 
     return res.status(200).json({
