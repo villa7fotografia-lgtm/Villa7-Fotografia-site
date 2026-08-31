@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   LayoutGrid,
   Book,
@@ -20,10 +20,16 @@ import {
   Move,
   Palette,
   Image as ImageIcon,
+  ShieldCheck,
+  ArrowDown,
+  ArrowUp,
+  Crop,
+  Grid3X3,
 } from 'lucide-react';
 import { AlbumProject, CoverData, PhotoItem, SpreadItem, SlotLayout, TemplateDef } from '../../types';
-import { SPREAD_TEMPLATES, getTemplatesByPhotoCount, getTemplateById } from '../../constants/templates';
+import { SPREAD_TEMPLATES, getTemplatesByPhotoCount, getTemplateById, findBestTemplateForPhotos } from '../../constants/templates';
 import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
+import { PhotoCropModal } from '../modals/PhotoCropModal';
 
 interface Process2Props {
   project: AlbumProject;
@@ -48,6 +54,20 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
   const [currentSpreadIndex, setCurrentSpreadIndex] = useState<number>(0);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(0);
   const [selectedPhotoFilter, setSelectedPhotoFilter] = useState<string>('all');
+  const [cropModalSlot, setCropModalSlot] = useState<{
+    slotIndex: number;
+    slot: SlotLayout;
+    photo: PhotoItem;
+  } | null>(null);
+
+  // Direct canvas drag-to-reframe state
+  const [activeDraggingSlot, setActiveDraggingSlot] = useState<number | null>(null);
+  const dragStartPos = useRef<{ x: number; y: number; initialPanX: number; initialPanY: number }>({
+    x: 0,
+    y: 0,
+    initialPanX: 0,
+    initialPanY: 0,
+  });
 
   // Cover sub-state
   const [coverTab, setCoverTab] = useState<'chatgpt' | 'upload'>('chatgpt');
@@ -77,14 +97,27 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
 
   // Spread manipulations
   const handleSelectTemplate = (template: TemplateDef) => {
-    const currentPhotos = currentSpread.slots.map((s) => s.photoId).filter(Boolean);
+    const currentPhotos = currentSpread.slots.map((s) => s.photoId).filter((id): id is string => Boolean(id));
+    
+    // Find unused photos from the project to auto-fill additional slots if needed
+    const unusedProjectPhotos = project.photos.filter(
+      (p) => !usedPhotoIds.has(p.id) && !currentPhotos.includes(p.id)
+    );
+
+    const photosForSlots: (string | undefined)[] = [...currentPhotos];
+    let unusedCursor = 0;
+    while (photosForSlots.length < template.slots.length && unusedCursor < unusedProjectPhotos.length) {
+      photosForSlots.push(unusedProjectPhotos[unusedCursor].id);
+      unusedCursor++;
+    }
+
     const newSlots: SlotLayout[] = template.slots.map((slotDef, idx) => ({
       id: `slot-${currentSpread.spreadNumber}-${idx + 1}-${Date.now()}`,
       x: slotDef.x,
       y: slotDef.y,
       width: slotDef.width,
       height: slotDef.height,
-      photoId: currentPhotos[idx] || undefined,
+      photoId: photosForSlots[idx] || undefined,
       zoom: 1,
       panX: 0,
       panY: 0,
@@ -136,18 +169,147 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
     }
   };
 
-  const handleRemovePhotoFromSlot = (slotIndex: number) => {
+  const handleApplyPreset = (slotIndex: number, preset: 'head' | 'center' | 'legs' | 'left' | 'right') => {
     const updatedSlots = [...currentSpread.slots];
     if (updatedSlots[slotIndex]) {
+      let panX = 0;
+      let panY = 0;
+      if (preset === 'head') panY = 25; // shifts image down to protect head
+      else if (preset === 'center') { panX = 0; panY = 0; }
+      else if (preset === 'legs') panY = -25; // shifts image up to protect legs
+      else if (preset === 'left') panX = 25;
+      else if (preset === 'right') panX = -25;
+
       updatedSlots[slotIndex] = {
         ...updatedSlots[slotIndex],
-        photoId: undefined,
+        fit: 'cover',
+        panX,
+        panY,
       };
       onChangeSpread(currentSpreadIndex, {
         ...currentSpread,
         slots: updatedSlots,
       });
     }
+  };
+
+  const handleSaveCropModal = (updatedProps: Partial<SlotLayout>) => {
+    if (cropModalSlot !== null) {
+      const updatedSlots = [...currentSpread.slots];
+      if (updatedSlots[cropModalSlot.slotIndex]) {
+        updatedSlots[cropModalSlot.slotIndex] = {
+          ...updatedSlots[cropModalSlot.slotIndex],
+          ...updatedProps,
+        };
+        onChangeSpread(currentSpreadIndex, {
+          ...currentSpread,
+          slots: updatedSlots,
+        });
+      }
+    }
+  };
+
+  const handleRemovePhotoFromSlot = (slotIndex: number) => {
+    const remainingPhotoIds = currentSpread.slots
+      .filter((_, idx) => idx !== slotIndex)
+      .map((s) => s.photoId)
+      .filter((id): id is string => Boolean(id));
+
+    if (remainingPhotoIds.length === 0) {
+      const updatedSlots = currentSpread.slots.map((s, idx) =>
+        idx === slotIndex ? { ...s, photoId: undefined } : s
+      );
+      onChangeSpread(currentSpreadIndex, {
+        ...currentSpread,
+        slots: updatedSlots,
+      });
+      return;
+    }
+
+    // Adapt to best template for remaining photos so no empty slots are left on the spread
+    const remainingPhotos = remainingPhotoIds
+      .map((id) => photosMap.get(id))
+      .filter((p): p is PhotoItem => Boolean(p));
+
+    const bestTemplate = findBestTemplateForPhotos(remainingPhotos);
+    const newSlots: SlotLayout[] = bestTemplate.slots.map((sDef, idx) => {
+      const p = remainingPhotos[idx];
+      return {
+        id: `slot-${currentSpread.spreadNumber}-${idx + 1}-${Date.now()}`,
+        x: sDef.x,
+        y: sDef.y,
+        width: sDef.width,
+        height: sDef.height,
+        photoId: p ? p.id : undefined,
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+        fit: 'cover',
+        filter: 'none',
+      };
+    });
+
+    onChangeSpread(currentSpreadIndex, {
+      ...currentSpread,
+      templateId: bestTemplate.id,
+      slots: newSlots,
+    });
+    setSelectedSlotIndex(0);
+  };
+
+  // Direct canvas pointer drag for repositioning
+  const handleSlotPointerDown = (e: React.PointerEvent<HTMLDivElement>, slotIdx: number, slot: SlotLayout) => {
+    if (e.button !== 0) return; // only left click
+    setSelectedSlotIndex(slotIdx);
+    setActiveDraggingSlot(slotIdx);
+    dragStartPos.current = {
+      x: e.clientX,
+      y: e.clientY,
+      initialPanX: slot.panX || 0,
+      initialPanY: slot.panY || 0,
+    };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSlotPointerMove = (e: React.PointerEvent<HTMLDivElement>, slotIdx: number) => {
+    if (activeDraggingSlot !== slotIdx) return;
+    const deltaX = e.clientX - dragStartPos.current.x;
+    const deltaY = e.clientY - dragStartPos.current.y;
+
+    // Convert to percentage delta
+    const sensitivity = 0.5;
+    const newPanX = Math.round(
+      Math.max(-50, Math.min(50, dragStartPos.current.initialPanX + deltaX * sensitivity))
+    );
+    const newPanY = Math.round(
+      Math.max(-50, Math.min(50, dragStartPos.current.initialPanY + deltaY * sensitivity))
+    );
+
+    const updatedSlots = [...currentSpread.slots];
+    if (updatedSlots[slotIdx]) {
+      updatedSlots[slotIdx] = {
+        ...updatedSlots[slotIdx],
+        panX: newPanX,
+        panY: newPanY,
+      };
+      onChangeSpread(currentSpreadIndex, {
+        ...currentSpread,
+        slots: updatedSlots,
+      });
+    }
+  };
+
+  const handleSlotPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    setActiveDraggingSlot(null);
   };
 
   // Cover helpers
@@ -158,7 +320,9 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
     activePrompt,
     project.cover.title || project.clientData.albumTitle,
     project.cover.subtitle || project.clientData.albumSubtitle,
-    project.clientData.name
+    project.clientData.name,
+    project.clientData.occasion,
+    project.clientData.notes
   );
 
   const handleCopyCoverPrompt = () => {
@@ -377,6 +541,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                   {currentSpread.slots.map((slot, index) => {
                     const photo = slot.photoId ? photosMap.get(slot.photoId) : null;
                     const isSelected = selectedSlotIndex === index;
+                    const isDraggingThisSlot = activeDraggingSlot === index;
 
                     return (
                       <div
@@ -394,18 +559,29 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                           width: `${slot.width}%`,
                           height: `${slot.height}%`,
                         }}
-                        className={`absolute overflow-hidden transition-all cursor-pointer ${
+                        className={`absolute overflow-hidden transition-all select-none ${
                           isSelected
                             ? 'ring-3 ring-[#8C5E3C] ring-offset-2 z-10'
                             : 'hover:ring-2 hover:ring-[#8C5E3C]/50'
-                        } ${slot.fit === 'contain' ? 'bg-[#FFFFFF]' : ''}`}
+                        } ${slot.fit === 'contain' ? 'bg-[#FFFFFF]' : ''} ${
+                          photo ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+                        }`}
+                        onPointerDown={(e) => {
+                          if (photo) handleSlotPointerDown(e, index, slot);
+                        }}
+                        onPointerMove={(e) => {
+                          if (photo) handleSlotPointerMove(e, index);
+                        }}
+                        onPointerUp={handleSlotPointerUp}
+                        onPointerCancel={handleSlotPointerUp}
                       >
                         {photo ? (
                           <div className="relative w-full h-full group flex items-center justify-center">
                             <img
                               src={photo.url}
                               alt=""
-                              className="w-full h-full transition-transform"
+                              draggable={false}
+                              className="w-full h-full pointer-events-none transition-transform"
                               style={{
                                 objectFit: slot.fit || 'cover',
                                 transform: `scale(${slot.zoom || 1}) translate(${slot.panX || 0}%, ${
@@ -431,34 +607,65 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                               </div>
                             )}
 
+                            {/* Live dragging indicator overlay */}
+                            {isDraggingThisSlot && (
+                              <div className="absolute inset-0 bg-black/40 border-2 border-amber-400 z-20 flex flex-col items-center justify-center p-2 text-white text-center pointer-events-none">
+                                <Move className="w-5 h-5 text-amber-400 animate-bounce mb-1" />
+                                <span className="text-[10px] font-bold">Esquadrando Foto no Corte</span>
+                                <span className="text-[9px] font-mono text-amber-300">
+                                  X: {slot.panX || 0}% | Y: {slot.panY || 0}%
+                                </span>
+                              </div>
+                            )}
+
                             {/* Slot Overlay on Hover */}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleUpdateSlotProperty(
-                                    index,
-                                    'fit',
-                                    slot.fit === 'contain' ? 'cover' : 'contain'
-                                  );
-                                }}
-                                className="px-2.5 py-1.5 rounded-lg bg-[#FAF7F2] hover:bg-white text-[#3D2C24] text-xs font-semibold shadow-xs"
-                                title="Alternar enquadramento"
-                              >
-                                {slot.fit === 'contain' ? 'Preencher' : 'Sem Cortes (100%)'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemovePhotoFromSlot(index);
-                                }}
-                                className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs"
-                              >
-                                Remover
-                              </button>
-                            </div>
+                            {!isDraggingThisSlot && (
+                              <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-wrap items-center justify-center gap-1.5 p-2 z-10">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCropModalSlot({
+                                      slotIndex: index,
+                                      slot,
+                                      photo,
+                                    });
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-transform hover:scale-105"
+                                  title="Arrastar e esquadrar no corte para evitar cortes em cabeças, pernas e braços"
+                                >
+                                  <Move className="w-3.5 h-3.5" />
+                                  <span>Esquadrar Corte</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateSlotProperty(
+                                      index,
+                                      'fit',
+                                      slot.fit === 'contain' ? 'cover' : 'contain'
+                                    );
+                                  }}
+                                  className="px-2 py-1.5 rounded-lg bg-[#FAF7F2] hover:bg-white text-[#3D2C24] text-xs font-semibold shadow-xs cursor-pointer"
+                                  title="Alternar enquadramento"
+                                >
+                                  {slot.fit === 'contain' ? 'Preencher' : 'Sem Cortes (100%)'}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemovePhotoFromSlot(index);
+                                  }}
+                                  className="px-2 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="w-full h-full bg-[#FAF7F2] border-2 border-dashed border-[#DDD3C5] rounded-xl flex flex-col items-center justify-center p-3 text-center transition-colors hover:bg-[#F2ECE4]">
@@ -486,19 +693,147 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
 
               {/* Slot Tools (Zoom, Pan, Fit, Filters) */}
               {selectedSlot && selectedSlotPhoto && selectedSlotIndex !== null && (
-                <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-[#5A4638]">
-                      Ajustes da Foto Selecionada (Espaço {selectedSlotIndex + 1})
-                    </span>
-                    <span className="text-xs font-mono text-[#8C7A6B]">
-                      {selectedSlotPhoto.name}
-                    </span>
+                <div className="bg-[#FAF7F2] p-5 rounded-3xl border border-[#E8DFD5] space-y-4 shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#E8DFD5]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#8C5E3C]" />
+                      <span className="text-xs font-bold uppercase text-[#3D2C24]">
+                        Ajustes da Foto Selecionada (Espaço {selectedSlotIndex + 1})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-[#8C7A6B] truncate max-w-[180px]">
+                        {selectedSlotPhoto.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCropModalSlot({
+                            slotIndex: selectedSlotIndex,
+                            slot: selectedSlot,
+                            photo: selectedSlotPhoto,
+                          })
+                        }
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] text-xs font-bold shadow-xs transition-transform hover:scale-105 cursor-pointer"
+                      >
+                        <Move className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Arrastar para Esquadrar (Ajuste Fino)</span>
+                      </button>
+                    </div>
                   </div>
 
+                  {/* Section 1: Enquadramento & Esquadro Anti-Corte */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-[#E8DFD5] space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-[#3D2C24] flex items-center gap-1.5">
+                          <Move className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                          Esquadrar no Corte (Evitar Corte de Cabeça, Braços e Pernas)
+                        </span>
+                        <span className="text-[11px] text-[#7A685B]">
+                          Clique e arraste diretamente na foto acima ou escolha um foco rápido:
+                        </span>
+                      </div>
+
+                      {/* Quick Focal Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset(selectedSlotIndex, 'head')}
+                          className="px-2 py-1 rounded-lg bg-[#FAF7F2] hover:bg-[#EFE8DE] text-[#3D2C24] text-[11px] font-semibold border border-[#DDD3C5] flex items-center gap-1 transition-colors"
+                          title="Proteger cabeça e rosto no topo"
+                        >
+                          <ArrowDown className="w-3 h-3 text-amber-600" />
+                          <span>👤 Cabeça</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset(selectedSlotIndex, 'center')}
+                          className="px-2 py-1 rounded-lg bg-[#FAF7F2] hover:bg-[#EFE8DE] text-[#3D2C24] text-[11px] font-semibold border border-[#DDD3C5] transition-colors"
+                          title="Centralizar"
+                        >
+                          ⚖️ Centro
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset(selectedSlotIndex, 'legs')}
+                          className="px-2 py-1 rounded-lg bg-[#FAF7F2] hover:bg-[#EFE8DE] text-[#3D2C24] text-[11px] font-semibold border border-[#DDD3C5] flex items-center gap-1 transition-colors"
+                          title="Proteger pernas e base"
+                        >
+                          <ArrowUp className="w-3 h-3 text-amber-600" />
+                          <span>🚶 Pernas</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset(selectedSlotIndex, 'left')}
+                          className="px-1.5 py-1 rounded-lg bg-[#FAF7F2] hover:bg-[#EFE8DE] text-[#3D2C24] text-[11px] font-semibold border border-[#DDD3C5]"
+                          title="Alinhar à esquerda"
+                        >
+                          👈 Esq
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPreset(selectedSlotIndex, 'right')}
+                          className="px-1.5 py-1 rounded-lg bg-[#FAF7F2] hover:bg-[#EFE8DE] text-[#3D2C24] text-[11px] font-semibold border border-[#DDD3C5]"
+                          title="Alinhar à direita"
+                        >
+                          👉 Dir
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Fine Pan Sliders */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-[#7A685B] mb-1">
+                          <span>Posição Horizontal (Esquerda / Direita)</span>
+                          <span className="font-mono text-[#8C5E3C]">{selectedSlot.panX || 0}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-50"
+                          max="50"
+                          step="1"
+                          value={selectedSlot.panX || 0}
+                          onChange={(e) =>
+                            handleUpdateSlotProperty(
+                              selectedSlotIndex,
+                              'panX',
+                              parseInt(e.target.value, 10)
+                            )
+                          }
+                          className="w-full accent-[#8C5E3C] cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-[#7A685B] mb-1">
+                          <span>Posição Vertical (Topo / Base)</span>
+                          <span className="font-mono text-[#8C5E3C]">{selectedSlot.panY || 0}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-50"
+                          max="50"
+                          step="1"
+                          value={selectedSlot.panY || 0}
+                          onChange={(e) =>
+                            handleUpdateSlotProperty(
+                              selectedSlotIndex,
+                              'panY',
+                              parseInt(e.target.value, 10)
+                            )
+                          }
+                          className="w-full accent-[#8C5E3C] cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Zoom, Fit Mode & Filters */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                     {/* Zoom */}
-                    <div>
+                    <div className="p-3 bg-white rounded-2xl border border-[#E8DFD5]">
                       <label className="block text-[11px] font-semibold text-[#7A685B] mb-1">
                         Zoom ({selectedSlot.zoom?.toFixed(1) || '1.0'}x)
                       </label>
@@ -506,28 +841,28 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                         type="range"
                         min="1"
                         max="2.5"
-                        step="0.1"
+                        step="0.05"
                         value={selectedSlot.zoom || 1}
                         onChange={(e) =>
                           handleUpdateSlotProperty(selectedSlotIndex, 'zoom', Number(e.target.value))
                         }
-                        className="w-full accent-[#8C5E3C]"
+                        className="w-full accent-[#8C5E3C] cursor-pointer"
                       />
                     </div>
 
                     {/* Enquadramento Fit */}
-                    <div>
+                    <div className="p-3 bg-white rounded-2xl border border-[#E8DFD5]">
                       <label className="block text-[11px] font-semibold text-[#7A685B] mb-1">
-                        Enquadramento
+                        Modo de Enquadramento
                       </label>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => handleUpdateSlotProperty(selectedSlotIndex, 'fit', 'cover')}
-                          className={`flex-1 py-1 px-2 rounded-lg text-xs font-semibold ${
+                          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
                             selectedSlot.fit === 'cover'
-                              ? 'bg-[#3D2C24] text-white'
-                              : 'bg-white border border-[#DDD3C5]'
+                              ? 'bg-[#3D2C24] text-white shadow-xs'
+                              : 'bg-[#FAF7F2] text-[#5A4638] border border-[#DDD3C5]'
                           }`}
                         >
                           Preencher
@@ -537,19 +872,19 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                           onClick={() =>
                             handleUpdateSlotProperty(selectedSlotIndex, 'fit', 'contain')
                           }
-                          className={`flex-1 py-1 px-2 rounded-lg text-xs font-semibold ${
+                          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
                             selectedSlot.fit === 'contain'
-                              ? 'bg-[#3D2C24] text-white'
-                              : 'bg-white border border-[#DDD3C5]'
+                              ? 'bg-[#3D2C24] text-white shadow-xs'
+                              : 'bg-[#FAF7F2] text-[#5A4638] border border-[#DDD3C5]'
                           }`}
                         >
-                          Inteira
+                          Sem Cortes
                         </button>
                       </div>
                     </div>
 
                     {/* Filters */}
-                    <div>
+                    <div className="p-3 bg-white rounded-2xl border border-[#E8DFD5]">
                       <label className="block text-[11px] font-semibold text-[#7A685B] mb-1">
                         Tonalidade / Filtro
                       </label>
@@ -558,7 +893,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                         onChange={(e) =>
                           handleUpdateSlotProperty(selectedSlotIndex, 'filter', e.target.value)
                         }
-                        className="w-full py-1 px-2 rounded-lg border border-[#DDD3C5] bg-white text-xs"
+                        className="w-full py-1.5 px-2 rounded-lg border border-[#DDD3C5] bg-[#FAF7F2] text-xs"
                       >
                         <option value="none">Original (Cores Vivas)</option>
                         <option value="bw">Preto & Branco Nobre</option>
@@ -725,7 +1060,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                     1. Escolha o Estilo Visual da Capa
                   </h3>
                   <p className="text-xs text-[#7A685B]">
-                    5 presets profissionais para gerar no ChatGPT:
+                    {COVER_PROMPT_PRESETS.length} presets profissionais para gerar no ChatGPT:
                   </p>
                 </div>
 
@@ -767,6 +1102,22 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
 
                 {/* Prompt Box & Actions */}
                 <div className="pt-3 border-t border-[#E8DFD5] space-y-3">
+                  {/* Highlighted Project Data Badges */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-[#FFFFFF] border border-[#E0D6C8] text-xs">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="font-bold text-[#8C5E3C] shrink-0">📌 Projeto:</span>
+                      <span className="font-semibold text-[#2C2420] truncate">
+                        {project.cover.title || project.clientData.albumTitle || 'Nossas Melhores Memórias'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="font-bold text-[#8C5E3C] shrink-0">📝 Contexto:</span>
+                      <span className="text-[#5A4638] truncate">
+                        {project.clientData.notes || (project.clientData.occasion !== 'Outro' ? project.clientData.occasion : 'Memórias Especiais')}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="bg-[#FFFFFF] p-3.5 rounded-2xl border border-[#DDD3C5] text-xs font-mono text-[#5A4638] leading-relaxed max-h-28 overflow-y-auto">
                     {formattedCoverPrompt}
                   </div>
@@ -985,6 +1336,15 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
           <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
         </button>
       </div>
+
+      {/* Photo Crop & Safe Framing Modal */}
+      <PhotoCropModal
+        isOpen={cropModalSlot !== null}
+        slot={cropModalSlot?.slot || null}
+        photo={cropModalSlot?.photo || null}
+        onSave={handleSaveCropModal}
+        onClose={() => setCropModalSlot(null)}
+      />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ChevronLeft, ChevronRight, BookOpen, Layers, Maximize2, CheckCircle2 } from 'lucide-react';
 import { AlbumProject, PhotoItem } from '../../types';
+import { sanitizeSpreads } from '../../utils/spreadOptimizer';
 
 interface AlbumFlipbookModalProps {
   isOpen: boolean;
@@ -17,12 +18,16 @@ export const AlbumFlipbookModal: React.FC<AlbumFlipbookModalProps> = ({
 
   if (!isOpen) return null;
 
-  const totalViews = project.spreads.length + 1; // Cover + Spreads
+  const validSpreads = project.photos.length > 0
+    ? sanitizeSpreads(project.spreads, project.photos)
+    : project.spreads;
+
+  const totalViews = validSpreads.length + 1; // Cover + Spreads
   const photosMap = new Map<string, PhotoItem>();
   project.photos.forEach((p) => photosMap.set(p.id, p));
 
   const isCover = currentIndex === 0;
-  const currentSpread = !isCover ? project.spreads[currentIndex - 1] : null;
+  const currentSpread = !isCover ? validSpreads[currentIndex - 1] : null;
 
   const handlePrev = () => {
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
@@ -167,7 +172,7 @@ export const AlbumFlipbookModal: React.FC<AlbumFlipbookModalProps> = ({
                 {/* Footer discrete caption */}
                 <div className="absolute bottom-2 left-4 right-4 flex items-center justify-between text-[10px] text-[#8C7A6B]/80 font-sans pointer-events-none">
                   <span>
-                    VILLA7 ÁLBUNS • Lâmina {currentIndex} de {project.spreads.length}
+                    VILLA7 ÁLBUNS • Lâmina {currentIndex} de {validSpreads.length}
                   </span>
                   <span>
                     Páginas {(currentIndex - 1) * 2 + 1} - {(currentIndex - 1) * 2 + 2}

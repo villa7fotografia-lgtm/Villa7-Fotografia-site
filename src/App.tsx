@@ -7,7 +7,8 @@ import { Process3ReviewAndProduction } from './components/processes/Process3Revi
 import { AlbumFlipbookModal } from './components/modals/AlbumFlipbookModal';
 import { AlbumProject, ClientData, CoverData, PhotoItem, SpreadItem } from './types';
 import { createInitialProject, SAMPLE_PHOTOS } from './constants/sampleData';
-import { findBestTemplateForPhotos, calculateSlotAspectRatio, SPREAD_TEMPLATES } from './constants/templates';
+import { SPREAD_TEMPLATES } from './constants/templates';
+import { distributePhotosToSpreads, sanitizeSpreads } from './utils/spreadOptimizer';
 
 const STORAGE_KEY = 'villa7_album_project_v2';
 
@@ -48,7 +49,32 @@ export default function App() {
   }, [project]);
 
   const handleStepChange = (newStep: number) => {
-    setProject((prev) => ({ ...prev, currentStep: newStep }));
+    setProject((prev) => {
+      let updatedSpreads = prev.spreads;
+      let updatedSpreadCount = prev.spreadCount;
+
+      if (prev.photos.length > 0) {
+        const isUnpopulated = updatedSpreads.every((s) => s.slots.every((slot) => !slot.photoId));
+        const hasEmptySpreads = updatedSpreads.some((s) => s.slots.every((slot) => !slot.photoId));
+
+        if (isUnpopulated) {
+          updatedSpreads = distributePhotosToSpreads(prev.photos, prev.spreadCount);
+          updatedSpreadCount = updatedSpreads.length;
+        } else if (newStep === 3 || hasEmptySpreads) {
+          // Never leave empty spreads or empty slots
+          updatedSpreads = sanitizeSpreads(updatedSpreads, prev.photos);
+          updatedSpreadCount = updatedSpreads.length;
+        }
+      }
+
+      return {
+        ...prev,
+        currentStep: newStep,
+        spreadCount: updatedSpreadCount,
+        spreads: updatedSpreads,
+      };
+    });
+
     if (newStep > maxReachedStep) {
       setMaxReachedStep(newStep);
     }
@@ -79,11 +105,17 @@ export default function App() {
   const handleRemovePhoto = (photoId: string) => {
     setProject((prev) => {
       const filtered = prev.photos.filter((p) => p.id !== photoId);
-      const updatedSpreads = prev.spreads.map((spread) => ({
+      const cleanedSpreads = prev.spreads.map((spread) => ({
         ...spread,
         slots: spread.slots.map((s) => (s.photoId === photoId ? { ...s, photoId: undefined } : s)),
       }));
-      return { ...prev, photos: filtered, spreads: updatedSpreads };
+      const sanitized = sanitizeSpreads(cleanedSpreads, filtered);
+      return {
+        ...prev,
+        photos: filtered,
+        spreads: sanitized.length > 0 ? sanitized : prev.spreads,
+        spreadCount: sanitized.length > 0 ? sanitized.length : prev.spreadCount,
+      };
     });
   };
 
@@ -103,6 +135,15 @@ export default function App() {
   // Process 1: Spread count manipulation (10 to 20)
   const handleChangeSpreadCount = (newCount: number) => {
     setProject((prev) => {
+      if (prev.photos.length > 0) {
+        const newSpreads = distributePhotosToSpreads(prev.photos, newCount);
+        return {
+          ...prev,
+          spreadCount: newSpreads.length,
+          spreads: newSpreads,
+        };
+      }
+
       let currentSpreads = [...prev.spreads];
       if (newCount > currentSpreads.length) {
         const toAdd = newCount - currentSpreads.length;
@@ -110,7 +151,7 @@ export default function App() {
           const spreadNumber = currentSpreads.length + 1;
           const template = SPREAD_TEMPLATES[spreadNumber % SPREAD_TEMPLATES.length];
           currentSpreads.push({
-            id: `spread-${spreadNumber}`,
+            id: `spread-${spreadNumber}-${Date.now()}`,
             spreadNumber,
             templateId: template.id,
             slots: template.slots.map((s, idx) => ({
@@ -150,7 +191,7 @@ export default function App() {
     });
   };
 
-  // Process 2: Intelligent Auto-diagramming (Anti-Corte & Orientação Perfeita)
+  // Process 2: Intelligent Auto-diagramming (Anti-Corte & Sem Lâminas Vazias)
   const handleAutoLayoutAll = () => {
     if (project.photos.length === 0) {
       alert('Carregue algumas fotos no Processo 1 antes de auto-diagramar.');
@@ -158,104 +199,16 @@ export default function App() {
     }
 
     setProject((prev) => {
-      let photoIdx = 0;
-      const totalPhotos = prev.photos.length;
-
-      // Group photos across spreads proportionally
-      const updatedSpreads = prev.spreads.map((spread, sIdx) => {
-        const remainingPhotos = totalPhotos - photoIdx;
-        const remainingSpreads = prev.spreads.length - sIdx;
-
-        // Determine target photos for this spread (1 to 4 photos)
-        let targetCount = Math.min(4, Math.max(1, Math.round(remainingPhotos / Math.max(1, remainingSpreads))));
-        
-        // If few photos remaining or special spread rhythm
-        if (remainingPhotos <= 1 || sIdx === 0) {
-          targetCount = 1;
-        } else if (remainingPhotos >= 4 && sIdx % 3 === 0) {
-          targetCount = 4;
-        } else if (remainingPhotos >= 3 && (sIdx % 2 === 1 || targetCount === 3)) {
-          targetCount = 3;
-        } else {
-          targetCount = Math.min(2, Math.max(1, targetCount));
-        }
-
-        // Slice batch of photos for this spread
-        const batchPhotos: PhotoItem[] = [];
-        for (let i = 0; i < targetCount; i++) {
-          const p = prev.photos[photoIdx % totalPhotos];
-          if (p) batchPhotos.push(p);
-          photoIdx++;
-        }
-
-        // Find optimal template matching photos' exact aspect ratios (vertical vs horizontal)
-        const template = findBestTemplateForPhotos(batchPhotos);
-
-        // Map photos to slots: sort slots and photos by aspect ratio so portraits pair with portrait slots
-        const sortedSlots = template.slots.map((s, idx) => ({
-          ...s,
-          originalSlotIdx: idx,
-          aspect: s.idealAspect || calculateSlotAspectRatio(s.width, s.height),
-        })).sort((a, b) => a.aspect - b.aspect);
-
-        const sortedPhotos = [...batchPhotos].map((p, idx) => ({
-          photo: p,
-          originalBatchIdx: idx,
-          aspect: p.aspectRatio || (p.width && p.height ? p.width / p.height : 1.0),
-        })).sort((a, b) => a.aspect - b.aspect);
-
-        // Assign paired photos back to slots in original template order
-        const assignmentMap = new Map<number, { photo: PhotoItem; photoAspect: number; slotAspect: number }>();
-        sortedSlots.forEach((slot, i) => {
-          const matchedPhotoItem = sortedPhotos[i] || sortedPhotos[0];
-          if (matchedPhotoItem) {
-            assignmentMap.set(slot.originalSlotIdx, {
-              photo: matchedPhotoItem.photo,
-              photoAspect: matchedPhotoItem.aspect,
-              slotAspect: slot.aspect,
-            });
-          }
-        });
-
-        const newSlots = template.slots.map((s, slotIdx) => {
-          const match = assignmentMap.get(slotIdx);
-          const photo = match?.photo;
-          const photoAspect = match?.photoAspect || 1.0;
-          const slotAspect = match?.slotAspect || calculateSlotAspectRatio(s.width, s.height);
-
-          // Calculate aspect ratio difference
-          const aspectDiff = Math.abs(Math.log(photoAspect / slotAspect));
-
-          // If ratio differs by more than 18%, use 'contain' so NO part of photo is cropped.
-          // If ratio matches nicely, 'cover' fills the box with zero meaningful cut.
-          const fitMode: 'cover' | 'contain' = aspectDiff < 0.18 ? 'cover' : 'contain';
-
-          return {
-            id: `slot-${sIdx + 1}-${slotIdx + 1}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            x: s.x,
-            y: s.y,
-            width: s.width,
-            height: s.height,
-            photoId: photo ? photo.id : undefined,
-            zoom: 1,
-            panX: 0,
-            panY: 0,
-            fit: fitMode,
-            filter: 'none' as const,
-          };
-        });
-
-        return {
-          ...spread,
-          templateId: template.id,
-          slots: newSlots,
-        };
-      });
-
-      return { ...prev, spreads: updatedSpreads };
+      // Distributes ALL sent photos, ensuring every slot has a photo and no empty spreads remain
+      const updatedSpreads = distributePhotosToSpreads(prev.photos, prev.spreadCount);
+      return {
+        ...prev,
+        spreadCount: updatedSpreads.length,
+        spreads: updatedSpreads,
+      };
     });
 
-    setSaveStatus('Álbum diagramado sem cortes!');
+    setSaveStatus('Álbum 100% preenchido sem lâminas vazias!');
     setTimeout(() => setSaveStatus(''), 2500);
   };
 
@@ -430,6 +383,11 @@ export default function App() {
         {project.currentStep === 3 && (
           <Process3ReviewAndProduction
             project={project}
+            onChangeSpread={handleUpdateSpread}
+            onUpdateSpreads={(updatedSpreads) =>
+              setProject((prev) => ({ ...prev, spreads: updatedSpreads }))
+            }
+            onChangeCover={handleUpdateCover}
             onApproveProject={handleApproveProject}
             onOpenPreview={() => setIsPreviewModalOpen(true)}
             onPrev={() => handleStepChange(2)}

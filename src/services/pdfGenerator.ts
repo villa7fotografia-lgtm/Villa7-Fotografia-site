@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { AlbumProject, PhotoItem, SpreadItem } from '../types';
+import { sanitizeSpreads } from '../utils/spreadOptimizer';
 
 /**
  * Generates a unique, timestamped and versioned filename for each update
@@ -214,10 +215,10 @@ export async function renderCoverToCanvas(
 
   // Front Cover Area (right half: x from 1200 to 2400, center at 1800)
   const frontCenterX = 1800;
-  const photoW = 880;
-  const photoH = 980;
-  const photoX = frontCenterX - photoW / 2; // 1360
-  const photoY = 120;
+  const photoW = 1040;
+  const photoH = 1450;
+  const photoX = frontCenterX - photoW / 2; // 1280
+  const photoY = 75;
 
   // If cover has a photograph (check cover image or fallback to first project photo)
   let coverImg = loadedImages.get('cover-image');
@@ -269,61 +270,6 @@ export async function renderCoverToCanvas(
     ctx.strokeRect(photoX, photoY, photoW, photoH);
   }
 
-  // Cover Typography
-  ctx.save();
-  ctx.fillStyle = project.cover.textColor || '#2C2420';
-  ctx.textAlign = 'center';
-
-  // Front Cover Title
-  ctx.font = 'bold 48px "Cinzel", "Cormorant Garamond", serif';
-  ctx.fillText(
-    project.cover.title || project.clientData.albumTitle || 'VILLA7 MEMÓRIAS',
-    frontCenterX,
-    1190
-  );
-
-  // Front Cover Subtitle
-  ctx.font = 'italic 26px "Cormorant Garamond", serif';
-  ctx.fillStyle = '#6E5C50';
-  ctx.fillText(
-    project.cover.subtitle || project.clientData.albumSubtitle || 'Coleção de Momentos',
-    frontCenterX,
-    1255
-  );
-
-  // Year / Date
-  ctx.font = '20px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#8C7A6B';
-  ctx.fillText(
-    project.cover.yearOrDate || new Date().getFullYear().toString(),
-    frontCenterX,
-    1315
-  );
-
-  // Spine Title (center column x: 1200)
-  ctx.save();
-  ctx.translate(1200, canvasHeight / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#8C7A6B';
-  ctx.fillText(
-    `${project.cover.title || project.clientData.albumTitle || 'VILLA7 ÁLBUNS'} • ${project.clientData.name || ''}`,
-    0,
-    0
-  );
-  ctx.restore();
-
-  // Back cover branding (center at 600)
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 26px "Cinzel", serif';
-  ctx.fillStyle = '#8C7A6B';
-  ctx.fillText('VILLA7 ÁLBUNS', 600, canvasHeight / 2 - 15);
-  ctx.font = '15px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#A39282';
-  ctx.fillText('MEMÓRIAS COLECIONÁVEIS • 15x20 VERTICAL', 600, canvasHeight / 2 + 20);
-
-  ctx.restore();
   return canvas;
 }
 
@@ -646,12 +592,13 @@ export async function generateAlbumPDF(
     compress: true,
   });
 
-  // Calculate total A4 pages:
-  // Page 1: Capa do Álbum 15x20 Vertical (Aberta 30x20 cm)
-  // Page 2: Certificado de Produção & Homologação Técnica
-  // Pages 3..(2 + totalSpreads): 1 Spread por página A4
-  // Final Page: Controle de Qualidade Gráfica & Fechamento
-  const totalSpreads = project.spreads.length;
+  // Sanitize spreads so that only spreads containing sent photos are rendered, and all slots in each spread are populated
+  const validSpreads = project.photos.length > 0
+    ? sanitizeSpreads(project.spreads, project.photos)
+    : project.spreads.filter((s) => s.slots.some((slot) => slot.photoId));
+
+  const activeSpreads = validSpreads.length > 0 ? validSpreads : project.spreads;
+  const totalSpreads = activeSpreads.length;
   const totalPages = 2 + totalSpreads + 1;
   let currentPage = 1;
 
@@ -704,7 +651,7 @@ export async function generateAlbumPDF(
       percent: progressPercent,
     });
 
-    const spread = project.spreads[spreadIdx];
+    const spread = activeSpreads[spreadIdx];
     const canvas = await renderSpreadToCanvas(spread, photosMap, loadedImages, project, spreadIdx);
     const data = canvas.toDataURL('image/jpeg', 0.96);
     pdf.addImage(data, 'JPEG', spreadX, spreadY, spreadW, spreadH, undefined, 'FAST');

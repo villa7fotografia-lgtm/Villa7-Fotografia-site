@@ -15,17 +15,28 @@ import {
   Send,
   Printer,
   Cloud,
+  ArrowLeftRight,
+  Move,
+  Undo2,
+  X,
+  Plus,
+  ImageIcon,
 } from 'lucide-react';
-import { AlbumProject, PhotoItem } from '../../types';
+import { AlbumProject, PhotoItem, SpreadItem, CoverData, SlotLayout } from '../../types';
 import { generateAlbumPDF, PDFGenerationProgress } from '../../services/pdfGenerator';
 import {
   SupabaseStorageService,
   SupabaseUploadResult,
 } from '../../services/supabaseStorage';
 import confetti from 'canvas-confetti';
+import { PhotoCropModal } from '../modals/PhotoCropModal';
+import { sanitizeSpreads } from '../../utils/spreadOptimizer';
 
 interface Process3Props {
   project: AlbumProject;
+  onChangeSpread?: (spreadIndex: number, updatedSpread: SpreadItem) => void;
+  onUpdateSpreads?: (updatedSpreads: SpreadItem[]) => void;
+  onChangeCover?: (updated: Partial<CoverData>) => void;
   onApproveProject: (approved: boolean) => void;
   onOpenPreview: () => void;
   onPrev: () => void;
@@ -34,6 +45,9 @@ interface Process3Props {
 
 export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
   project,
+  onChangeSpread,
+  onUpdateSpreads,
+  onChangeCover,
   onApproveProject,
   onOpenPreview,
   onPrev,
@@ -56,6 +70,58 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
 
   const [isUploadingManual, setIsUploadingManual] = useState(false);
   const [manualUploadResult, setManualUploadResult] = useState<SupabaseUploadResult | null>(null);
+
+  // Drag and Drop & Click-to-Swap Photo State
+  const [selectedSlotForSwap, setSelectedSlotForSwap] = useState<{
+    spreadIndex: number;
+    slotIndex: number;
+    photoId?: string;
+  } | { isCover: true } | null>(null);
+
+  const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
+  const [draggedSource, setDraggedSource] = useState<{
+    type: 'slot' | 'cover' | 'tray';
+    spreadIndex?: number;
+    slotIndex?: number;
+    photoId?: string;
+  } | null>(null);
+
+  const [swapHistory, setSwapHistory] = useState<SpreadItem[][]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showPhotoTray, setShowPhotoTray] = useState<boolean>(false);
+  const [trayFilter, setTrayFilter] = useState<'all' | 'unused' | 'used'>('all');
+
+  const validSpreads = project.photos.length > 0
+    ? sanitizeSpreads(project.spreads, project.photos)
+    : project.spreads;
+
+  const [cropModalSlot, setCropModalSlot] = useState<{
+    spreadIndex: number;
+    slotIndex: number;
+    slot: SlotLayout;
+    photo: PhotoItem;
+  } | null>(null);
+
+  const handleSaveCropModal = (updatedProps: Partial<SlotLayout>) => {
+    if (!cropModalSlot) return;
+    saveSpreadSnapshot();
+    const newSpreads = JSON.parse(JSON.stringify(project.spreads)) as SpreadItem[];
+    const targetSlot = newSpreads[cropModalSlot.spreadIndex]?.slots[cropModalSlot.slotIndex];
+    if (targetSlot) {
+      Object.assign(targetSlot, updatedProps);
+      if (onUpdateSpreads) {
+        onUpdateSpreads(newSpreads);
+      } else if (onChangeSpread) {
+        onChangeSpread(cropModalSlot.spreadIndex, newSpreads[cropModalSlot.spreadIndex]);
+      }
+      setToastMessage('✓ Enquadramento e corte atualizados!');
+      setTimeout(() => setToastMessage(null), 3000);
+      if (pdfData || isSentSuccessfully) {
+        setPdfData(null);
+        setIsSentSuccessfully(false);
+      }
+    }
+  };
 
   const handleManualPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,6 +162,20 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
     photosMap.set(photo.id, photo);
   });
 
+  // Count photos used
+  const usedPhotoIds = new Set<string>();
+  project.spreads.forEach((spread) => {
+    spread.slots.forEach((slot) => {
+      if (slot.photoId) usedPhotoIds.add(slot.photoId);
+    });
+  });
+
+  const availablePhotosForTray = project.photos.filter((p) => {
+    if (trayFilter === 'unused') return !usedPhotoIds.has(p.id);
+    if (trayFilter === 'used') return usedPhotoIds.has(p.id);
+    return true;
+  });
+
   const totalSlots = project.spreads.reduce(
     (acc, spread) => acc + spread.slots.length,
     0
@@ -105,6 +185,327 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
       acc + spread.slots.filter((slot) => Boolean(slot.photoId)).length,
     0
   );
+
+  // Record spread snapshot for undo
+  const saveSpreadSnapshot = () => {
+    const prevSpreads = JSON.parse(JSON.stringify(project.spreads)) as SpreadItem[];
+    setSwapHistory((prev) => [...prev.slice(-10), prevSpreads]);
+  };
+
+  // Swap Two Slots
+  const handleSwapSlots = (
+    sourceSpreadIdx: number,
+    sourceSlotIdx: number,
+    targetSpreadIdx: number,
+    targetSlotIdx: number
+  ) => {
+    if (sourceSpreadIdx === targetSpreadIdx && sourceSlotIdx === targetSlotIdx) {
+      setSelectedSlotForSwap(null);
+      return;
+    }
+
+    saveSpreadSnapshot();
+
+    const newSpreads = JSON.parse(JSON.stringify(project.spreads)) as SpreadItem[];
+    const srcSlot = newSpreads[sourceSpreadIdx]?.slots[sourceSlotIdx];
+    const tgtSlot = newSpreads[targetSpreadIdx]?.slots[targetSlotIdx];
+
+    if (!srcSlot || !tgtSlot) return;
+
+    const tempPhotoId = srcSlot.photoId;
+    srcSlot.photoId = tgtSlot.photoId;
+    tgtSlot.photoId = tempPhotoId;
+
+    if (onUpdateSpreads) {
+      onUpdateSpreads(newSpreads);
+    } else if (onChangeSpread) {
+      onChangeSpread(sourceSpreadIdx, newSpreads[sourceSpreadIdx]);
+      if (sourceSpreadIdx !== targetSpreadIdx) {
+        onChangeSpread(targetSpreadIdx, newSpreads[targetSpreadIdx]);
+      }
+    }
+
+    setSelectedSlotForSwap(null);
+    setDragOverTarget(null);
+    setDraggedSource(null);
+
+    const sameSpread = sourceSpreadIdx === targetSpreadIdx;
+    const msg = sameSpread
+      ? `✓ Posições trocadas na Lâmina ${sourceSpreadIdx + 1}!`
+      : `✓ Fotos trocadas entre Lâmina ${sourceSpreadIdx + 1} e Lâmina ${targetSpreadIdx + 1}!`;
+
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+
+    if (pdfData || isSentSuccessfully) {
+      setPdfData(null);
+      setIsSentSuccessfully(false);
+    }
+  };
+
+  // Swap Slot with Cover Photo
+  const handleSwapSlotWithCover = (spreadIdx: number, slotIdx: number) => {
+    saveSpreadSnapshot();
+
+    const slot = project.spreads[spreadIdx]?.slots[slotIdx];
+    if (!slot) return;
+
+    const currentCoverUrl = project.cover.imageUrl;
+    const currentCoverPhoto = project.photos.find((p) => p.url === currentCoverUrl) || project.photos[0];
+    const currentCoverId = currentCoverPhoto?.id;
+
+    const slotPhoto = slot.photoId ? photosMap.get(slot.photoId) : null;
+    const newCoverUrl = slotPhoto?.url || currentCoverUrl;
+
+    const newSpreads = JSON.parse(JSON.stringify(project.spreads)) as SpreadItem[];
+    const targetSlot = newSpreads[spreadIdx]?.slots[slotIdx];
+    if (targetSlot) {
+      targetSlot.photoId = currentCoverId;
+    }
+
+    if (onUpdateSpreads) {
+      onUpdateSpreads(newSpreads);
+    }
+    if (onChangeCover && newCoverUrl) {
+      onChangeCover({ imageUrl: newCoverUrl });
+    }
+
+    setSelectedSlotForSwap(null);
+    setDragOverTarget(null);
+    setDraggedSource(null);
+    setToastMessage(`✓ Foto trocada com a Capa do Álbum!`);
+    setTimeout(() => setToastMessage(null), 3500);
+
+    if (pdfData || isSentSuccessfully) {
+      setPdfData(null);
+      setIsSentSuccessfully(false);
+    }
+  };
+
+  // Assign photo from photo tray to a specific slot
+  const handleAssignPhotoToSlot = (photoId: string, spreadIdx: number, slotIdx: number) => {
+    saveSpreadSnapshot();
+    const newSpreads = JSON.parse(JSON.stringify(project.spreads)) as SpreadItem[];
+    const tgtSlot = newSpreads[spreadIdx]?.slots[slotIdx];
+    if (!tgtSlot) return;
+
+    tgtSlot.photoId = photoId;
+    if (onUpdateSpreads) {
+      onUpdateSpreads(newSpreads);
+    }
+
+    setSelectedSlotForSwap(null);
+    setDragOverTarget(null);
+    setDraggedSource(null);
+    setToastMessage(`✓ Foto inserida na Lâmina ${spreadIdx + 1}!`);
+    setTimeout(() => setToastMessage(null), 3000);
+
+    if (pdfData || isSentSuccessfully) {
+      setPdfData(null);
+      setIsSentSuccessfully(false);
+    }
+  };
+
+  // Toggle Fit Mode (Contain / Cover) for a slot directly in Review
+  const handleToggleFitMode = (spreadIdx: number, slotIdx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    saveSpreadSnapshot();
+    const newSpreads = JSON.parse(JSON.stringify(project.spreads)) as SpreadItem[];
+    const tgtSlot = newSpreads[spreadIdx]?.slots[slotIdx];
+    if (!tgtSlot) return;
+
+    tgtSlot.fit = tgtSlot.fit === 'contain' ? 'cover' : 'contain';
+    if (onUpdateSpreads) {
+      onUpdateSpreads(newSpreads);
+    }
+    setToastMessage(
+      tgtSlot.fit === 'contain'
+        ? '✓ Enquadramento: Sem Cortes (100% visível)'
+        : '✓ Enquadramento: Preencher Espaço'
+    );
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  // Undo Last Swap
+  const handleUndoSwap = () => {
+    if (swapHistory.length === 0) return;
+    const lastState = swapHistory[swapHistory.length - 1];
+    setSwapHistory((prev) => prev.slice(0, -1));
+    if (onUpdateSpreads) {
+      onUpdateSpreads(lastState);
+    }
+    setSelectedSlotForSwap(null);
+    setToastMessage('✓ Ação desfeita!');
+    setTimeout(() => setToastMessage(null), 2500);
+
+    if (pdfData || isSentSuccessfully) {
+      setPdfData(null);
+      setIsSentSuccessfully(false);
+    }
+  };
+
+  // Click-to-Swap Slot Handler
+  const handleSlotClick = (spreadIdx: number, slotIdx: number) => {
+    if (!selectedSlotForSwap) {
+      // First click: select slot as swap origin
+      setSelectedSlotForSwap({
+        spreadIndex: spreadIdx,
+        slotIndex: slotIdx,
+        photoId: project.spreads[spreadIdx]?.slots[slotIdx]?.photoId,
+      });
+      setToastMessage(`Foto da Lâmina ${spreadIdx + 1} selecionada. Agora clique em outra foto para trocar a posição.`);
+      return;
+    }
+
+    if ('isCover' in selectedSlotForSwap) {
+      // Swapping Cover with this slot
+      handleSwapSlotWithCover(spreadIdx, slotIdx);
+      return;
+    }
+
+    if (
+      selectedSlotForSwap.spreadIndex === spreadIdx &&
+      selectedSlotForSwap.slotIndex === slotIdx
+    ) {
+      // Clicked the same slot -> deselect
+      setSelectedSlotForSwap(null);
+      setToastMessage(null);
+      return;
+    }
+
+    // Swapping previously selected slot with clicked slot
+    handleSwapSlots(
+      selectedSlotForSwap.spreadIndex,
+      selectedSlotForSwap.slotIndex,
+      spreadIdx,
+      slotIdx
+    );
+  };
+
+  // Click-to-Swap Cover Handler
+  const handleCoverClick = () => {
+    if (!selectedSlotForSwap) {
+      setSelectedSlotForSwap({ isCover: true });
+      setToastMessage('Capa selecionada. Clique em qualquer foto de uma lâmina para trocar a posição.');
+      return;
+    }
+
+    if ('isCover' in selectedSlotForSwap) {
+      setSelectedSlotForSwap(null);
+      setToastMessage(null);
+      return;
+    }
+
+    // Swapping previously selected slot with Cover
+    handleSwapSlotWithCover(
+      selectedSlotForSwap.spreadIndex,
+      selectedSlotForSwap.slotIndex
+    );
+  };
+
+  // Native HTML5 Drag and Drop Event Handlers
+  const handleDragStartFromSlot = (
+    e: React.DragEvent,
+    spreadIdx: number,
+    slotIdx: number,
+    photoId?: string
+  ) => {
+    const payload = {
+      type: 'slot' as const,
+      spreadIndex: spreadIdx,
+      slotIndex: slotIdx,
+      photoId,
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(payload));
+    e.dataTransfer.setData('text/plain', photoId || '');
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedSource(payload);
+  };
+
+  const handleDragStartFromCover = (e: React.DragEvent) => {
+    const payload = { type: 'cover' as const };
+    e.dataTransfer.setData('application/json', JSON.stringify(payload));
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedSource(payload);
+  };
+
+  const handleDragStartFromTray = (e: React.DragEvent, photoId: string) => {
+    const payload = { type: 'tray' as const, photoId };
+    e.dataTransfer.setData('application/json', JSON.stringify(payload));
+    e.dataTransfer.setData('text/plain', photoId);
+    e.dataTransfer.effectAllowed = 'copyMove';
+    setDraggedSource(payload);
+  };
+
+  const handleDropOnSlot = (
+    e: React.DragEvent,
+    targetSpreadIdx: number,
+    targetSlotIdx: number
+  ) => {
+    e.preventDefault();
+    setDragOverTarget(null);
+
+    let data: any = null;
+    try {
+      const rawJson = e.dataTransfer.getData('application/json');
+      if (rawJson) data = JSON.parse(rawJson);
+    } catch {
+      // fallback
+    }
+
+    if (!data && draggedSource) {
+      data = draggedSource;
+    }
+
+    if (!data) {
+      const plainId = e.dataTransfer.getData('text/plain');
+      if (plainId) {
+        handleAssignPhotoToSlot(plainId, targetSpreadIdx, targetSlotIdx);
+      }
+      return;
+    }
+
+    if (data.type === 'slot') {
+      handleSwapSlots(
+        data.spreadIndex,
+        data.slotIndex,
+        targetSpreadIdx,
+        targetSlotIdx
+      );
+    } else if (data.type === 'cover') {
+      handleSwapSlotWithCover(targetSpreadIdx, targetSlotIdx);
+    } else if (data.type === 'tray' && data.photoId) {
+      handleAssignPhotoToSlot(data.photoId, targetSpreadIdx, targetSlotIdx);
+    }
+  };
+
+  const handleDropOnCover = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverTarget(null);
+
+    let data: any = null;
+    try {
+      const rawJson = e.dataTransfer.getData('application/json');
+      if (rawJson) data = JSON.parse(rawJson);
+    } catch {
+      // ignore
+    }
+
+    if (!data && draggedSource) {
+      data = draggedSource;
+    }
+
+    if (data?.type === 'slot') {
+      handleSwapSlotWithCover(data.spreadIndex, data.slotIndex);
+    } else if (data?.type === 'tray' && data.photoId) {
+      const photo = photosMap.get(data.photoId);
+      if (photo && onChangeCover) {
+        onChangeCover({ imageUrl: photo.url });
+        setToastMessage('✓ Capa atualizada com nova fotografia!');
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    }
+  };
 
   const downloadFile = (blob: Blob, fileName: string) => {
     try {
@@ -198,6 +599,31 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-8">
+      {/* Dynamic Toast Feedback when Photos are Swapped */}
+      {toastMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-[#2C2420] text-white text-xs sm:text-sm font-semibold shadow-2xl border border-amber-500/40 flex items-center gap-3 animate-in slide-in-from-top-4 duration-200 max-w-lg text-center">
+          <ArrowLeftRight className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+          <span className="flex-1">{toastMessage}</span>
+          {swapHistory.length > 0 && (
+            <button
+              type="button"
+              onClick={handleUndoSwap}
+              className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1"
+            >
+              <Undo2 className="w-3 h-3" />
+              Desfazer
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="p-1 hover:bg-white/20 rounded-md transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EFE8DE] text-[#5A4638] text-xs font-semibold uppercase tracking-wider mb-3">
@@ -398,82 +824,362 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
         </div>
       </div>
 
-      {/* Spreads & Cover Gallery Overview */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E8DFD5] shadow-xs space-y-4">
-        <h3 className="font-serif text-lg font-bold text-[#2C2420] flex items-center justify-between">
-          <span>Galeria de Lâminas (20x30 cm Aberto / 15x20 Vertical)</span>
-          <span className="text-xs font-sans font-normal text-[#7A685B]">
-            {project.spreads.length} lâminas panorâmicas prontas
-          </span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Cover */}
-          <div className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#E0D6C8] shadow-2xs">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] mb-1.5 flex items-center justify-between">
-              <span>Capa do Álbum (15x20 cm Vertical)</span>
-              <span className="text-emerald-700">✓ Pronta</span>
+      {/* ========================================================================= */}
+      {/* QUICK PHOTO SWAP & EDIT SECTION (Interactive Drag-and-Drop Review) */}
+      {/* ========================================================================= */}
+      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-7 border-2 border-[#E0D6C8] shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E8DFD5]">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-[#3D2C24] text-white flex items-center justify-center">
+                <ArrowLeftRight className="w-4 h-4 text-amber-400" />
+              </span>
+              <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
+                Edição & Troca Rápida de Fotos
+              </h3>
             </div>
-            <div className="w-full aspect-[3/2] bg-[#FFFFFF] rounded-xl overflow-hidden border border-[#D9CFC4] relative flex items-center justify-center">
+            <p className="text-xs text-[#7A685B] mt-1">
+              Arraste qualquer foto sobre outra para trocar suas posições instantaneamente, ou clique em duas fotos sucessivamente.
+            </p>
+          </div>
+
+          <div className="flex items-center flex-wrap gap-2">
+            {swapHistory.length > 0 && (
+              <button
+                type="button"
+                onClick={handleUndoSwap}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#F2ECE4] text-[#3D2C24] text-xs font-semibold border border-[#D9CFC4] shadow-2xs transition-colors cursor-pointer"
+                title="Desfazer última troca de fotos"
+              >
+                <Undo2 className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                Desfazer Troca ({swapHistory.length})
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowPhotoTray(!showPhotoTray)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                showPhotoTray
+                  ? 'bg-[#3D2C24] text-white border-[#3D2C24]'
+                  : 'bg-white hover:bg-[#F2ECE4] text-[#3D2C24] border-[#D9CFC4]'
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+              {showPhotoTray ? 'Fechar Fotos' : 'Gaveta de Fotos'} ({project.photos.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Selected for Swap Highlight Banner */}
+        {selectedSlotForSwap && (
+          <div className="p-3 bg-amber-50 rounded-2xl border-2 border-amber-400/80 text-amber-950 flex flex-wrap items-center justify-between gap-2 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+              <span>
+                {'isCover' in selectedSlotForSwap ? (
+                  <strong>Capa do Álbum</strong>
+                ) : (
+                  <strong>
+                    Foto da Lâmina {selectedSlotForSwap.spreadIndex + 1}
+                  </strong>
+                )}{' '}
+                selecionada para troca! Clique agora na foto de destino.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSlotForSwap(null);
+                setToastMessage(null);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-white text-amber-900 text-xs font-bold border border-amber-300 hover:bg-amber-100 transition-colors cursor-pointer"
+            >
+              Cancelar Seleção ✕
+            </button>
+          </div>
+        )}
+
+        {/* Collapsible Photo Tray for Direct Insertion */}
+        {showPhotoTray && (
+          <div className="p-4 bg-white rounded-2xl border border-[#E0D6C8] space-y-3 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold text-[#3D2C24] flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[#8C5E3C]" />
+                Fotos do Projeto (Arraste uma foto diretamente para qualquer lâmina)
+              </div>
+              <div className="flex items-center gap-1 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setTrayFilter('all')}
+                  className={`px-2 py-0.5 rounded-md ${trayFilter === 'all' ? 'bg-[#3D2C24] text-white font-bold' : 'text-[#7A685B] hover:bg-[#F2ECE4]'}`}
+                >
+                  Todas ({project.photos.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrayFilter('unused')}
+                  className={`px-2 py-0.5 rounded-md ${trayFilter === 'unused' ? 'bg-[#3D2C24] text-white font-bold' : 'text-[#7A685B] hover:bg-[#F2ECE4]'}`}
+                >
+                  Não usadas ({project.photos.filter((p) => !usedPhotoIds.has(p.id)).length})
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
+              {availablePhotosForTray.map((photo) => {
+                const isUsed = usedPhotoIds.has(photo.id);
+                return (
+                  <div
+                    key={photo.id}
+                    draggable
+                    onDragStart={(e) => handleDragStartFromTray(e, photo.id)}
+                    className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 border-[#D9CFC4] hover:border-[#8C5E3C] relative group cursor-grab active:cursor-grabbing shadow-2xs transition-all hover:scale-105"
+                    title="Arraste para uma lâmina"
+                  >
+                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                    {isUsed && (
+                      <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-600 rounded-full text-white flex items-center justify-center text-[9px] font-bold">
+                        ✓
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-bold text-center p-1 pointer-events-none">
+                      Arraste
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Spreads & Cover Gallery Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Cover Card */}
+          <div
+            className={`p-3.5 bg-[#FFFFFF] rounded-2xl border transition-all relative ${
+              dragOverTarget === 'cover'
+                ? 'ring-4 ring-amber-500 border-amber-500 bg-amber-50/40 scale-[1.02] shadow-lg z-20'
+                : selectedSlotForSwap && 'isCover' in selectedSlotForSwap
+                ? 'ring-3 ring-emerald-600 border-emerald-600 bg-emerald-50/20 shadow-md'
+                : 'border-[#E0D6C8] shadow-2xs hover:border-[#C4B29E]'
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDragEnter={() => setDragOverTarget('cover')}
+            onDragLeave={() => setDragOverTarget(null)}
+            onDrop={handleDropOnCover}
+          >
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <BookOpen className="w-3 h-3 text-[#8C5E3C]" />
+                Capa do Álbum (15x20 cm Vertical)
+              </span>
+              <span className="text-xs text-amber-700 font-sans font-bold flex items-center gap-1">
+                <Move className="w-3 h-3" />
+                Arraste p/ trocar
+              </span>
+            </div>
+
+            <div
+              draggable={Boolean(project.cover.imageUrl || project.photos[0])}
+              onDragStart={handleDragStartFromCover}
+              onClick={handleCoverClick}
+              className="w-full aspect-[3/2] bg-[#FAF7F2] rounded-xl overflow-hidden border border-[#D9CFC4] relative flex items-center justify-center cursor-grab active:cursor-grabbing group"
+              title="Clique ou arraste para trocar foto da capa"
+            >
               {project.cover.imageUrl ? (
                 <img
                   src={project.cover.imageUrl}
                   alt="Capa"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+              ) : project.photos.length > 0 ? (
+                <img
+                  src={project.photos[0].url}
+                  alt="Capa"
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
                 />
               ) : (
                 <div className="p-2 text-center text-[10px] text-[#7A685B] font-serif font-bold">
                   {project.cover.title || project.clientData.albumTitle}
                 </div>
               )}
+
+              {/* Drag over overlay */}
+              {dragOverTarget === 'cover' && (
+                <div className="absolute inset-0 bg-amber-600/70 text-white flex flex-col items-center justify-center gap-1 text-xs font-bold animate-in fade-in">
+                  <ArrowLeftRight className="w-6 h-6 animate-bounce" />
+                  <span>Solte para Definir como Capa ⇄</span>
+                </div>
+              )}
+
+              {/* Hover overlay hint */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-white text-[11px] font-bold pointer-events-none">
+                <ArrowLeftRight className="w-3.5 h-3.5 text-amber-400" />
+                <span>Trocar Capa</span>
+              </div>
+            </div>
+
+            <div className="mt-2 text-center text-[11px] font-serif font-bold text-[#3D2C24] truncate">
+              {project.cover.title || project.clientData.albumTitle || 'VILLA7 MEMÓRIAS'}
             </div>
           </div>
 
-          {/* Spreads */}
-          {project.spreads.map((spread, idx) => (
+          {/* Spreads List */}
+          {validSpreads.map((spread, idx) => (
             <div
               key={spread.id}
-              className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#E0D6C8] shadow-2xs"
+              className="p-3.5 bg-[#FFFFFF] rounded-2xl border border-[#E0D6C8] shadow-2xs hover:border-[#C4B29E] transition-all space-y-2"
             >
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] mb-1.5 flex items-center justify-between">
-                <span>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] flex items-center justify-between">
+                <span className="font-semibold text-[#3D2C24]">
                   Lâmina {idx + 1} (Págs. {idx * 2 + 1}-{idx * 2 + 2})
                 </span>
-                <span className="font-mono text-[#A39282]">{spread.slots.length} fotos</span>
+                <span className="text-[10px] font-mono text-amber-700 font-bold flex items-center gap-1">
+                  <Move className="w-3 h-3" />
+                  {spread.slots.length} {spread.slots.length === 1 ? 'foto' : 'fotos'}
+                </span>
               </div>
 
-              <div className="w-full aspect-[3/2] bg-[#FFFFFF] rounded-xl overflow-hidden border border-[#D9CFC4] relative">
-                <div className="absolute inset-y-0 left-1/2 w-px bg-black/10 -translate-x-1/2" />
+              {/* 30x20 cm Canvas container */}
+              <div className="w-full aspect-[3/2] bg-[#FAF7F2] rounded-xl overflow-hidden border border-[#D9CFC4] relative shadow-inner">
+                {/* Center Spine Fold Line */}
+                <div className="absolute inset-y-0 left-1/2 w-px bg-black/15 -translate-x-1/2 z-10 pointer-events-none" />
+
                 {spread.slots.map((slot, sIdx) => {
                   const photo = slot.photoId ? photosMap.get(slot.photoId) : null;
+                  const slotTargetKey = `spread-${idx}-slot-${sIdx}`;
+                  const isDragOver = dragOverTarget === slotTargetKey;
+                  const isSelected =
+                    selectedSlotForSwap &&
+                    !('isCover' in selectedSlotForSwap) &&
+                    selectedSlotForSwap.spreadIndex === idx &&
+                    selectedSlotForSwap.slotIndex === sIdx;
+
                   return (
                     <div
                       key={slot.id || sIdx}
-                      className="absolute overflow-hidden"
+                      draggable={Boolean(photo)}
+                      onDragStart={(e) =>
+                        handleDragStartFromSlot(e, idx, sIdx, slot.photoId)
+                      }
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                      }}
+                      onDragEnter={() => setDragOverTarget(slotTargetKey)}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setDragOverTarget(null);
+                        }
+                      }}
+                      onDrop={(e) => handleDropOnSlot(e, idx, sIdx)}
+                      onClick={() => handleSlotClick(idx, sIdx)}
+                      className={`absolute overflow-hidden cursor-grab active:cursor-grabbing transition-all group ${
+                        isDragOver
+                          ? 'ring-4 ring-amber-500 bg-amber-400/30 scale-[1.03] z-30 shadow-xl'
+                          : isSelected
+                          ? 'ring-4 ring-emerald-600 ring-offset-2 z-20 shadow-md'
+                          : 'hover:ring-2 hover:ring-amber-500/70 hover:z-10'
+                      }`}
                       style={{
                         left: `${slot.x}%`,
                         top: `${slot.y}%`,
                         width: `${slot.width}%`,
                         height: `${slot.height}%`,
                       }}
+                      title="Arraste para cima de outra foto para trocar"
                     >
                       {photo ? (
-                        <img
-                          src={photo.url}
-                          alt=""
-                          className="w-full h-full"
-                          style={{
-                            objectFit: slot.fit || 'cover',
-                            filter:
-                              slot.filter === 'bw'
-                                ? 'grayscale(100%)'
-                                : slot.filter === 'warm'
-                                ? 'sepia(30%)'
-                                : 'none',
-                          }}
-                        />
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <img
+                            src={photo.url}
+                            alt=""
+                            className="w-full h-full select-none pointer-events-none transition-transform"
+                            style={{
+                              objectFit: slot.fit || 'cover',
+                              transform: `scale(${slot.zoom || 1}) translate(${slot.panX || 0}%, ${
+                                slot.panY || 0
+                              }%)`,
+                              filter:
+                                slot.filter === 'bw'
+                                  ? 'grayscale(100%)'
+                                  : slot.filter === 'warm'
+                                  ? 'sepia(30%)'
+                                  : slot.filter === 'vintage'
+                                  ? 'sepia(50%) contrast(110%)'
+                                  : slot.filter === 'soft'
+                                  ? 'brightness(105%) contrast(95%)'
+                                  : 'none',
+                            }}
+                          />
+
+                          {/* Fit indicator tag */}
+                          {slot.fit === 'contain' && (
+                            <div className="absolute top-1 left-1 bg-black/70 text-white text-[8px] px-1 py-0.5 rounded font-sans pointer-events-none">
+                              100%
+                            </div>
+                          )}
+
+                          {/* Drag Hover State Overlay */}
+                          {isDragOver && (
+                            <div className="absolute inset-0 bg-amber-600/75 text-white flex flex-col items-center justify-center p-1 text-center font-bold text-[10px] animate-in fade-in z-20">
+                              <ArrowLeftRight className="w-5 h-5 animate-spin" />
+                              <span>Solte para Trocar ⇄</span>
+                            </div>
+                          )}
+
+                          {/* Selected for Swap Badge */}
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-emerald-700/60 text-white flex flex-col items-center justify-center p-1 text-center font-bold text-[10px] animate-pulse z-20">
+                              <Check className="w-5 h-5 mb-0.5" />
+                              <span>Origem Selecionada</span>
+                              <span className="text-[8px] font-normal">Clique na foto destino</span>
+                            </div>
+                          )}
+
+                          {/* Hover Tooltip & Quick Action Toolbar */}
+                          {!isDragOver && !isSelected && (
+                            <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white p-1 z-10">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCropModalSlot({
+                                    spreadIndex: idx,
+                                    slotIndex: sIdx,
+                                    slot,
+                                    photo,
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1 text-[9px] font-bold bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded-md shadow-xs transition-transform hover:scale-105 cursor-pointer"
+                                title="Esquadrar e arrastar para evitar corte de cabeças, braços ou pernas"
+                              >
+                                <Move className="w-3 h-3" />
+                                <span>🎯 Esquadrar Corte</span>
+                              </button>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleToggleFitMode(idx, sIdx, e)}
+                                  className="text-[8px] font-semibold bg-white/90 text-[#3D2C24] hover:bg-white px-1.5 py-0.5 rounded shadow-xs cursor-pointer"
+                                  title="Alternar Enquadramento (Preencher vs Sem Cortes)"
+                                >
+                                  {slot.fit === 'contain' ? 'Preencher' : 'Sem Cortes'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <div className="w-full h-full bg-[#FAF7F2] border border-dashed border-[#DDD3C5]" />
+                        <div className="w-full h-full bg-[#FAF7F2] border-2 border-dashed border-[#DDD3C5] flex flex-col items-center justify-center text-[9px] text-[#8C7A6B] p-1 text-center">
+                          <Plus className="w-3 h-3 mb-0.5" />
+                          <span>Solte foto aqui</span>
+                        </div>
                       )}
                     </div>
                   );
@@ -631,6 +1337,15 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
           Criar Novo Álbum
         </button>
       </div>
+
+      {/* Photo Crop & Safe Framing Modal */}
+      <PhotoCropModal
+        isOpen={cropModalSlot !== null}
+        slot={cropModalSlot?.slot || null}
+        photo={cropModalSlot?.photo || null}
+        onSave={handleSaveCropModal}
+        onClose={() => setCropModalSlot(null)}
+      />
     </div>
   );
 };

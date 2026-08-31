@@ -20,6 +20,7 @@ import {
   Bot,
   Lightbulb,
   Camera,
+  ShieldCheck,
 } from 'lucide-react';
 import { ClientData, PhotoItem, OccasionType, CoverData } from '../../types';
 import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
@@ -85,7 +86,8 @@ export const Process1Preparation: React.FC<Process1Props> = ({
     clientData.albumTitle || 'Nossas Melhores Memórias',
     clientData.albumSubtitle || 'Momentos Especiais • 2026',
     clientData.name || 'Família & Memórias',
-    clientData.occasion
+    clientData.occasion,
+    clientData.notes
   );
 
   const handleCopyPrompt = () => {
@@ -364,6 +366,26 @@ export const Process1Preparation: React.FC<Process1Props> = ({
               <Mail className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
           </div>
+
+          {/* Event Description & Context (Full width) */}
+          <div className="md:col-span-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638]">
+                Descrição do Evento & Contexto Visual (Em Destaque no Prompt da Capa)
+              </label>
+              <span className="text-[11px] text-[#8C5E3C] font-medium">
+                Alimenta automaticamente a IA com o contexto da celebração
+              </span>
+            </div>
+            <textarea
+              id="input-event-description"
+              rows={2}
+              value={clientData.notes || ''}
+              onChange={(e) => onChangeClientData({ notes: e.target.value })}
+              placeholder="Ex: Formatura em Medicina da Turma de 2026, baile de gala com iluminação cênica dourada e colação solene / Casamento ao pôr do sol no campo com estilo rústico chique."
+              className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C] resize-none"
+            />
+          </div>
         </div>
 
         {/* SUBSECTION: UPLOAD DA FOTO DA CAPA 15x20 VERTICAL */}
@@ -505,7 +527,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                         : 'bg-[#E0D6C8] text-[#5A4638]'
                     }`}
                   >
-                    Villa7 • 15x20
+                    15x20 cm • Vertical
                   </span>
                 </div>
 
@@ -673,6 +695,22 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                       </>
                     )}
                   </button>
+                </div>
+
+                {/* Highlighted Project Data Badges */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#F5EFEB] border border-[#E0D6C8] text-xs">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="font-bold text-[#8C5E3C] shrink-0">📌 Projeto:</span>
+                    <span className="font-semibold text-[#2C2420] truncate">
+                      {clientData.albumTitle || 'Nossas Melhores Memórias'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="font-bold text-[#8C5E3C] shrink-0">📝 Contexto:</span>
+                    <span className="text-[#5A4638] truncate">
+                      {clientData.notes || (clientData.occasion !== 'Outro' ? clientData.occasion : 'Memórias Especiais')}
+                    </span>
+                  </div>
                 </div>
 
                 <textarea
@@ -908,6 +946,15 @@ export const Process1Preparation: React.FC<Process1Props> = ({
               </span>
               <span>20 Lâminas (Máximo)</span>
             </div>
+
+            {photos.length > 0 && (
+              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] flex items-center gap-2.5 text-xs text-[#685547]">
+                <ShieldCheck className="w-4 h-4 text-[#8C5E3C] shrink-0" />
+                <span>
+                  <strong>Garantia Villa7 de Álbum Completo:</strong> Todas as lâminas geradas conterão fotografias enviadas. Nenhuma página fica vazia.
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
