@@ -1,6 +1,7 @@
 import React from 'react';
-import { BookOpen, Sparkles, Download, Eye, RotateCcw, CheckCircle, Save } from 'lucide-react';
+import { Sparkles, Download, Eye, RotateCcw, CheckCircle, Save } from 'lucide-react';
 import { AlbumProject } from '../types';
+import { Villa7Logo } from './common/Villa7Logo';
 
 interface HeaderProps {
   project: AlbumProject;
@@ -25,23 +26,16 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-20">
           {/* Brand Logo & Essence */}
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shadow-sm border border-[#2C2420]">
-              <span className="font-serif text-xl font-bold tracking-widest">V7</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-wide text-[#2C2420]">
-                  Villa7 Álbuns
-                </h1>
-                <span className="hidden sm:inline-block px-2.5 py-0.5 text-[11px] font-medium tracking-wider uppercase bg-[#EAE0D5] text-[#5A4638] rounded-full">
-                  Memórias Colecionáveis
-                </span>
-              </div>
-              <p className="text-xs text-[#7A685B] font-light">
+            <Villa7Logo variant="full" size="md" iconColor="#8C5E3C" textColor="#2C2420" />
+            
+            <div className="hidden lg:block h-8 w-[1px] bg-[#E8DFD5]" />
+
+            <div className="hidden md:block">
+              <span className="inline-block px-2.5 py-0.5 text-[11px] font-medium tracking-wider uppercase bg-[#EAE0D5] text-[#5A4638] rounded-full">
                 {project.clientData.albumTitle
-                  ? `${project.clientData.albumTitle} • 15x20 Vertical (Aberto 20x30 cm)`
-                  : 'Diagramação & Produção de Álbuns 15x20 Vertical'}
-              </p>
+                  ? `${project.clientData.albumTitle} • 15x20 Vertical`
+                  : 'Plataforma Profissional • 15x20 cm Vertical'}
+              </span>
             </div>
           </div>
 

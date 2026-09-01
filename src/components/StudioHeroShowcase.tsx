@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Eye, Layers, ShieldCheck, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import { IMAGE_ASSETS, STUDIO_SHOWCASE_FEATURES } from '../constants/imageAssets';
+import { Villa7Icon } from './common/Villa7Logo';
 
 export const StudioHeroShowcase: React.FC = () => {
   const [activeImageModal, setActiveImageModal] = useState<string | null>(null);
@@ -10,8 +11,8 @@ export const StudioHeroShowcase: React.FC = () => {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8DFD5]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shadow-xs">
-            <Sparkles className="w-5 h-5 text-[#EAE0D5]" />
+          <div className="w-10 h-10 rounded-2xl bg-[#3D2C24] p-2 text-[#FAF7F2] flex items-center justify-center shadow-xs">
+            <Villa7Icon color="#EAE0D5" className="w-full h-full" />
           </div>
           <div>
             <h3 className="font-serif text-lg font-bold text-[#2C2420] flex items-center gap-2">
