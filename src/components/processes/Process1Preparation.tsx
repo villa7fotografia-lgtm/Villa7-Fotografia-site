@@ -392,18 +392,18 @@ export const Process1Preparation: React.FC<Process1Props> = ({
           </div>
         </div>
 
-        {/* SUBSECTION: UPLOAD DA FOTO DA CAPA 15x20 VERTICAL */}
+        {/* SUBSECTION: ARTE DA CAPA & UPLOAD (15x20 VERTICAL) */}
         <div className="pt-6 border-t border-[#E8DFD5] space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E8DFD5]">
             <div>
               <div className="flex items-center gap-2">
-                <Camera className="w-5 h-5 text-[#8C5E3C]" />
+                <Bot className="w-5 h-5 text-[#8C5E3C]" />
                 <h4 className="font-serif font-bold text-base text-[#2C2420]">
-                  Foto da Capa do Álbum (15x20 cm Vertical)
+                  Criação de Arte & Upload da Capa Fotográfica (15x20 cm)
                 </h4>
               </div>
               <p className="text-xs text-[#7A685B] mt-0.5">
-                Envie a fotografia principal para estampar a capa vertical do fotolivro.
+                Crie a arte da capa com o assistente IA e, em seguida, envie a foto final para a capa do fotolivro.
               </p>
             </div>
 
@@ -413,163 +413,21 @@ export const Process1Preparation: React.FC<Process1Props> = ({
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#EFE8DE] hover:bg-[#E5DCD0] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors self-start sm:self-auto cursor-pointer"
             >
               <Bot className="w-4 h-4 text-[#8C5E3C]" />
-              {showPromptGuide ? 'Ocultar Dicas & Prompts GPT' : 'Ver Dicas & Prompts GPT'}
+              {showPromptGuide ? 'Ocultar Prompts GPT' : 'Exibir Prompts GPT'}
             </button>
           </div>
 
-          {/* Upload Area & Cover Card Preview */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-            {/* Upload Box */}
-            <div className="md:col-span-7 space-y-3">
-              <input
-                ref={coverInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    handleCoverFileUpload(e.target.files[0]);
-                  }
-                }}
-              />
-
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDraggingCover(true);
-                }}
-                onDragLeave={() => setIsDraggingCover(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingCover(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    handleCoverFileUpload(e.dataTransfer.files[0]);
-                  }
-                }}
-                onClick={() => coverInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-                  isDraggingCover
-                    ? 'border-[#8C5E3C] bg-[#F2ECE4]'
-                    : cover.imageUrl
-                    ? 'border-emerald-400 bg-emerald-50/40 hover:bg-emerald-50/70'
-                    : 'border-[#D9CFC4] bg-[#FFFFFF] hover:border-[#8C5E3C] hover:bg-[#FDFCFB]'
-                }`}
-              >
-                {cover.imageUrl ? (
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2">
-                      <Check className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold text-emerald-800">
-                      Foto da Capa Carregada com Sucesso!
-                    </span>
-                    <p className="text-[11px] text-[#7A685B] mt-1">
-                      Clique para trocar a imagem da capa (15x20 cm vertical)
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <Upload className="w-8 h-8 text-[#8C5E3C] mb-2" />
-                    <span className="text-xs font-bold text-[#2C2420]">
-                      Clique para selecionar ou arraste a Foto da Capa
-                    </span>
-                    <p className="text-[11px] text-[#7A685B] mt-1">
-                      Formato Vertical 15x20 cm (2:3 ou 3:4) • JPG, PNG ou WEBP
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {cover.imageUrl && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-[#7A685B] flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    Homologada para a Capa 15x20
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChangeCover({ imageUrl: undefined });
-                    }}
-                    className="text-xs text-rose-700 hover:text-rose-900 inline-flex items-center gap-1 font-medium transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Remover Foto da Capa
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Mini Cover Preview Card (15x20 Vertical 3:4) */}
-            <div className="md:col-span-5 flex flex-col items-center">
-              <div className="relative w-44 h-60 rounded-2xl bg-[#FFFFFF] border-4 border-[#3D2C24] shadow-xl overflow-hidden p-3 flex flex-col justify-between text-center transition-all hover:scale-[1.02]">
-                <div className="absolute inset-y-0 left-0 w-2.5 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
-
-                {cover.imageUrl ? (
-                  <div className="absolute inset-0 z-0">
-                    <img
-                      src={cover.imageUrl}
-                      alt="Capa do Álbum"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/35" />
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-b from-[#FAF7F2] to-[#EAE0D5] flex flex-col items-center justify-center p-3 text-[#8C7A6B]">
-                    <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
-                    <span className="text-[10px] font-semibold text-center">Prévia 15x20 cm</span>
-                  </div>
-                )}
-
-                {/* Top Badge */}
-                <div className="relative z-10">
-                  <span
-                    className={`text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full inline-block ${
-                      cover.imageUrl
-                        ? 'bg-black/40 text-white/90 backdrop-blur-xs'
-                        : 'bg-[#E0D6C8] text-[#5A4638]'
-                    }`}
-                  >
-                    15x20 cm • Vertical
-                  </span>
-                </div>
-
-                {/* Bottom Title & Subtitle */}
-                <div className="relative z-10 text-center">
-                  <h5
-                    className={`font-serif font-bold text-xs leading-tight drop-shadow-sm ${
-                      cover.imageUrl ? 'text-white' : 'text-[#2C2420]'
-                    }`}
-                  >
-                    {clientData.albumTitle || 'Nossas Melhores Memórias'}
-                  </h5>
-                  <p
-                    className={`font-serif italic text-[9px] mt-0.5 ${
-                      cover.imageUrl ? 'text-white/80' : 'text-[#7A685B]'
-                    }`}
-                  >
-                    {clientData.albumSubtitle || 'Momentos Especiais • 2026'}
-                  </p>
-                </div>
-              </div>
-              <span className="text-[10px] font-medium text-[#8C7A6B] mt-2">
-                Prévia da Capa (15x20 cm Vertical)
-              </span>
-            </div>
-          </div>
-
-          {/* DICAS & PROMPTS COPIÁVEIS PARA O CHATGPT */}
+          {/* PASSO 1: GERADOR DE PROMPTS PARA O CHATGPT */}
           {showPromptGuide && (
             <div className="bg-[#FFFFFF] rounded-2xl p-5 sm:p-6 border border-[#DDD3C5] shadow-xs space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EFE8DE]">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-[#EAE0D5]" />
+                  <div className="w-8 h-8 rounded-lg bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-bold text-xs">
+                    1º
                   </div>
                   <div>
                     <h5 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
-                      Direcionamento & Prompts para Produzir a Capa no ChatGPT (GPT-4o / DALL-E)
+                      Etapa 1: Gerar Prompt para o ChatGPT (GPT-4o / DALL-E)
                     </h5>
                     <p className="text-xs text-[#7A685B]">
                       Copie o prompt estruturado com 1 clique e envie no ChatGPT junto com sua foto de referência.
@@ -596,7 +454,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   </span>
                   <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Escolha o Estilo</h6>
                   <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Selecione abaixo o tema da capa (Casamento, Família, Editorial, etc.).
+                    Selecione abaixo o tema desejado (Casamento, Família, Editorial, etc.).
                   </p>
                 </div>
 
@@ -606,7 +464,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   </span>
                   <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Copie o Prompt</h6>
                   <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Clique em &quot;Copiar Prompt&quot;. Os dados do seu álbum já foram embutidos!
+                    Clique em &quot;Copiar Prompt&quot;. O título e contexto do seu álbum já estão incluídos!
                   </p>
                 </div>
 
@@ -616,7 +474,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   </span>
                   <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Cole no ChatGPT</h6>
                   <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Abra o ChatGPT, anexe a foto principal e envie junto com o prompt copiado.
+                    Abra o ChatGPT, anexe a foto principal do evento e envie junto com o prompt copiado.
                   </p>
                 </div>
 
@@ -624,9 +482,9 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-1.5 py-0.5 rounded">
                     PASSO 4
                   </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Faça o Upload</h6>
+                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Faça o Upload Abaixo</h6>
                   <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Baixe a imagem vertical gerada e faça o upload no campo acima.
+                    Baixe a imagem gerada no ChatGPT e envie na Etapa 2 abaixo.
                   </p>
                 </div>
               </div>
@@ -751,6 +609,165 @@ export const Process1Preparation: React.FC<Process1Props> = ({
               </div>
             </div>
           )}
+
+          {/* PASSO 2: UPLOAD DA FOTO DA CAPA FINAL */}
+          <div className="bg-[#FAF7F2] rounded-2xl p-5 sm:p-6 border border-[#E8DFD5] space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-bold text-xs">
+                2º
+              </div>
+              <div>
+                <h5 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
+                  Etapa 2: Enviar Foto da Capa Fotográfica (15x20 cm Vertical)
+                </h5>
+                <p className="text-xs text-[#7A685B]">
+                  Upload da imagem final gerada pela IA ou foto selecionada pelo cliente.
+                </p>
+              </div>
+            </div>
+
+            {/* Upload Area & Cover Card Preview */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center pt-2">
+              {/* Upload Box */}
+              <div className="md:col-span-7 space-y-3">
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleCoverFileUpload(e.target.files[0]);
+                    }
+                  }}
+                />
+
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingCover(true);
+                  }}
+                  onDragLeave={() => setIsDraggingCover(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingCover(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      handleCoverFileUpload(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  onClick={() => coverInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
+                    isDraggingCover
+                      ? 'border-[#8C5E3C] bg-[#F2ECE4]'
+                      : cover.imageUrl
+                      ? 'border-emerald-400 bg-emerald-50/40 hover:bg-emerald-50/70'
+                      : 'border-[#D9CFC4] bg-[#FFFFFF] hover:border-[#8C5E3C] hover:bg-[#FDFCFB]'
+                  }`}
+                >
+                  {cover.imageUrl ? (
+                    <div className="flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2">
+                        <Check className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-bold text-emerald-800">
+                        Foto da Capa Carregada com Sucesso!
+                      </span>
+                      <p className="text-[11px] text-[#7A685B] mt-1">
+                        Clique para trocar a imagem da capa (15x20 cm vertical)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Upload className="w-8 h-8 text-[#8C5E3C] mb-2" />
+                      <span className="text-xs font-bold text-[#2C2420]">
+                        Clique para selecionar ou arraste a Foto da Capa
+                      </span>
+                      <p className="text-[11px] text-[#7A685B] mt-1">
+                        Formato Vertical 15x20 cm (2:3 ou 3:4) • JPG, PNG ou WEBP
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {cover.imageUrl && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[#7A685B] flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Homologada para a Capa 15x20
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChangeCover({ imageUrl: undefined });
+                      }}
+                      className="text-xs text-rose-700 hover:text-rose-900 inline-flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remover Foto da Capa
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Mini Cover Preview Card (15x20 Vertical 3:4) */}
+              <div className="md:col-span-5 flex flex-col items-center">
+                <div className="relative w-44 h-60 rounded-2xl bg-[#FFFFFF] border-4 border-[#3D2C24] shadow-xl overflow-hidden p-3 flex flex-col justify-between text-center transition-all hover:scale-[1.02]">
+                  <div className="absolute inset-y-0 left-0 w-2.5 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
+
+                  {cover.imageUrl ? (
+                    <div className="absolute inset-0 z-0">
+                      <img
+                        src={cover.imageUrl}
+                        alt="Capa do Álbum"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/35" />
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#FAF7F2] to-[#EAE0D5] flex flex-col items-center justify-center p-3 text-[#8C7A6B]">
+                      <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
+                      <span className="text-[10px] font-semibold text-center">Prévia 15x20 cm</span>
+                    </div>
+                  )}
+
+                  {/* Top Badge */}
+                  <div className="relative z-10">
+                    <span
+                      className={`text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full inline-block ${
+                        cover.imageUrl
+                          ? 'bg-black/40 text-white/90 backdrop-blur-xs'
+                          : 'bg-[#E0D6C8] text-[#5A4638]'
+                      }`}
+                    >
+                      15x20 cm • Vertical
+                    </span>
+                  </div>
+
+                  {/* Bottom Title & Subtitle */}
+                  <div className="relative z-10 text-center">
+                    <h5
+                      className={`font-serif font-bold text-xs leading-tight drop-shadow-sm ${
+                        cover.imageUrl ? 'text-white' : 'text-[#2C2420]'
+                      }`}
+                    >
+                      {clientData.albumTitle || 'Nossas Melhores Memórias'}
+                    </h5>
+                    <p
+                      className={`font-serif italic text-[9px] mt-0.5 ${
+                        cover.imageUrl ? 'text-white/80' : 'text-[#7A685B]'
+                      }`}
+                    >
+                      {clientData.albumSubtitle || 'Momentos Especiais • 2026'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-medium text-[#8C7A6B] mt-2">
+                  Prévia da Capa (15x20 cm Vertical)
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -881,7 +898,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
         )}
       </div>
 
-      {/* SECTION 3: Estrutura (10 a 20 Lâminas) */}
+      {/* SECTION 3: Estrutura Fixa (10 Lâminas / 20 Páginas) */}
       <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs">
         <div className="flex items-center gap-3 pb-4 border-b border-[#E8DFD5] mb-6">
           <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
@@ -889,7 +906,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
           </div>
           <div>
             <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-              Estrutura & Número de Lâminas (10 a 20 Lâminas)
+              Estrutura Padrão: 10 Lâminas (20 Páginas)
             </h3>
             <p className="text-xs text-[#7A685B]">
               Formato Fechado 15x20 cm Vertical • Lâmina Aberta 20x30 cm • Abertura Flat-lay 180° • Miolo Branco Puro
@@ -897,65 +914,56 @@ export const Process1Preparation: React.FC<Process1Props> = ({
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Quick preset chips */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-            {[10, 12, 14, 16, 18, 20].map((count) => {
-              const isSelected = spreadCount === count;
-              return (
-                <button
-                  key={count}
-                  type="button"
-                  id={`btn-preset-spread-${count}`}
-                  onClick={() => onChangeSpreadCount(count)}
-                  className={`p-3 rounded-2xl border text-center transition-all ${
-                    isSelected
-                      ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#2C2420] shadow-xs ring-2 ring-[#8C5E3C]/20 scale-[1.02]'
-                      : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
-                  }`}
-                >
-                  <div className="font-serif font-bold text-base sm:text-lg">{count}</div>
-                  <div className="text-[10px] opacity-85">Lâminas</div>
-                  <div className="text-[9px] opacity-70">({count * 2} páginas)</div>
-                </button>
-              );
-            })}
-          </div>
+        <div className="space-y-4">
+          {/* Fixed 10 Spreads Information Card */}
+          <div className="bg-[#FFFFFF] p-6 rounded-2xl border border-[#DDD3C5] space-y-4 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EFE8DE]">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#F5EFEB] border border-[#E0D6C8] flex items-center justify-center text-[#3D2C24]">
+                  <Layers className="w-6 h-6 text-[#8C5E3C]" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
+                    Capacidade Padronizada
+                  </span>
+                  <h4 className="font-serif font-bold text-lg text-[#2C2420] mt-0.5">
+                    10 Lâminas Duplas (20 Páginas)
+                  </h4>
+                </div>
+              </div>
 
-          {/* Interactive Range Slider */}
-          <div className="bg-[#FFFFFF] p-5 rounded-2xl border border-[#DDD3C5] space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#5A4638]">
-                Ajuste Fino de Lâminas
-              </span>
-              <span className="text-sm font-serif font-bold text-[#2C2420]">
-                {spreadCount} Lâminas Duplas ({spreadCount * 2} Páginas)
-              </span>
+              <div className="text-left sm:text-right">
+                <span className="text-xs text-[#7A685B] block">Proporção Média de Fotos</span>
+                <span className="font-mono font-bold text-sm text-[#3D2C24]">
+                  ~{photos.length > 0 ? (photos.length / 10).toFixed(1) : '4.0'} fotos / lâmina
+                </span>
+              </div>
             </div>
 
-            <input
-              type="range"
-              min="10"
-              max="20"
-              step="1"
-              value={spreadCount}
-              onChange={(e) => onChangeSpreadCount(Number(e.target.value))}
-              className="w-full accent-[#8C5E3C] h-2 bg-[#EAE0D5] rounded-lg cursor-pointer"
-            />
-
-            <div className="flex items-center justify-between text-[11px] text-[#8C7A6B]">
-              <span>10 Lâminas (Mínimo)</span>
-              <span className="font-mono text-[#5A4638]">
-                Média de fotos: ~{avgPhotosPerSpread} fotos / lâmina
-              </span>
-              <span>20 Lâminas (Máximo)</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Formato</span>
+                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">15x20 cm Vertical</span>
+              </div>
+              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Lâminas</span>
+                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">10 Lâminas Panorâmicas</span>
+              </div>
+              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Páginas</span>
+                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">20 Páginas Rígidas</span>
+              </div>
+              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Fotografias</span>
+                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">Até 40 Fotos</span>
+              </div>
             </div>
 
             {photos.length > 0 && (
-              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5] flex items-center gap-2.5 text-xs text-[#685547]">
-                <ShieldCheck className="w-4 h-4 text-[#8C5E3C] shrink-0" />
+              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/60 flex items-center gap-2.5 text-xs text-emerald-900">
+                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span>
-                  <strong>Garantia Villa7 de Álbum Completo:</strong> Todas as lâminas geradas conterão fotografias enviadas. Nenhuma página fica vazia.
+                  <strong>Garantia Villa7 de Álbum Completo:</strong> Todas as 10 lâminas serão preenchidas harmonicamente com as {photos.length} fotos enviadas. Nenhuma página fica em branco.
                 </span>
               </div>
             )}

@@ -112,7 +112,7 @@ export interface AlbumProject {
   updatedAt: string;
   clientData: ClientData;
   photos: PhotoItem[];
-  spreadCount: number; // 10 to 20
+  spreadCount: number; // Exatamente 10 lâminas (20 páginas)
   spreads: SpreadItem[];
   cover: CoverData;
   currentStep: number; // 1 to 3 (1: Preparação, 2: Estúdio de Criação, 3: Revisão & Produção)

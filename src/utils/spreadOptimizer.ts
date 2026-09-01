@@ -20,12 +20,8 @@ export function distributePhotosToSpreads(
   const minSpreads = Math.ceil(totalPhotos / 4);
   const maxSpreads = totalPhotos;
 
-  // If a preferredSpreadCount was set (e.g. 10 to 20), clamp to valid range for the number of photos
-  let targetSpreadCount = preferredSpreadCount
-    ? Math.max(minSpreads, Math.min(maxSpreads, preferredSpreadCount))
-    : Math.max(minSpreads, Math.min(maxSpreads, Math.ceil(totalPhotos / 2)));
-
-  // If targetSpreadCount * 4 < totalPhotos, spreadCount must be at least minSpreads
+  // Target 10 spreads standard (or preferred count if specified)
+  let targetSpreadCount = preferredSpreadCount || 10;
   if (targetSpreadCount < minSpreads) targetSpreadCount = minSpreads;
   if (targetSpreadCount > maxSpreads) targetSpreadCount = maxSpreads;
 
