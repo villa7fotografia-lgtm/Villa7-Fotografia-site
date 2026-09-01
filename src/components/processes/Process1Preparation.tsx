@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { ClientData, PhotoItem, OccasionType, CoverData } from '../../types';
 import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
+import { StudioHeroShowcase } from '../StudioHeroShowcase';
 
 interface Process1Props {
   clientData: ClientData;
@@ -237,6 +238,9 @@ export const Process1Preparation: React.FC<Process1Props> = ({
           número de lâminas (10 a 20) para dar vida às suas memórias.
         </p>
       </div>
+
+      {/* Visual Showcase Gallery & Studio Quality Standards */}
+      <StudioHeroShowcase />
 
       {/* SECTION 1: Identificação & Detalhes da Obra */}
       <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-8">

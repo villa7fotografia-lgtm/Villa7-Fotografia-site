@@ -9,6 +9,7 @@ import { AlbumProject, ClientData, CoverData, PhotoItem, SpreadItem } from './ty
 import { createInitialProject, SAMPLE_PHOTOS } from './constants/sampleData';
 import { SPREAD_TEMPLATES } from './constants/templates';
 import { distributePhotosToSpreads, sanitizeSpreads } from './utils/spreadOptimizer';
+import warmStudioBg from './assets/images/warm_studio_bg_1788260250389.jpg';
 
 const STORAGE_KEY = 'villa7_album_project_v2';
 
@@ -320,30 +321,46 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#2C2420] flex flex-col font-sans selection:bg-[#E8DFD5] selection:text-[#3D2C24]">
-      {/* Brand Header */}
-      <Header
-        project={project}
-        onOpenPreview={() => setIsPreviewModalOpen(true)}
-        onSaveProgress={() => {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-          setSaveStatus('Salvo com sucesso!');
-          setTimeout(() => setSaveStatus(''), 2500);
-        }}
-        onResetProject={handleResetProject}
-        onLoadSample={handleLoadSampleData}
-        saveStatus={saveStatus}
-      />
+    <div className="min-h-screen bg-[#FAF7F2] text-[#2C2420] flex flex-col font-sans selection:bg-[#E8DFD5] selection:text-[#3D2C24] relative overflow-x-hidden">
+      {/* Ambient Warm Human Studio Background Overlay (Ultra-lightweight & High Performance) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* Soft studio reference photo subtle background layer */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.06] mix-blend-multiply scale-105 filter blur-[0.5px]"
+          style={{ backgroundImage: `url(${warmStudioBg})` }}
+        />
+        {/* Warm radial ambient lighting glows */}
+        <div className="absolute -top-32 -right-32 w-[30rem] h-[30rem] rounded-full bg-[#EADACB]/30 blur-3xl" />
+        <div className="absolute top-1/3 -left-32 w-[30rem] h-[30rem] rounded-full bg-[#E3D4C4]/25 blur-3xl" />
+        <div className="absolute bottom-10 right-1/4 w-[36rem] h-[36rem] rounded-full bg-[#EAE0D5]/30 blur-3xl" />
+        {/* Pure lightweight SVG paper texture */}
+        <div className="absolute inset-0 bg-paper-texture" />
+      </div>
 
-      {/* 3-Process Wizard Navigator */}
-      <StepIndicator
-        currentStep={project.currentStep}
-        onStepClick={handleStepChange}
-        maxReachedStep={maxReachedStep}
-      />
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Brand Header */}
+        <Header
+          project={project}
+          onOpenPreview={() => setIsPreviewModalOpen(true)}
+          onSaveProgress={() => {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+            setSaveStatus('Salvo com sucesso!');
+            setTimeout(() => setSaveStatus(''), 2500);
+          }}
+          onResetProject={handleResetProject}
+          onLoadSample={handleLoadSampleData}
+          saveStatus={saveStatus}
+        />
 
-      {/* Main Process Canvas */}
-      <main className="flex-1">
+        {/* 3-Process Wizard Navigator */}
+        <StepIndicator
+          currentStep={project.currentStep}
+          onStepClick={handleStepChange}
+          maxReachedStep={maxReachedStep}
+        />
+
+        {/* Main Process Canvas */}
+        <main className="flex-1">
         {/* PROCESSO 1: PREPARAÇÃO (Identificação, Fotos & Estrutura) */}
         {project.currentStep === 1 && (
           <Process1Preparation
@@ -417,6 +434,7 @@ export default function App() {
         project={project}
         onClose={() => setIsPreviewModalOpen(false)}
       />
+      </div>
     </div>
   );
 }

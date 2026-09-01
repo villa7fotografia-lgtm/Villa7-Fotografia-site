@@ -31,6 +31,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PhotoCropModal } from '../modals/PhotoCropModal';
 import { sanitizeSpreads } from '../../utils/spreadOptimizer';
+import { IMAGE_ASSETS } from '../../constants/imageAssets';
 
 interface Process3Props {
   project: AlbumProject;
@@ -1192,20 +1193,41 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
 
       {/* Formal Digital Approval Box (Visible when not yet completed) */}
       {!isSentSuccessfully && !isGenerating && (
-        <div className="bg-gradient-to-br from-[#F5EFEB] to-[#EAE0D5] rounded-3xl p-6 sm:p-8 border-2 border-[#8C5E3C] shadow-md space-y-5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0 shadow-xs">
-              <FileCheck className="w-6 h-6 text-[#EAE0D5]" />
+        <div className="bg-gradient-to-br from-[#F5EFEB] to-[#EAE0D5] rounded-3xl p-6 sm:p-8 border-2 border-[#8C5E3C] shadow-md space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            {/* Visual Product Mockup Card */}
+            <div className="lg:col-span-4 relative rounded-2xl overflow-hidden border border-[#E0D6C8] shadow-sm aspect-[4/3] group bg-[#E8DFD5]">
+              <img
+                src={IMAGE_ASSETS.mockupStack}
+                alt="Fotolivro Impresso Villa7"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute bottom-3 left-3 right-3 text-white">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-amber-300 block">
+                  Qualidade Gráfica de Impressão
+                </span>
+                <span className="font-serif text-sm font-bold drop-shadow-sm">
+                  Álbum 15x20 Vertical com Capa Fotográfica
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-4 flex-1">
-              <div>
-                <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
-                  Aprovação Final & Envio para a Produção
-                </h3>
-                <p className="text-xs sm:text-sm text-[#685547] mt-1 leading-relaxed">
-                  Ao clicar no botão abaixo, o arquivo oficial de alta resolução (15x20 cm vertical / 20x30 cm aberto, capa com foto sem distorção, miolo branco sem linhas, 1 página por lâmina A4 com guias de corte) será processado, enviado para a produção e uma cópia será baixada automaticamente em seu dispositivo.
-                </p>
+            {/* Approval Info & Action */}
+            <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0 shadow-xs">
+                  <FileCheck className="w-5 h-5 text-[#EAE0D5]" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
+                    Aprovação Final & Envio para a Produção
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#685547] mt-1 leading-relaxed">
+                    Ao confirmar, o arquivo oficial em alta resolução (15x20 cm vertical / 20x30 cm aberto, capa com foto sem distorção, miolo branco sem linhas e guias de corte) será processado e disponibilizado para download.
+                  </p>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
