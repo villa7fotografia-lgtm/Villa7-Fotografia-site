@@ -15,17 +15,19 @@ import {
   Phone,
   Mail,
   HeartHandshake,
-  Copy,
-  ExternalLink,
-  Bot,
-  Lightbulb,
   Camera,
   ShieldCheck,
+  Bot,
+  Copy,
+  ExternalLink,
+  Lightbulb,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { ClientData, PhotoItem, OccasionType, CoverData } from '../../types';
-import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
 import { StudioHeroShowcase } from '../StudioHeroShowcase';
 import { extractPhotoChronologicalData, sortPhotosByStoryChronology } from '../../utils/chronologicalStoryEngine';
+import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
 
 interface Process1Props {
   clientData: ClientData;
@@ -387,128 +389,133 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             </div>
           </div>
 
-          {/* Event Description & Context (Full width) */}
+          {/* Notes / General Observations */}
           <div className="md:col-span-2">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638]">
-                Descrição do Evento & Contexto Visual (Em Destaque no Prompt da Capa)
-              </label>
-              <span className="text-[11px] text-[#8C5E3C] font-medium">
-                Alimenta automaticamente a IA com o contexto da celebração
-              </span>
-            </div>
-            <textarea
-              id="input-event-description"
-              rows={2}
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+              Observações do Projeto & Contexto do Evento (Opcional)
+            </label>
+            <input
+              id="input-project-notes"
+              type="text"
               value={clientData.notes || ''}
               onChange={(e) => onChangeClientData({ notes: e.target.value })}
-              placeholder="Ex: Formatura em Medicina da Turma de 2026, baile de gala com iluminação cênica dourada e colação solene / Casamento ao pôr do sol no campo com estilo rústico chique."
-              className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C] resize-none"
+              placeholder="Ex: Formatura em Medicina Turma 2026 / Baile de Gala / Casamento ao pôr do sol no campo."
+              className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
             />
           </div>
         </div>
 
-        {/* SUBSECTION: ARTE DA CAPA & UPLOAD (15x20 VERTICAL) */}
-        <div className="pt-6 border-t border-[#E8DFD5] space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E8DFD5]">
-            <div>
-              <div className="flex items-center gap-2">
-                <Bot className="w-5 h-5 text-[#8C5E3C]" />
-                <h4 className="font-serif font-bold text-base text-[#2C2420]">
-                  Criação de Arte & Upload da Capa Fotográfica (15x20 cm)
-                </h4>
+        {/* SUBSECTION: ASSISTENTE DE CAPA COM IA (CHATGPT FREE) & UPLOAD (15x20 CM VERTICAL) */}
+        <div className="pt-6 border-t border-[#E8DFD5] space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8DFD5]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center">
+                <Bot className="w-4 h-4 text-[#C9A96E]" />
               </div>
-              <p className="text-xs text-[#7A685B] mt-0.5">
-                Crie a arte da capa com o assistente IA e, em seguida, envie a foto final para a capa do fotolivro.
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-serif font-bold text-base text-[#2C2420]">
+                    Assistente de Capa com IA (ChatGPT Free) & Upload (15x20 cm)
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Compatível com ChatGPT Gratuito
+                  </span>
+                </div>
+                <p className="text-xs text-[#7A685B] mt-0.5">
+                  Dicas e prompts prontos para criar a capa com inteligência artificial no ChatGPT Free e enviar para o fotolivro.
+                </p>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={() => setShowPromptGuide(!showPromptGuide)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#EFE8DE] hover:bg-[#E5DCD0] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors self-start sm:self-auto cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#FAF7F2] hover:bg-[#EFE8DE] text-xs font-bold text-[#5A4638] border border-[#DDD3C5] transition-all self-start sm:self-auto cursor-pointer shadow-2xs"
             >
-              <Bot className="w-4 h-4 text-[#8C5E3C]" />
-              {showPromptGuide ? 'Ocultar Prompts GPT' : 'Exibir Prompts GPT'}
+              {showPromptGuide ? (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                  <span>Ocultar Dicas & Prompts GPT</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                  <span>Ver Dicas & Prompts para ChatGPT Free</span>
+                </>
+              )}
             </button>
           </div>
 
-          {/* PASSO 1: GERADOR DE PROMPTS PARA O CHATGPT */}
+          {/* GUIA DE PROMPTS PARA O CHATGPT FREE (EXPANSÍVEL / OCULTÁVEL) */}
           {showPromptGuide && (
             <div className="bg-[#FFFFFF] rounded-2xl p-5 sm:p-6 border border-[#DDD3C5] shadow-xs space-y-5">
+              {/* Header with External Link */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EFE8DE]">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-bold text-xs">
-                    1º
-                  </div>
-                  <div>
-                    <h5 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
-                      Etapa 1: Gerar Prompt para o ChatGPT (GPT-4o / DALL-E)
-                    </h5>
-                    <p className="text-xs text-[#7A685B]">
-                      Copie o prompt estruturado com 1 clique e envie no ChatGPT junto com sua foto de referência.
-                    </p>
-                  </div>
+                  <Sparkles className="w-4 h-4 text-[#8C5E3C]" />
+                  <span className="font-bold text-xs sm:text-sm text-[#2C2420]">
+                    Como Criar sua Capa Grátis no ChatGPT (Passo a Passo)
+                  </span>
                 </div>
 
                 <a
                   href="https://chatgpt.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#8C5E3C] hover:text-[#5A3E28] self-start sm:self-auto bg-[#FAF7F2] px-3 py-1.5 rounded-lg border border-[#DDD3C5] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8C5E3C] hover:text-[#5A3E28] self-start sm:self-auto bg-[#FAF7F2] hover:bg-[#F2ECE4] px-3 py-1.5 rounded-xl border border-[#DDD3C5] transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  Abrir ChatGPT.com
+                  Abrir ChatGPT Grátis (chatgpt.com)
                 </a>
               </div>
 
-              {/* 4 Steps Guide */}
+              {/* 4 Super Simple Steps */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-1.5 py-0.5 rounded">
-                    PASSO 1
+                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
+                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
+                    1. ESTILO
                   </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Escolha o Estilo</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Selecione abaixo o tema desejado (Casamento, Família, Editorial, etc.).
+                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Escolha o Tema</h6>
+                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
+                    Selecione o estilo do evento abaixo (Formatura, Casamento, Minimalista, etc.).
                   </p>
                 </div>
 
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-1.5 py-0.5 rounded">
-                    PASSO 2
+                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
+                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
+                    2. COPIAR
                   </span>
                   <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Copie o Prompt</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Clique em &quot;Copiar Prompt&quot;. O título e contexto do seu álbum já estão incluídos!
+                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
+                    Clique em &quot;Copiar Prompt&quot;. O nome do projeto e detalhes já vêm inseridos!
                   </p>
                 </div>
 
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-1.5 py-0.5 rounded">
-                    PASSO 3
+                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
+                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
+                    3. GPT FREE
                   </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Cole no ChatGPT</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Abra o ChatGPT, anexe a foto principal do evento e envie junto com o prompt copiado.
+                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Cole com a Foto</h6>
+                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
+                    No ChatGPT Free, anexe a melhor foto do formando/casal e cole o prompt.
                   </p>
                 </div>
 
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-1.5 py-0.5 rounded">
-                    PASSO 4
+                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
+                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
+                    4. UPLOAD
                   </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Faça o Upload Abaixo</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-tight">
-                    Baixe a imagem gerada no ChatGPT e envie na Etapa 2 abaixo.
+                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Envie a Capa</h6>
+                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
+                    Baixe a arte gerada pela IA e envie no quadro de upload da Capa 15x20 abaixo.
                   </p>
                 </div>
               </div>
 
-              {/* Preset Selector Chips */}
+              {/* Estilos de Prompt */}
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#5A4638] mb-2">
-                  Selecione o Estilo do Prompt Desejado:
+                  Selecione o Estilo Desejado para o seu Prompt:
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {COVER_PROMPT_PRESETS.map((preset) => {
@@ -542,13 +549,13 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                 </div>
               </div>
 
-              {/* Prompt Text Box with 1-Click Copy */}
+              {/* Prompt Text Box & Copy Button */}
               <div className="bg-[#FAF7F2] rounded-xl p-4 border border-[#DDD3C5] space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-[#8C5E3C]" />
                     <span className="text-xs font-bold text-[#2C2420]">
-                      Prompt Formatado com os Dados do Álbum ({activePromptDef.title})
+                      Prompt Pronto para Copiar e Colar ({activePromptDef.title})
                     </span>
                   </div>
 
@@ -564,21 +571,21 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                     {copiedPrompt ? (
                       <>
                         <Check className="w-4 h-4" />
-                        Prompt Copiado!
+                        Prompt Copiado com Sucesso!
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        Copiar Prompt Completo
+                        Copiar Prompt para ChatGPT Free
                       </>
                     )}
                   </button>
                 </div>
 
-                {/* Highlighted Project Data Badges */}
+                {/* Highlighted Project Data */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#F5EFEB] border border-[#E0D6C8] text-xs">
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="font-bold text-[#8C5E3C] shrink-0">📌 Projeto:</span>
+                    <span className="font-bold text-[#8C5E3C] shrink-0">📌 Título do Álbum:</span>
                     <span className="font-semibold text-[#2C2420] truncate">
                       {clientData.albumTitle || 'Nossas Melhores Memórias'}
                     </span>
@@ -593,32 +600,32 @@ export const Process1Preparation: React.FC<Process1Props> = ({
 
                 <textarea
                   readOnly
-                  rows={6}
+                  rows={5}
                   value={fullChatGPTMessage}
                   className="w-full bg-[#FFFFFF] rounded-lg p-3 text-xs text-[#3D2C24] font-mono border border-[#E0D6C8] resize-none focus:outline-none focus:ring-1 focus:ring-[#8C5E3C]"
                 />
 
-                {/* Golden Technical Tips */}
+                {/* Dicas de Ouro para GPT Free */}
                 <div className="pt-2 border-t border-[#E8DFD5] grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] text-[#7A685B]">
                   <div className="flex items-start gap-1.5">
                     <Lightbulb className="w-3.5 h-3.5 text-[#8C5E3C] shrink-0 mt-0.5" />
                     <span>
                       <strong className="text-[#2C2420]">Proporção 2:3 Vertical:</strong> Peça
-                      sempre formato vertical (15x20 cm) para não cortar detalhes.
+                      formato vertical 15x20 cm para perfeito encaixe na encadernação.
                     </span>
                   </div>
                   <div className="flex items-start gap-1.5">
                     <Lightbulb className="w-3.5 h-3.5 text-[#8C5E3C] shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-[#2C2420]">Resolução 300 DPI:</strong> Garante que a
-                      impressão saia cristalina e nítida na encadernação.
+                      <strong className="text-[#2C2420]">Foto de Referência:</strong> Anexe uma
+                      foto nítida no ChatGPT para que a IA preserve o formando ou casal.
                     </span>
                   </div>
                   <div className="flex items-start gap-1.5">
                     <Lightbulb className="w-3.5 h-3.5 text-[#8C5E3C] shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-[#2C2420]">Espaço para Gravação:</strong> Mantenha o
-                      terço inferior ou superior limpo para títulos.
+                      <strong className="text-[#2C2420]">Sem Logos Estranhos:</strong> O prompt já
+                      proíbe marcas d&apos;água e propagandas na capa.
                     </span>
                   </div>
                 </div>
@@ -626,24 +633,21 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             </div>
           )}
 
-          {/* PASSO 2: UPLOAD DA FOTO DA CAPA FINAL */}
+          {/* ÁREA DE UPLOAD DA CAPA FOTOGRÁFICA (15x20 CM VERTICAL) */}
           <div className="bg-[#FAF7F2] rounded-2xl p-5 sm:p-6 border border-[#E8DFD5] space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-bold text-xs">
-                2º
-              </div>
-              <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[#8C5E3C]" />
                 <h5 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
-                  Etapa 2: Enviar Foto da Capa Fotográfica (15x20 cm Vertical)
+                  Upload da Imagem da Capa (15x20 cm Vertical)
                 </h5>
-                <p className="text-xs text-[#7A685B]">
-                  Upload da imagem final gerada pela IA ou foto selecionada pelo cliente.
-                </p>
               </div>
+              <span className="text-[11px] font-semibold text-[#8C5E3C]">
+                Arte da IA ou Foto Principal
+              </span>
             </div>
 
-            {/* Upload Area & Cover Card Preview */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
               {/* Upload Box */}
               <div className="md:col-span-7 space-y-3">
                 <input
@@ -699,7 +703,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                         Clique para selecionar ou arraste a Foto da Capa
                       </span>
                       <p className="text-[11px] text-[#7A685B] mt-1">
-                        Formato Vertical 15x20 cm (2:3 ou 3:4) • JPG, PNG ou WEBP
+                        Formato Vertical 15x20 cm (proporção 2:3 ou 3:4) • JPG, PNG ou WEBP
                       </p>
                     </div>
                   )}
@@ -709,7 +713,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-[#7A685B] flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Homologada para a Capa 15x20
+                      Homologada para a Capa 15x20 cm
                     </span>
                     <button
                       type="button"
@@ -726,7 +730,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                 )}
               </div>
 
-              {/* Mini Cover Preview Card (15x20 Vertical 3:4) */}
+              {/* Mini Cover Preview Card (15x20 Vertical) */}
               <div className="md:col-span-5 flex flex-col items-center">
                 <div className="relative w-44 h-60 rounded-2xl bg-[#FFFFFF] border-4 border-[#3D2C24] shadow-xl overflow-hidden p-3 flex flex-col justify-between text-center transition-all hover:scale-[1.02]">
                   <div className="absolute inset-y-0 left-0 w-2.5 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
