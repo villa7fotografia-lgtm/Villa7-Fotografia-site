@@ -1,35 +1,37 @@
-import capaFotograficaImg from '../assets/images/capa_fotografica_15x20_1788260855741.jpg';
-import albumAbertoImg from '../assets/images/albam_aberto_15x20_1788260875526.jpg';
-import warmStudioBgImg from '../assets/images/warm_studio_bg_1788260250389.jpg';
+import capaEricaMoisesImg from '../assets/images/capa_erica_moises_1788274798993.jpg';
+import capaMarceloVitoriaImg from '../assets/images/capa_marcelo_vitoria_1788274818263.jpg';
+import albumAbertoSpreadImg from '../assets/images/album_aberto_spread_1788274846344.jpg';
 
 export const IMAGE_ASSETS = {
-  heroBanner: albumAbertoImg,
-  capaFotografica: capaFotograficaImg,
-  mockupStack: capaFotograficaImg,
-  warmStudioBg: warmStudioBgImg,
+  heroBanner: albumAbertoSpreadImg,
+  capaFotografica: capaEricaMoisesImg,
+  mockupStack: capaMarceloVitoriaImg,
+  albumAberto: albumAbertoSpreadImg,
+  capaEricaMoises: capaEricaMoisesImg,
+  capaMarceloVitoria: capaMarceloVitoriaImg,
 };
 
 export const STUDIO_SHOWCASE_FEATURES = [
   {
-    title: 'Capa Fotográfica 15x20 cm',
-    subtitle: 'Fotografia Impressa na Capa Dura',
-    description: 'Sua fotografia principal impressa diretamente na capa rígida com laminação acetinada de alta proteção.',
-    image: capaFotograficaImg,
-    tag: 'Capa Fotográfica',
+    title: 'Capa Fotográfica Érica & Moises',
+    subtitle: 'Capa Dura 15x20 cm Vertical',
+    description: 'Fotografia impressa diretamente na capa rígida com laminação acetinada, lombada customizada e selo Villa7.',
+    image: capaEricaMoisesImg,
+    tag: 'Capa Personalizada',
   },
   {
-    title: 'Abertura 180° Panorâmica',
-    subtitle: 'Lâmina Dupla 20x30 cm Aberta',
-    description: 'Página dupla panorâmica sem linha de corte no centro. Visualização contínua das fotografias do evento.',
-    image: albumAbertoImg,
-    tag: 'Tamanho 15x20 cm',
+    title: 'Capa Fotográfica Marcelo & Vitória',
+    subtitle: 'Acabamento Editorial de Luxo',
+    description: 'Estética fotográfica refinada com tipografia dourada, respiro visual e proteção anti-risco de alta durabilidade.',
+    image: capaMarceloVitoriaImg,
+    tag: 'Design Villa7',
   },
   {
-    title: 'Design Editorial & Acabamento',
-    subtitle: 'Diagramação Refinada Villa7',
-    description: 'Páginas em papel de alta gramatura com respiro visual equilibrado e acabamento gráfico profissional.',
-    image: warmStudioBgImg,
-    tag: 'Impresso Villa7',
+    title: 'Abertura Panorâmica 20x30 cm',
+    subtitle: 'Lâmina Dupla 180° Flat-lay',
+    description: 'Visualização contínua de página dupla sem corte central, papel fotográfico de alta gramatura e resolução impecável.',
+    image: albumAbertoSpreadImg,
+    tag: 'Aberto 20x30 cm',
   },
 ];
 

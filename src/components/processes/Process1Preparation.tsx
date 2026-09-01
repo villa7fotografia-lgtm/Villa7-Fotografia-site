@@ -25,6 +25,7 @@ import {
 import { ClientData, PhotoItem, OccasionType, CoverData } from '../../types';
 import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
 import { StudioHeroShowcase } from '../StudioHeroShowcase';
+import { extractPhotoChronologicalData, sortPhotosByStoryChronology } from '../../utils/chronologicalStoryEngine';
 
 interface Process1Props {
   clientData: ClientData;
@@ -36,6 +37,7 @@ interface Process1Props {
   onAddPhotos: (newPhotos: PhotoItem[]) => void;
   onRemovePhoto: (photoId: string) => void;
   onClearAllPhotos: () => void;
+  onReorderPhotos?: (reorderedPhotos: PhotoItem[]) => void;
   onChangeSpreadCount: (newCount: number) => void;
   onLoadDemo: () => void;
   onNext: () => void;
@@ -64,6 +66,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
   onAddPhotos,
   onRemovePhoto,
   onClearAllPhotos,
+  onReorderPhotos,
   onChangeSpreadCount,
   onLoadDemo,
   onNext,
@@ -167,6 +170,8 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             }
           }
 
+          const chronoData = extractPhotoChronologicalData(file.name, file.lastModified, processedCount);
+
           newItems.push({
             id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             url: finalUrl,
@@ -175,7 +180,11 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             width: finalW,
             height: finalH,
             aspectRatio: finalW / finalH,
-            createdAt: Date.now(),
+            createdAt: chronoData.timestamp,
+            timestamp: chronoData.timestamp,
+            formattedDate: chronoData.formattedDate,
+            formattedTime: chronoData.formattedTime,
+            chronologicalIndex: chronoData.numericOrder,
           });
 
           processedCount++;
@@ -218,6 +227,13 @@ export const Process1Preparation: React.FC<Process1Props> = ({
     e.preventDefault();
     setIsDragging(false);
     handleFiles(e.dataTransfer.files);
+  };
+
+  const handleSortChronologically = () => {
+    const sorted = sortPhotosByStoryChronology(photos);
+    if (onReorderPhotos) {
+      onReorderPhotos(sorted);
+    }
   };
 
   const avgPhotosPerSpread = (photos.length / spreadCount).toFixed(1);
@@ -772,23 +788,28 @@ export const Process1Preparation: React.FC<Process1Props> = ({
       </div>
 
       {/* SECTION 2: Fotos (Até 40 Fotos) */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8DFD5] mb-6">
+      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8DFD5]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
               2
             </div>
             <div>
-              <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-                Fotografias Selecionadas (Até 40 fotos)
-              </h3>
-              <p className="text-xs text-[#7A685B]">
-                Suas fotos preservam 100% da proporção e resolução original.
+              <div className="flex items-center gap-2">
+                <h3 className="font-serif text-lg font-bold text-[#2C2420]">
+                  Fotografias Selecionadas (Até 40 fotos)
+                </h3>
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-full">
+                  <Sparkles className="w-3 h-3" /> Narrativa Cronológica
+                </span>
+              </div>
+              <p className="text-xs text-[#7A685B] mt-0.5">
+                Diagramação inteligente que analisa data, horário e ordem real dos momentos com 100% de aproveitamento.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <div className="px-3.5 py-1 rounded-full bg-[#EAE0D5] text-[#5A4638] text-xs font-bold font-mono">
               {photos.length} / 40 fotos
             </div>
@@ -797,23 +818,56 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                 type="button"
                 id="btn-load-sample-photos"
                 onClick={onLoadDemo}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EFE8DE] hover:bg-[#E5DCD0] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EFE8DE] hover:bg-[#E5DCD0] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                Carregar Demonstração
+                Carregar Demonstração (História Completa)
+              </button>
+            )}
+            {photos.length > 1 && (
+              <button
+                type="button"
+                onClick={handleSortChronologically}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8C5E3C] hover:bg-[#734A2E] text-xs font-bold text-white shadow-xs transition-all cursor-pointer"
+                title="Reorganizar todas as fotos por data, horário e ordem dos acontecimentos"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Reorganizar por Cronologia
               </button>
             )}
             {photos.length > 0 && (
               <button
                 type="button"
                 onClick={onClearAllPhotos}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs text-rose-700 hover:bg-rose-50 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Limpar fotos
               </button>
             )}
           </div>
+        </div>
+
+        {/* Narrative Engine Info Banner */}
+        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#DDD3C5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center shrink-0 mt-0.5">
+              <Camera className="w-4 h-4" />
+            </div>
+            <div>
+              <h5 className="font-bold text-xs text-[#2C2420]">
+                Linha do Tempo & Narrativa Emocional Contínua
+              </h5>
+              <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
+                As fotos são ordenadas automaticamente por data e horário de captura, agrupando momentos de preparativos, cerimônia, retratos e festa em lâminas duplas harmônicas.
+              </p>
+            </div>
+          </div>
+          {photos.length > 0 && (
+            <div className="shrink-0 bg-[#FAF7F2] px-3 py-1.5 rounded-xl border border-[#E8DFD5] text-[11px] text-[#5A4638]">
+              <span className="font-bold text-[#8C5E3C]">Fotos Carregadas:</span> {photos.length} de 40
+            </div>
+          )}
         </div>
 
         {/* Upload Dropzone */}
@@ -845,51 +899,68 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             Arraste suas fotos aqui ou clique para selecionar
           </h4>
           <p className="text-xs text-[#7A685B] mt-1 max-w-md mx-auto">
-            Envie as melhores fotografias do seu ensaio ou celebração. Formatos suportados: JPG,
-            PNG, WEBP.
+            Envie as fotografias da sua celebração. Formatos suportados: JPG, PNG, WEBP. A IA preservará a ordem cronológica e a proporção de cada foto.
           </p>
 
           <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFE8DE] text-[11px] font-medium text-[#5A4638]">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#8C5E3C]" />
-            Capacidade: até 40 fotos por projeto
+            Capacidade: até 40 fotos por projeto (10 Lâminas = 20 Páginas)
           </div>
         </div>
 
-        {/* Photos Grid Preview */}
+        {/* Photos Grid Preview with Chronological Timeline */}
         {photos.length > 0 && (
-          <div className="mt-6 space-y-3">
+          <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between text-xs text-[#7A685B]">
-              <span>Fotos prontas para diagramação ({photos.length})</span>
-              <span>Proporções preservadas</span>
+              <span className="font-semibold text-[#2C2420]">
+                Sequência da Narrativa ({photos.length} fotos prontas)
+              </span>
+              <span>100% de Proporção Preservada</span>
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 max-h-72 overflow-y-auto p-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3 max-h-80 overflow-y-auto p-1.5 bg-[#FBF9F6] rounded-2xl border border-[#EAE0D5]">
               {photos.map((photo, idx) => (
                 <div
                   key={photo.id}
-                  className="group relative aspect-square bg-[#EFE8DE] rounded-xl overflow-hidden border border-[#DDD3C5] shadow-2xs"
+                  className="group relative aspect-square bg-[#EFE8DE] rounded-xl overflow-hidden border border-[#DDD3C5] shadow-2xs hover:shadow-md transition-all"
                 >
                   <img
                     src={photo.url}
                     alt={photo.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center font-mono">
-                    {idx + 1}
+                  {/* Sequence Badge */}
+                  <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/75 text-white text-[10px] flex items-center gap-1 font-mono">
+                    <span className="font-bold">#{idx + 1}</span>
                   </div>
+
+                  {/* Time Badge if available */}
+                  {photo.formattedTime && (
+                    <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-mono">
+                      {photo.formattedTime}
+                    </div>
+                  )}
+
+                  {/* Remove Button on Hover */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onRemovePhoto(photo.id);
                     }}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 cursor-pointer shadow-xs z-10"
                     title="Remover foto"
                   >
                     ×
                   </button>
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1 text-[9px] text-white truncate text-center">
-                    {photo.aspectRatio > 1.2 ? 'Paisagem' : photo.aspectRatio < 0.8 ? 'Retrato' : '1:1'}
+
+                  {/* Orientation & Name Info Overlay */}
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 text-[9px] text-white">
+                    <p className="truncate font-medium text-center">{photo.name}</p>
+                    <div className="flex items-center justify-between text-[8px] opacity-80 mt-0.5">
+                      <span>{photo.aspectRatio > 1.1 ? 'Paisagem' : photo.aspectRatio < 0.9 ? 'Retrato' : '1:1'}</span>
+                      {photo.formattedDate && <span>{photo.formattedDate}</span>}
+                    </div>
                   </div>
                 </div>
               ))}

@@ -1,11 +1,18 @@
 import { PhotoItem, SpreadItem, SlotLayout, TemplateDef } from '../types';
 import { findBestTemplateForPhotos, calculateSlotAspectRatio, getTemplateById } from '../constants/templates';
+import {
+  sortPhotosByStoryChronology,
+  getNarrativeChapterForSpread,
+  extractPhotoChronologicalData,
+} from './chronologicalStoryEngine';
 
 /**
- * Distributes all uploaded photos across spreads ensuring that:
- * 1. EVERY spread has at least 1 photo.
- * 2. EVERY slot in every template has an assigned photo (0 empty slots).
- * 3. The number of spreads matches the photos sent (no empty/blank spreads at the end).
+ * Distributes all uploaded photos across spreads ensuring:
+ * 1. 100% of uploaded photos are placed (Maximum utilization, up to 40 photos).
+ * 2. Strict Chronological Narrative Flow (Data e Horário ou Ordem Natural dos Acontecimentos).
+ * 3. Grouping of temporal moments (bursts/sequences taken close in time).
+ * 4. Zero empty spreads, zero empty slots.
+ * 5. Aesthetic pacing across the 10 spreads (hero spreads + multi-photo dynamic spreads).
  */
 export function distributePhotosToSpreads(
   photos: PhotoItem[],
@@ -15,32 +22,58 @@ export function distributePhotosToSpreads(
     return [];
   }
 
-  const totalPhotos = photos.length;
+  // 1. Sort photos chronologically by captured timestamp / file date / natural sequence
+  const sortedPhotos = sortPhotosByStoryChronology(photos);
+  const totalPhotos = sortedPhotos.length;
+
   // Maximum 4 photos per spread, minimum 1 photo per spread
   const minSpreads = Math.ceil(totalPhotos / 4);
   const maxSpreads = totalPhotos;
 
-  // Target 10 spreads standard (or preferred count if specified)
+  // Standard Villa7 is 10 Spreads (20 pages 15x20 cm vertical)
   let targetSpreadCount = preferredSpreadCount || 10;
   if (targetSpreadCount < minSpreads) targetSpreadCount = minSpreads;
   if (targetSpreadCount > maxSpreads) targetSpreadCount = maxSpreads;
 
-  // Initialize each spread with 1 photo
-  const spreadPhotoCounts: number[] = new Array(targetSpreadCount).fill(1);
-  let remaining = totalPhotos - targetSpreadCount;
+  // Calculate balanced photo distribution per spread
+  const baseCount = Math.floor(totalPhotos / targetSpreadCount);
+  let remainder = totalPhotos % targetSpreadCount;
 
-  // Distribute remaining photos with dynamic aesthetic pacing
-  // (e.g., spreads 2, 3, 2, 4, 1, 2, 3...)
-  let loopIdx = 0;
-  while (remaining > 0) {
-    const sIdx = loopIdx % targetSpreadCount;
-    if (spreadPhotoCounts[sIdx] < 4) {
-      spreadPhotoCounts[sIdx]++;
-      remaining--;
+  // Initialize distribution with base counts
+  const spreadPhotoCounts: number[] = new Array(targetSpreadCount).fill(baseCount);
+
+  // If total photos < targetSpreadCount, ensure first spreads get 1 photo
+  if (baseCount === 0) {
+    for (let i = 0; i < totalPhotos; i++) {
+      spreadPhotoCounts[i] = 1;
     }
-    loopIdx++;
-    // Failsafe
-    if (loopIdx > targetSpreadCount * 10) break;
+  } else {
+    // Dynamic narrative pacing: distribute extra photos with aesthetic cadence
+    // Priority order: dynamic spreads (3, 7, 2, 8, 4, 6...) while giving hero breath to center spreads
+    const pacingPriority = [2, 7, 1, 8, 3, 6, 0, 9, 4, 5];
+    let priorityIdx = 0;
+
+    while (remainder > 0 && priorityIdx < pacingPriority.length) {
+      const spreadIdx = pacingPriority[priorityIdx % pacingPriority.length] % targetSpreadCount;
+      if (spreadPhotoCounts[spreadIdx] < 4) {
+        spreadPhotoCounts[spreadIdx]++;
+        remainder--;
+      }
+      priorityIdx++;
+      if (priorityIdx > targetSpreadCount * 5) break;
+    }
+
+    // Failsafe for any remaining
+    let fallbackIdx = 0;
+    while (remainder > 0) {
+      const idx = fallbackIdx % targetSpreadCount;
+      if (spreadPhotoCounts[idx] < 4) {
+        spreadPhotoCounts[idx]++;
+        remainder--;
+      }
+      fallbackIdx++;
+      if (fallbackIdx > targetSpreadCount * 10) break;
+    }
   }
 
   let photoCursor = 0;
@@ -48,22 +81,24 @@ export function distributePhotosToSpreads(
 
   for (let sIdx = 0; sIdx < targetSpreadCount; sIdx++) {
     const count = spreadPhotoCounts[sIdx];
-    const batchPhotos = photos.slice(photoCursor, photoCursor + count);
+    if (count === 0) continue;
+
+    const batchPhotos = sortedPhotos.slice(photoCursor, photoCursor + count);
     photoCursor += count;
 
     if (batchPhotos.length === 0) continue;
 
-    // Pick best template for these exact photos
+    // Pick best template for the exact photo count and orientation mix (P vs L)
     const template = findBestTemplateForPhotos(batchPhotos);
 
-    // Map photos to slots: sort slots and photos by aspect ratio so portraits pair with portrait slots
+    // Map photos to slots: sort slots and photos by aspect ratio so vertical portraits pair with portrait slots
     const sortedSlots = template.slots.map((s, idx) => ({
       ...s,
       originalSlotIdx: idx,
       aspect: s.idealAspect || calculateSlotAspectRatio(s.width, s.height),
     })).sort((a, b) => a.aspect - b.aspect);
 
-    const sortedPhotos = [...batchPhotos].map((p, idx) => ({
+    const sortedBatchPhotos = [...batchPhotos].map((p, idx) => ({
       photo: p,
       originalBatchIdx: idx,
       aspect: p.aspectRatio || (p.width && p.height ? p.width / p.height : 1.0),
@@ -71,7 +106,7 @@ export function distributePhotosToSpreads(
 
     const assignmentMap = new Map<number, { photo: PhotoItem; photoAspect: number; slotAspect: number }>();
     sortedSlots.forEach((slot, i) => {
-      const matchedPhotoItem = sortedPhotos[i] || sortedPhotos[0];
+      const matchedPhotoItem = sortedBatchPhotos[i] || sortedBatchPhotos[0];
       if (matchedPhotoItem) {
         assignmentMap.set(slot.originalSlotIdx, {
           photo: matchedPhotoItem.photo,
@@ -88,7 +123,7 @@ export function distributePhotosToSpreads(
       const slotAspect = match?.slotAspect || calculateSlotAspectRatio(s.width, s.height);
 
       const aspectDiff = Math.abs(Math.log(photoAspect / slotAspect));
-      const fitMode: 'cover' | 'contain' = aspectDiff < 0.18 ? 'cover' : 'contain';
+      const fitMode: 'cover' | 'contain' = aspectDiff < 0.22 ? 'cover' : 'contain';
 
       return {
         id: `slot-${sIdx + 1}-${slotIdx + 1}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -106,12 +141,29 @@ export function distributePhotosToSpreads(
     });
 
     const spreadNumber = sIdx + 1;
+    const chapterInfo = getNarrativeChapterForSpread(spreadNumber, targetSpreadCount);
+
+    // Calculate time range for this spread's photos
+    const firstPhotoTime = batchPhotos[0]?.formattedTime;
+    const lastPhotoTime = batchPhotos[batchPhotos.length - 1]?.formattedTime;
+    const dateStr = batchPhotos[0]?.formattedDate;
+
+    let timeRange = '';
+    if (firstPhotoTime && lastPhotoTime) {
+      timeRange = firstPhotoTime === lastPhotoTime
+        ? firstPhotoTime
+        : `${firstPhotoTime} - ${lastPhotoTime}`;
+      if (dateStr) timeRange = `${dateStr} • ${timeRange}`;
+    }
+
     spreads.push({
       id: `spread-${spreadNumber}-${Date.now()}`,
       spreadNumber,
       templateId: template.id,
       slots: newSlots,
       layoutTitle: `Lâmina ${spreadNumber} (Páginas ${spreadNumber * 2 - 1}-${spreadNumber * 2})`,
+      storyChapter: `${chapterInfo.chapter}`,
+      timeRange: timeRange || undefined,
       backgroundColor: '#FAF7F2',
     });
   }
@@ -123,7 +175,7 @@ export function distributePhotosToSpreads(
  * Sanitizes existing spreads to guarantee:
  * 1. Spreads with 0 photos are removed.
  * 2. Spreads with fewer photos than slots adapt to the best matching template for the photos they contain (no empty slots).
- * 3. Spreads are renumbered sequentially.
+ * 3. Spreads are renumbered sequentially with updated narrative chapters.
  */
 export function sanitizeSpreads(spreads: SpreadItem[], photos: PhotoItem[]): SpreadItem[] {
   const photoMap = new Map<string, PhotoItem>();
@@ -181,13 +233,16 @@ export function sanitizeSpreads(spreads: SpreadItem[], photos: PhotoItem[]): Spr
     });
   }
 
-  // Renumber spreads sequentially
+  // Renumber spreads sequentially and update narrative metadata
   return validSpreads.map((spread, idx) => {
     const spreadNumber = idx + 1;
+    const chapterInfo = getNarrativeChapterForSpread(spreadNumber, validSpreads.length);
+
     return {
       ...spread,
       spreadNumber,
       layoutTitle: `Lâmina ${spreadNumber} (Páginas ${spreadNumber * 2 - 1}-${spreadNumber * 2})`,
+      storyChapter: spread.storyChapter || chapterInfo.chapter,
     };
   });
 }

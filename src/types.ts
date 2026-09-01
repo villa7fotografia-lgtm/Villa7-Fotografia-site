@@ -31,6 +31,10 @@ export interface PhotoItem {
   height: number;
   aspectRatio: number; // width / height
   createdAt: number;
+  timestamp?: number; // Captured or file timestamp in ms
+  formattedTime?: string; // e.g. "14:35"
+  formattedDate?: string; // e.g. "15/09/2024"
+  chronologicalIndex?: number;
 }
 
 export type PhotoFitMode = 'cover' | 'contain';
@@ -75,6 +79,8 @@ export interface SpreadItem {
   slots: SlotLayout[];
   backgroundColor?: string;
   layoutTitle?: string;
+  storyChapter?: string;
+  timeRange?: string;
 }
 
 export type CoverType = 'chatgpt' | 'upload' | 'minimal';

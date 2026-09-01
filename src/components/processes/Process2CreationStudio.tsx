@@ -62,6 +62,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
 
   // Direct canvas drag-to-reframe state
   const [activeDraggingSlot, setActiveDraggingSlot] = useState<number | null>(null);
+  const [templateCategoryTab, setTemplateCategoryTab] = useState<1 | 2 | 3 | 4 | null>(null);
   const dragStartPos = useRef<{ x: number; y: number; initialPanX: number; initialPanY: number }>({
     x: 0,
     y: 0,
@@ -78,6 +79,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
   const coverFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const currentSpread = project.spreads[currentSpreadIndex] || project.spreads[0];
+  const activeTemplateCategory: 1 | 2 | 3 | 4 = templateCategoryTab ?? ((Math.min(4, Math.max(1, currentSpread.slots.length))) as 1 | 2 | 3 | 4);
   const photosMap = new Map<string, PhotoItem>();
   project.photos.forEach((p) => photosMap.set(p.id, p));
 
@@ -418,13 +420,13 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
               <div className="space-y-1.5 max-w-2xl">
                 <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#8C5E3C]/15 text-[#5A3822] text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5 text-[#8C5E3C] animate-pulse" />
-                  Inteligência Visual Villa7 • 15x20 Vertical
+                  Inteligência Visual Villa7 • Narrativa Cronológica Real
                 </div>
                 <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
-                  Diagramação Automática com Proteção de Enquadramento
+                  Auto-Diagramação Cronológica (Aproveitamento Máximo)
                 </h3>
                 <p className="text-xs sm:text-sm text-[#6F5B4E] leading-relaxed">
-                  O algoritmo analisa a proporção de cada fotografia e escolhe os templates perfeitos para as lâminas abertas 20x30 cm (15x20 vertical), <strong className="text-[#3D2C24] font-semibold">mantendo miolo 100% branco e eliminando cortes indesejados</strong>.
+                  Analisa data, horário e ordem dos acontecimentos para contar a história autêntica do evento. Distribui 100% das fotos enviadas pelas 10 lâminas (15x20 cm vertical), eliminando espaços vazios e preservando enquadramentos perfeitos.
                 </p>
               </div>
 
@@ -433,10 +435,10 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                   type="button"
                   id="btn-hero-auto-diagram"
                   onClick={onAutoLayoutAll}
-                  className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#8C5E3C] via-[#6F452A] to-[#3D2C24] hover:from-[#784E30] hover:to-[#2B1E18] text-[#FAF7F2] font-bold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all ring-4 ring-[#8C5E3C]/25"
+                  className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#8C5E3C] via-[#6F452A] to-[#3D2C24] hover:from-[#784E30] hover:to-[#2B1E18] text-[#FAF7F2] font-bold text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all ring-4 ring-[#8C5E3C]/25 cursor-pointer"
                 >
                   <Sparkles className="w-5 h-5 text-[#F6ECE2] animate-pulse" />
-                  <span>Auto-diagramar Álbum Completo (Sem Cortes)</span>
+                  <span>Auto-diagramar História Cronológica</span>
                 </button>
               </div>
             </div>
@@ -449,19 +451,31 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                 type="button"
                 onClick={() => setCurrentSpreadIndex((prev) => Math.max(0, prev - 1))}
                 disabled={currentSpreadIndex === 0}
-                className="p-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F5EFEB] disabled:opacity-30 border border-[#DDD3C5] text-[#3D2C24] transition-colors"
+                className="p-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F5EFEB] disabled:opacity-30 border border-[#DDD3C5] text-[#3D2C24] transition-colors cursor-pointer"
                 title="Lâmina anterior"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
               <div className="text-center px-3">
-                <span className="text-xs font-bold font-serif text-[#2C2420] block">
-                  Lâmina {currentSpreadIndex + 1} de {project.spreadCount}
-                </span>
-                <span className="text-[10px] text-[#7A685B]">
-                  Páginas {currentSpreadIndex * 2 + 1} e {currentSpreadIndex * 2 + 2} (Aberto 20x30 cm)
-                </span>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-xs font-bold font-serif text-[#2C2420] block">
+                    Lâmina {currentSpreadIndex + 1} de {project.spreadCount}
+                  </span>
+                  {currentSpread.storyChapter && (
+                    <span className="text-[10px] font-bold text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-full">
+                      {currentSpread.storyChapter}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-center gap-2 text-[10px] text-[#7A685B] mt-0.5">
+                  <span>Páginas {currentSpreadIndex * 2 + 1} e {currentSpreadIndex * 2 + 2} (Aberto 20x30 cm)</span>
+                  {currentSpread.timeRange && (
+                    <span className="font-mono text-[#5A4638] bg-[#F5EFEB] px-1.5 py-0.2 rounded border border-[#E0D6C8]">
+                      ⏱ {currentSpread.timeRange}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <button
@@ -470,41 +484,11 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                   setCurrentSpreadIndex((prev) => Math.min(project.spreads.length - 1, prev + 1))
                 }
                 disabled={currentSpreadIndex === project.spreads.length - 1}
-                className="p-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F5EFEB] disabled:opacity-30 border border-[#DDD3C5] text-[#3D2C24] transition-colors"
+                className="p-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F5EFEB] disabled:opacity-30 border border-[#DDD3C5] text-[#3D2C24] transition-colors cursor-pointer"
                 title="Próxima lâmina"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </div>
-
-            {/* Template count selector */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-[#7A685B]">Template:</span>
-              {[1, 2, 3, 4].map((count) => {
-                const templates = getTemplatesByPhotoCount(count as 1 | 2 | 3 | 4);
-                return (
-                  <div key={count} className="flex items-center gap-1">
-                    {templates.map((t) => {
-                      const isActive = currentSpread.templateId === t.id;
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => handleSelectTemplate(t)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${
-                            isActive
-                              ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#3D2C24]'
-                              : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
-                          }`}
-                          title={`${t.name} (${t.photoCount} foto${t.photoCount > 1 ? 's' : ''})`}
-                        >
-                          {t.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
             </div>
 
             {/* Prominent Auto Diagram Button in Topbar */}
@@ -512,12 +496,82 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
               type="button"
               id="btn-auto-layout-all"
               onClick={onAutoLayoutAll}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8C5E3C] to-[#5A3822] hover:from-[#7A4E2F] hover:to-[#432715] text-[#FAF7F2] text-xs font-bold transition-all shadow-sm ring-2 ring-[#8C5E3C]/30 hover:scale-[1.02]"
-              title="Executar diagramação automática inteligente sem cortes"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8C5E3C] to-[#5A3822] hover:from-[#7A4E2F] hover:to-[#432715] text-[#FAF7F2] text-xs font-bold transition-all shadow-sm ring-2 ring-[#8C5E3C]/30 hover:scale-[1.02] cursor-pointer"
+              title="Executar auto-diagramação cronológica inteligente com aproveitamento máximo"
             >
               <Sparkles className="w-4 h-4 text-[#F5E8DC] animate-pulse" />
               <span>Auto-diagramar Álbum</span>
             </button>
+          </div>
+
+          {/* Template Selection & Composition Rules Bar */}
+          <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] space-y-3 shadow-2xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pb-2.5 border-b border-[#E8DFD5]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#3D2C24]">
+                  Composição da Lâmina:
+                </span>
+                {([
+                  { count: 1, label: '1 Foto (Destaque)', sub: '1 Foto na Lâmina' },
+                  { count: 2, label: '2 Fotos', sub: '1 por Página' },
+                  { count: 3, label: '3 Fotos', sub: '1 a 2 por Página' },
+                  { count: 4, label: '4 Fotos (Máx)', sub: '2 por Página' },
+                ] as const).map(({ count, label, sub }) => {
+                  const isSelected = activeTemplateCategory === count;
+                  return (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setTemplateCategoryTab(count)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#3D2C24] shadow-xs'
+                          : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
+                      }`}
+                    >
+                      <span>{label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                        isSelected ? 'bg-white/20 text-[#FAF7F2]' : 'bg-[#EAE0D5] text-[#7A685B]'
+                      }`}>
+                        {sub}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFFFFF] border border-[#DDD3C5] text-[11px] text-[#7A685B]">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                <span className="font-semibold text-[#3D2C24]">Regra de Diagramação:</span>
+                <span>1 a 2 fotos/página • Máx 4/lâmina</span>
+              </div>
+            </div>
+
+            {/* Template Buttons for Active Photo Count */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-semibold text-[#7A685B]">Opções de Layout:</span>
+              {getTemplatesByPhotoCount(activeTemplateCategory).map((t) => {
+                const isActive = currentSpread.templateId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      handleSelectTemplate(t);
+                      setTemplateCategoryTab(t.photoCount);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                      isActive
+                        ? 'bg-[#8C5E3C] text-white border-[#8C5E3C] shadow-xs ring-2 ring-[#8C5E3C]/25'
+                        : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
+                    }`}
+                    title={t.description}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Main Layout Workspace: 20x30 (3:2) Canvas (Left 8 Cols) + Sidebar Photos (Right 4 Cols) */}
@@ -976,14 +1030,22 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
 
           {/* Bottom All-Spreads Carousel */}
           <div className="bg-[#FAF7F2] p-4 rounded-3xl border border-[#E8DFD5] space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#7A685B] block">
-              Navegação Rápida por Lâminas ({project.spreadCount} lâminas)
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#7A685B] block">
+                Navegação da História Cronológica ({project.spreadCount} lâminas)
+              </span>
+              <span className="text-[11px] text-[#8C5E3C] font-medium hidden sm:inline">
+                Abertura Flat-lay 180° • Miolo Branco Puro
+              </span>
+            </div>
 
             <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
               {project.spreads.map((spread, idx) => {
                 const isActive = idx === currentSpreadIndex;
                 const filledCount = spread.slots.filter((s) => s.photoId).length;
+                const firstSlotPhoto = spread.slots.find((s) => s.photoId)?.photoId
+                  ? photosMap.get(spread.slots.find((s) => s.photoId)!.photoId!)
+                  : null;
 
                 return (
                   <button
@@ -993,18 +1055,40 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                       setCurrentSpreadIndex(idx);
                       setSelectedSlotIndex(0);
                     }}
-                    className={`shrink-0 w-32 p-2 rounded-2xl border text-left transition-all ${
+                    className={`shrink-0 w-36 p-2 rounded-2xl border text-left transition-all cursor-pointer ${
                       isActive
                         ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#2C2420] shadow-sm ring-2 ring-[#8C5E3C]/30'
                         : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
                     }`}
                   >
-                    <div className="text-[10px] font-bold truncate">Lâmina {idx + 1}</div>
-                    <div className="w-full aspect-[3/2] bg-[#FFFFFF] rounded-lg mt-1 relative overflow-hidden border border-[#D9CFC4]">
-                      <div className="absolute inset-y-0 left-1/2 w-px bg-black/10 -translate-x-1/2" />
+                    <div className="flex items-center justify-between text-[10px] font-bold">
+                      <span>Lâmina {idx + 1}</span>
+                      {spread.timeRange && (
+                        <span className="text-[8px] opacity-75 font-mono">{spread.timeRange}</span>
+                      )}
                     </div>
-                    <div className="text-[9px] mt-1 opacity-70">
-                      {filledCount}/{spread.slots.length} fotos
+                    {spread.storyChapter && (
+                      <div className="text-[9px] truncate text-[#8C5E3C] font-semibold mt-0.5">
+                        {spread.storyChapter}
+                      </div>
+                    )}
+                    <div className="w-full aspect-[3/2] bg-[#F5EFEB] rounded-lg mt-1 relative overflow-hidden border border-[#D9CFC4]">
+                      {firstSlotPhoto ? (
+                        <img
+                          src={firstSlotPhoto.url}
+                          alt=""
+                          className="w-full h-full object-cover opacity-80"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[9px] text-[#A39282]">
+                          Vazia
+                        </div>
+                      )}
+                      <div className="absolute inset-y-0 left-1/2 w-px bg-black/20 -translate-x-1/2" />
+                    </div>
+                    <div className="text-[9px] mt-1 opacity-75 flex items-center justify-between">
+                      <span>{filledCount}/{spread.slots.length} fotos</span>
+                      <span>{filledCount > 0 ? '✓' : ''}</span>
                     </div>
                   </button>
                 );

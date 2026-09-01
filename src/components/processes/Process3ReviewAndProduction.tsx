@@ -67,7 +67,8 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
     null
   );
   const [isSentSuccessfully, setIsSentSuccessfully] = useState<boolean>(false);
-  const [, setSupabaseResult] = useState<SupabaseUploadResult | null>(null);
+  const [supabaseResult, setSupabaseResult] = useState<SupabaseUploadResult | null>(null);
+  const [showManualUpload, setShowManualUpload] = useState<boolean>(false);
 
   const [isUploadingManual, setIsUploadingManual] = useState(false);
   const [manualUploadResult, setManualUploadResult] = useState<SupabaseUploadResult | null>(null);
@@ -635,212 +636,53 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
           Homologação Final & Envio para Produção
         </h2>
         <p className="text-sm sm:text-base text-[#7A685B] mt-2">
-          Revise a composição completa e clique em <strong>Aprovar e Enviar para a Produção</strong>. O arquivo de alta resolução será enviado e uma cópia será baixada em seu dispositivo.
+          Revise a capa e as lâminas abaixo. Após conferir, confirme a aprovação para disparar o envio automático para o sistema de produção e nuvem.
         </p>
       </div>
 
-      {/* STANDALONE CLIENT PDF UPLOAD FORM (Envio de PDFs para Fila de Produção) */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border-2 border-[#E8DFD5] shadow-xs space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0 shadow-xs">
-              <Cloud className="w-6 h-6 text-[#EAE0D5]" />
-            </div>
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C5E3C] bg-[#EFE8DE] px-2.5 py-0.5 rounded-full">
-                Produção & Armazenamento Seguro
-              </span>
-              <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#2C2420] mt-1">
-                Envio Direto de PDF para Impressão
-              </h3>
-              <p className="text-xs sm:text-sm text-[#7A685B]">
-                Envie seus arquivos PDF diretamente para a fila de homologação e produção da Villa7. Sem perda de qualidade ou compressão.
-              </p>
-            </div>
+      {/* Top Quick Status Ribbon */}
+      <div className="bg-[#FAF7F2] rounded-2xl p-4 border border-[#E8DFD5] shadow-2xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-[#5A4638]">
+          <div className="flex items-center gap-1.5 font-medium">
+            <BookOpen className="w-4 h-4 text-[#8C5E3C]" />
+            <span><strong>10 Lâminas Duplas</strong> (20 Págs. 15x20 cm)</span>
+          </div>
+          <div className="flex items-center gap-1.5 font-medium">
+            <User className="w-4 h-4 text-[#8C5E3C]" />
+            <span>Cliente: <strong>{project.clientData.name || 'Cliente Villa7'}</strong></span>
+          </div>
+          <div className="flex items-center gap-1.5 font-medium">
+            <ShieldCheck className="w-4 h-4 text-emerald-700" />
+            <span>Fotos preenchidas: <strong>{filledSlots} de {totalSlots}</strong></span>
           </div>
         </div>
 
-        {/* Upload Success Card */}
-        {manualUploadResult && manualUploadResult.success && (
-          <div className="p-6 bg-gradient-to-br from-emerald-50 to-emerald-100/60 rounded-2xl border-2 border-emerald-500/40 text-emerald-950 space-y-3 animate-in fade-in duration-300">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Check className="w-6 h-6 stroke-[3]" />
-              </div>
-              <div>
-                <h4 className="font-serif text-lg font-bold text-emerald-950">
-                  ✓ Arquivo enviado com sucesso!
-                </h4>
-                <p className="text-xs sm:text-sm text-emerald-800">
-                  Recebemos seu PDF. Você já pode fechar esta página.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-3 border-t border-emerald-200/80 text-xs space-y-1 font-mono text-emerald-900 break-all">
-              <div><strong>Arquivo:</strong> {manualUploadResult.fileName}</div>
-              <div><strong>Tamanho:</strong> {manualUploadResult.fileSizeMB?.toFixed(2)} MB</div>
-              <div><strong>Destino:</strong> Armazenamento Seguro em Nuvem</div>
-              {manualUploadResult.publicUrl && (
-                <div className="pt-1">
-                  <strong>Link:</strong>{' '}
-                  <a href={manualUploadResult.publicUrl} target="_blank" rel="noreferrer" className="underline font-bold text-emerald-800 hover:text-emerald-950">
-                    {manualUploadResult.publicUrl}
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setManualUploadResult(null);
-                }}
-                className="px-4 py-2 rounded-xl bg-white text-emerald-900 font-semibold text-xs border border-emerald-300 hover:bg-emerald-50 transition-colors cursor-pointer"
-              >
-                Enviar Outro Arquivo PDF
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Upload Form Area */}
-        {(!manualUploadResult || !manualUploadResult.success) && (
-          <div className="space-y-4">
-            <div className="pt-1 flex flex-wrap items-center gap-3">
-              <label className={`px-6 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-white text-sm font-bold shadow-md transition-all hover:scale-[1.01] cursor-pointer inline-flex items-center gap-2.5 ${isUploadingManual ? 'opacity-50 pointer-events-none' : ''}`}>
-                {isUploadingManual ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
-                    Enviando seu arquivo...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 rotate-180 text-emerald-400" />
-                    Selecionar Arquivo PDF e Enviar
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  onChange={handleManualPdfUpload}
-                  disabled={isUploadingManual}
-                  className="hidden"
-                />
-              </label>
-              <span className="text-xs text-[#7A685B]">
-                Formatos aceitos: <strong>.pdf</strong> (Até 100MB por arquivo)
-              </span>
-            </div>
-
-            {manualUploadResult && !manualUploadResult.success && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2 animate-in fade-in duration-150">
-                <ShieldCheck className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <strong>Erro no envio:</strong> {manualUploadResult.error}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Summary Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Client details card */}
-        <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
-              <User className="w-4 h-4 text-[#8C5E3C]" />
-              Identificação do Cliente
-            </div>
-            <h4 className="font-bold text-[#2C2420] text-sm">
-              {project.clientData.name || 'Cliente Villa7'}
-            </h4>
-            <div className="text-xs text-[#7A685B] space-y-1 mt-2">
-              <div className="flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#A39282]" />
-                {project.clientData.email || 'Não informado'}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-[#A39282]" />
-                {project.clientData.phone || 'Não informado'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Structure details card */}
-        <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
-              <BookOpen className="w-4 h-4 text-[#8C5E3C]" />
-              Estrutura Gráfica
-            </div>
-            <h4 className="font-bold text-[#2C2420] text-sm font-serif">
-              {project.clientData.albumTitle || 'Álbum Fotográfico'}
-            </h4>
-            <div className="text-xs text-[#7A685B] mt-2 space-y-0.5">
-              <div>• {project.spreadCount} Lâminas Duplas ({project.spreadCount * 2} páginas)</div>
-              <div>• Formato: 15x20 cm Vertical (Aberto 20x30 cm)</div>
-              <div>• Miolo: Branco Puro com Impressão Livre de Linhas</div>
-              <div>• Impressão: 1 Lâmina por Página A4 (Papel 297x210 mm)</div>
-              <div>• Capa: Foto Proporcional com Zero Distorção</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Status card */}
-        <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
-              <ShieldCheck className="w-4 h-4 text-[#8C5E3C]" />
-              Status da Produção
-            </div>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[#7A685B]">Espaços preenchidos:</span>
-                <span className="font-bold text-[#2C2420]">
-                  {filledSlots} de {totalSlots}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[#7A685B]">Status:</span>
-                <span className={`font-semibold ${isSentSuccessfully ? 'text-emerald-700 font-bold' : 'text-[#8C5E3C]'}`}>
-                  {isSentSuccessfully ? 'Enviado com Sucesso ✓' : 'Pendente de Aprovação'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpenPreview}
-            className="mt-3 inline-flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#EFE8DE] text-xs font-semibold text-[#3D2C24] border border-[#DDD3C5] transition-colors cursor-pointer"
-          >
-            <Eye className="w-4 h-4 text-[#8C5E3C]" />
-            Abrir Livro 3D (15x20)
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onOpenPreview}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-[#EFE8DE] text-xs font-semibold text-[#3D2C24] border border-[#DDD3C5] transition-colors cursor-pointer shadow-2xs"
+        >
+          <Eye className="w-4 h-4 text-[#8C5E3C]" />
+          Abrir Livro 3D
+        </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* QUICK PHOTO SWAP & EDIT SECTION (Interactive Drag-and-Drop Review) */}
+      {/* 1. REVISÃO DE LÂMINAS (VISÍVEL POR PRIMEIRO)                             */}
       {/* ========================================================================= */}
       <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-7 border-2 border-[#E0D6C8] shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E8DFD5]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8DFD5]">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-[#3D2C24] text-white flex items-center justify-center">
-                <ArrowLeftRight className="w-4 h-4 text-amber-400" />
+                <BookOpen className="w-4 h-4 text-amber-400" />
               </span>
               <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
-                Edição & Troca Rápida de Fotos
+                Revisão das Lâminas & Capa Fotográfica
               </h3>
             </div>
             <p className="text-xs text-[#7A685B] mt-1">
-              Arraste qualquer foto sobre outra para trocar suas posições instantaneamente, ou clique em duas fotos sucessivamente.
+              Confira a sequência das 10 lâminas. Arraste qualquer foto sobre outra para trocar posições ou clique em <strong>Esquadrar Corte</strong> para ajustar o enquadramento.
             </p>
           </div>
 
@@ -853,7 +695,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                 title="Desfazer última troca de fotos"
               >
                 <Undo2 className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                Desfazer Troca ({swapHistory.length})
+                Desfazer ({swapHistory.length})
               </button>
             )}
 
@@ -1029,20 +871,40 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
             </div>
           </div>
 
-          {/* Spreads List */}
+          {/* Spreads List (10 Spreads) */}
           {validSpreads.map((spread, idx) => (
             <div
               key={spread.id}
               className="p-3.5 bg-[#FFFFFF] rounded-2xl border border-[#E0D6C8] shadow-2xs hover:border-[#C4B29E] transition-all space-y-2"
             >
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] flex items-center justify-between">
-                <span className="font-semibold text-[#3D2C24]">
-                  Lâmina {idx + 1} (Págs. {idx * 2 + 1}-{idx * 2 + 2})
-                </span>
-                <span className="text-[10px] font-mono text-amber-700 font-bold flex items-center gap-1">
-                  <Move className="w-3 h-3" />
-                  {spread.slots.length} {spread.slots.length === 1 ? 'foto' : 'fotos'}
-                </span>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#8C7A6B] flex items-center justify-between flex-wrap gap-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-[#3D2C24]">
+                    Lâmina {idx + 1} (Págs. {idx * 2 + 1}-{idx * 2 + 2})
+                  </span>
+                  {spread.storyChapter && (
+                    <span className="text-[9px] font-bold text-[#8C5E3C] bg-[#EAE0D5] px-1.5 py-0.5 rounded-full capitalize">
+                      {spread.storyChapter}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {spread.timeRange && (
+                    <span className="text-[9px] font-mono text-[#5A4638] bg-[#FAF7F2] px-1.5 py-0.5 rounded border border-[#E8DFD5]">
+                      ⏱ {spread.timeRange}
+                    </span>
+                  )}
+                  <span className="text-[10px] font-mono text-[#8C5E3C] bg-[#FAF7F2] px-2 py-0.5 rounded-md border border-[#E8DFD5] font-bold flex items-center gap-1">
+                    <Move className="w-3 h-3" />
+                    {spread.slots.length === 1
+                      ? '1 Foto Destaque'
+                      : spread.slots.length === 2
+                      ? '2 Fotos (1 por pág)'
+                      : spread.slots.length === 3
+                      ? '3 Fotos (1 a 2 por pág)'
+                      : '4 Fotos (2 por pág)'}
+                  </span>
+                </div>
               </div>
 
               {/* 30x20 cm Canvas container */}
@@ -1191,7 +1053,9 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
         </div>
       </div>
 
-      {/* Formal Digital Approval Box (Visible when not yet completed) */}
+      {/* ========================================================================= */}
+      {/* 2. PÓS ELA: CAIXA DE DIÁLOGO SOBRE APROVAÇÃO COM ENVIO AUTOMÁTICO (SUPADATA) */}
+      {/* ========================================================================= */}
       {!isSentSuccessfully && !isGenerating && (
         <div className="bg-gradient-to-br from-[#F5EFEB] to-[#EAE0D5] rounded-3xl p-6 sm:p-8 border-2 border-[#8C5E3C] shadow-md space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
@@ -1206,26 +1070,32 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 text-white">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-amber-300 block">
-                  Qualidade Gráfica de Impressão
+                  Produção Gráfica Villa7
                 </span>
                 <span className="font-serif text-sm font-bold drop-shadow-sm">
-                  Álbum 15x20 Vertical com Capa Fotográfica
+                  10 Lâminas Duplas 15x20 Vertical
                 </span>
               </div>
             </div>
 
-            {/* Approval Info & Action */}
+            {/* Approval Info & Automatic Transmission to Supadata */}
             <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0 shadow-xs">
                   <FileCheck className="w-5 h-5 text-[#EAE0D5]" />
                 </div>
-                <div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Cloud className="w-3 h-3" />
+                      Envio Automático Configurado (Supadata / Nuvem)
+                    </span>
+                  </div>
                   <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
-                    Aprovação Final & Envio para a Produção
+                    Aprovação Final & Envio Automático para Produção
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#685547] mt-1 leading-relaxed">
-                    Ao confirmar, o arquivo oficial em alta resolução (15x20 cm vertical / 20x30 cm aberto, capa com foto sem distorção, miolo branco sem linhas e guias de corte) será processado e disponibilizado para download.
+                  <p className="text-xs sm:text-sm text-[#685547] leading-relaxed">
+                    Ao confirmar abaixo, o sistema compila o PDF de alta resolução (15x20 cm vertical / 20x30 cm aberto panorâmico, miolo branco sem linhas de corte) e realiza a <strong>transmissão automática direta para o Supadata / Nuvem de Produção</strong>, salvando também uma cópia no seu dispositivo.
                   </p>
                 </div>
               </div>
@@ -1240,7 +1110,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                     className="w-4 h-4 text-[#8C5E3C] accent-[#8C5E3C] rounded cursor-pointer"
                   />
                   <span className="text-xs sm:text-sm text-[#2C2420] font-medium leading-normal">
-                    Revisei a capa e lâminas e autorizo o envio do álbum para produção.
+                    Revisei a capa e todas as 10 lâminas e autorizo o envio automático para produção.
                   </span>
                 </label>
 
@@ -1252,7 +1122,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                   className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md transition-all hover:scale-[1.02] cursor-pointer shrink-0 disabled:opacity-50"
                 >
                   <Send className="w-4 h-4 text-emerald-400" />
-                  Aprovar e Enviar para a Produção
+                  Aprovar & Enviar Automaticamente
                 </button>
               </div>
             </div>
@@ -1267,7 +1137,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
             <RefreshCw className="w-7 h-7 animate-spin" />
           </div>
           <h3 className="font-serif text-xl font-bold text-[#2C2420] mb-2">
-            Processando e Enviando Álbum...
+            Processando e Transmitindo Álbum para a Nuvem...
           </h3>
           <p className="text-xs sm:text-sm text-[#7A685B] mb-4">{generationProgress.step}</p>
 
@@ -1283,7 +1153,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
         </div>
       )}
 
-      {/* Confirmation & Download Card */}
+      {/* Confirmation & Production Receipt Card */}
       {!isGenerating && isSentSuccessfully && pdfData && (
         <div className="bg-gradient-to-br from-[#F5EFEB] to-[#EAE0D5] rounded-3xl p-6 sm:p-8 border-2 border-emerald-600/30 shadow-md space-y-6 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
@@ -1294,49 +1164,200 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
             <div className="space-y-2 text-center sm:text-left flex-1">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
                 <Check className="w-3.5 h-3.5" />
-                Envio Confirmado
+                Envio Automático Concluído com Sucesso
               </span>
               <h3 className="font-serif text-2xl font-bold text-[#2C2420]">
-                Álbum Enviado com Sucesso!
+                Álbum Homologado & Transmitido para Produção!
               </h3>
               <p className="text-sm text-[#5A4638] leading-relaxed max-w-2xl">
-                O arquivo final do álbum de alta resolução foi processado e homologado para a produção gráfica. Uma cópia do arquivo PDF foi salva no seu dispositivo.
+                O arquivo final do fotolivro de 10 lâminas (15x20 cm vertical) foi transmitido com sucesso para a fila de produção em nuvem. Uma cópia de segurança em PDF foi gerada e salva no seu dispositivo.
               </p>
             </div>
           </div>
 
-          <div className="p-4 bg-[#FAF7F2] rounded-2xl border border-[#DDD3C5] flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-[#5A4638] text-center sm:text-left">
-              <span className="font-semibold text-[#2C2420] block mb-0.5">
-                Cópia de Segurança:
-              </span>
-              <span className="font-mono text-[#7A685B] break-all">
-                {pdfData.fileName}
-              </span>
+          {/* Detailed Cloud Receipt */}
+          <div className="p-4 bg-[#FAF7F2] rounded-2xl border border-[#DDD3C5] space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div>
+                <span className="font-semibold text-[#2C2420] block mb-0.5">
+                  Arquivo PDF de Produção:
+                </span>
+                <span className="font-mono text-[#7A685B] break-all">
+                  {pdfData.fileName}
+                </span>
+              </div>
+              {supabaseResult?.publicUrl && (
+                <a
+                  href={supabaseResult.publicUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-900 font-bold text-xs hover:bg-emerald-200 transition-colors inline-flex items-center gap-1 shrink-0"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-emerald-700" />
+                  Ver na Nuvem
+                </a>
+              )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
-              <button
-                type="button"
-                id="btn-download-pdf-copy"
-                onClick={handleDownloadPdf}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-white font-bold text-sm shadow-sm transition-all hover:scale-[1.01] cursor-pointer"
-              >
-                <Download className="w-4 h-4 text-emerald-400" />
-                Baixar Cópia no Dispositivo (PDF)
-              </button>
+            <div className="pt-2 border-t border-[#E8DFD5] flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[11px] text-[#7A685B]">
+                Status: <strong>Salvo no Armazenamento Seguro (Bucket: pdfs)</strong>
+              </span>
 
-              <button
-                type="button"
-                id="btn-resend-album"
-                onClick={handleApproveAndSendToProduction}
-                className="inline-flex items-center justify-center gap-1.5 px-4 py-3.5 rounded-xl bg-white hover:bg-[#F2ECE4] text-[#5A4638] font-semibold text-xs border border-[#D9CFC4] transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Reenviar
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-download-pdf-copy"
+                  onClick={handleDownloadPdf}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-white font-bold text-xs shadow-sm transition-all hover:scale-[1.01] cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-emerald-400" />
+                  Baixar Cópia Local (PDF)
+                </button>
+
+                <button
+                  type="button"
+                  id="btn-resend-album"
+                  onClick={handleApproveAndSendToProduction}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-[#F2ECE4] text-[#5A4638] font-semibold text-xs border border-[#D9CFC4] transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reenviar
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 3. RESUMO DO PROJETO & OPÇÃO MANUAL SECUNDÁRIA                           */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Client details card */}
+        <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
+              <User className="w-4 h-4 text-[#8C5E3C]" />
+              Identificação do Cliente
+            </div>
+            <h4 className="font-bold text-[#2C2420] text-sm">
+              {project.clientData.name || 'Cliente Villa7'}
+            </h4>
+            <div className="text-xs text-[#7A685B] space-y-1 mt-2">
+              <div className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[#A39282]" />
+                {project.clientData.email || 'Não informado'}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-[#A39282]" />
+                {project.clientData.phone || 'Não informado'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Structure details card */}
+        <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
+              <BookOpen className="w-4 h-4 text-[#8C5E3C]" />
+              Estrutura Gráfica
+            </div>
+            <h4 className="font-bold text-[#2C2420] text-sm font-serif">
+              {project.clientData.albumTitle || 'Álbum Fotográfico'}
+            </h4>
+            <div className="text-xs text-[#7A685B] mt-2 space-y-0.5">
+              <div>• 10 Lâminas Duplas (20 páginas rígidas)</div>
+              <div>• Formato: 15x20 cm Vertical (Aberto 20x30 cm)</div>
+              <div>• Miolo: Branco Puro com Impressão Livre de Linhas</div>
+              <div>• Capa: Foto Proporcional com Zero Distorção</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Manual PDF Upload Card (Optional / Backup) */}
+        <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
+              <Cloud className="w-4 h-4 text-[#8C5E3C]" />
+              Envio Manual de PDF (Opcional)
+            </div>
+            <p className="text-xs text-[#7A685B] mb-3">
+              Caso tenha um PDF externo pronto, envie diretamente para a nuvem de produção.
+            </p>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowManualUpload(!showManualUpload)}
+              className="inline-flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-white hover:bg-[#EFE8DE] text-xs font-semibold text-[#3D2C24] border border-[#DDD3C5] transition-colors cursor-pointer"
+            >
+              <Cloud className="w-3.5 h-3.5 text-[#8C5E3C]" />
+              {showManualUpload ? 'Ocultar Envio Manual' : 'Enviar PDF Avulso'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expandable Manual PDF Upload Section */}
+      {showManualUpload && (
+        <div className="bg-[#FAF7F2] rounded-3xl p-6 border-2 border-[#E8DFD5] shadow-xs space-y-4 animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0">
+              <Cloud className="w-5 h-5 text-[#EAE0D5]" />
+            </div>
+            <div>
+              <h4 className="font-serif text-lg font-bold text-[#2C2420]">
+                Upload Manual de Arquivo PDF
+              </h4>
+              <p className="text-xs text-[#7A685B]">
+                Envie arquivos PDF prontos diretamente para a fila de produção da Villa7.
+              </p>
+            </div>
+          </div>
+
+          {manualUploadResult && manualUploadResult.success ? (
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-300 text-emerald-950 text-xs space-y-2">
+              <div className="font-bold flex items-center gap-1.5 text-emerald-800">
+                <Check className="w-4 h-4" />
+                PDF avulso enviado com sucesso!
+              </div>
+              <div className="font-mono text-[11px] break-all">{manualUploadResult.fileName}</div>
+              <button
+                type="button"
+                onClick={() => setManualUploadResult(null)}
+                className="mt-2 px-3 py-1 bg-white border border-emerald-300 rounded-lg font-semibold text-emerald-900"
+              >
+                Enviar Outro Arquivo
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <label className={`px-5 py-2.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-2 ${isUploadingManual ? 'opacity-50 pointer-events-none' : ''}`}>
+                {isUploadingManual ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 rotate-180 text-emerald-400" />
+                    Selecionar PDF do Dispositivo
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={handleManualPdfUpload}
+                  disabled={isUploadingManual}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-xs text-[#7A685B]">Até 100MB por arquivo</span>
+            </div>
+          )}
         </div>
       )}
 
