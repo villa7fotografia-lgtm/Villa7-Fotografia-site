@@ -8,22 +8,22 @@ export const SPREAD_TEMPLATES: TemplateDef[] = [
   // =========================================================================
   {
     id: '1-full-bleed-panoramic',
-    name: 'Panorâmica Total Sangrada (1 Destaque)',
+    name: 'Foto Panorâmica Total (1 Destaque)',
     category: '1 Foto (Destaque)',
     photoCount: 1,
     orientationPattern: 'PAN',
-    description: 'Foto horizontal ampla que ocupa toda a lâmina aberta 20x30 cm com impacto visual de capa interna.',
+    description: 'Foto horizontal ampla que ocupa toda a lâmina aberta 20x30 cm com grande impacto visual.',
     slots: [
       { x: 0, y: 0, width: 100, height: 100, orientation: 'panoramic', idealAspect: 1.5 }
     ]
   },
   {
     id: '1-center-hero-landscape',
-    name: 'Paisagem Centralizada com Margem Nobre (1 Destaque)',
+    name: 'Paisagem Centralizada com Margem (1 Destaque)',
     category: '1 Foto (Destaque)',
     photoCount: 1,
     orientationPattern: 'L',
-    description: 'Foto horizontal (3:2) centralizada na lâmina com margem nobre estilo galeria de arte (sem cortes).',
+    description: 'Foto horizontal centralizada na lâmina com margem elegante (sem cortes).',
     slots: [
       { x: 6, y: 6, width: 88, height: 88, orientation: 'landscape', idealAspect: 1.5 }
     ]
@@ -34,7 +34,7 @@ export const SPREAD_TEMPLATES: TemplateDef[] = [
     category: '1 Foto (Destaque)',
     photoCount: 1,
     orientationPattern: 'P',
-    description: 'Retrato vertical (2:3) na página esquerda 15x20 e espaço de respiro editorial elegante na direita.',
+    description: 'Retrato vertical na página esquerda 15x20 e espaço em branco elegante na direita.',
     slots: [
       { x: 6.5, y: 8, width: 37, height: 84, orientation: 'portrait', idealAspect: 0.66 }
     ]
@@ -45,7 +45,7 @@ export const SPREAD_TEMPLATES: TemplateDef[] = [
     category: '1 Foto (Destaque)',
     photoCount: 1,
     orientationPattern: 'P',
-    description: 'Espaço sereno na esquerda e retrato vertical (2:3) em destaque solene na página direita 15x20.',
+    description: 'Espaço em branco na esquerda e retrato vertical em destaque na página direita 15x20.',
     slots: [
       { x: 56.5, y: 8, width: 37, height: 84, orientation: 'portrait', idealAspect: 0.66 }
     ]
@@ -60,7 +60,7 @@ export const SPREAD_TEMPLATES: TemplateDef[] = [
     category: '2 Fotos (1 por Página)',
     photoCount: 2,
     orientationPattern: 'P-P',
-    description: 'Duas fotos verticais na proporção exata 2:3 (uma em cada página 15x20), sem nenhum corte.',
+    description: 'Duas fotos verticais (uma em cada página 15x20), sem nenhum corte.',
     slots: [
       { x: 6.5, y: 8, width: 37, height: 84, orientation: 'portrait', idealAspect: 0.66 },
       { x: 56.5, y: 8, width: 37, height: 84, orientation: 'portrait', idealAspect: 0.66 }
@@ -72,7 +72,7 @@ export const SPREAD_TEMPLATES: TemplateDef[] = [
     category: '2 Fotos (1 por Página)',
     photoCount: 2,
     orientationPattern: 'L-L',
-    description: 'Duas fotos horizontais na proporção exata 3:2 harmonizadas nas páginas esquerda e direita.',
+    description: 'Duas fotos horizontais harmonizadas nas páginas esquerda e direita.',
     slots: [
       { x: 4, y: 29, width: 42, height: 42, orientation: 'landscape', idealAspect: 1.5 },
       { x: 54, y: 29, width: 42, height: 42, orientation: 'landscape', idealAspect: 1.5 }

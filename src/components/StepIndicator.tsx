@@ -14,23 +14,23 @@ export const PROCESS_STEPS = [
     sub: 'Identificação, Fotos & Estrutura',
     badge: 'Passo 1',
     icon: Layers,
-    description: 'Dados do cliente, até 40 fotos e definição de 10 a 20 lâminas',
+    description: 'Dados do projeto, fotos da celebração e definição de lâminas',
   },
   {
     id: 2,
     label: '2. Estúdio de Criação',
-    sub: 'Diagramação 20x30 & Capa 15x20',
+    sub: 'Organização das Fotos & Capa',
     badge: 'Passo 2',
     icon: LayoutGrid,
-    description: 'Montagem das lâminas 20x30 cm e foto da capa 15x20 vertical',
+    description: 'Montagem das 10 lâminas e foto da capa do fotolivro',
   },
   {
     id: 3,
     label: '3. Revisão & Produção',
-    sub: 'Aprovação Final, PDF & Drive',
+    sub: 'Revisão Final & Envio',
     badge: 'Passo 3',
     icon: CheckSquare,
-    description: 'Homologação digital, geração do PDF de impressão e envio à nuvem',
+    description: 'Conferência das 10 lâminas, geração do PDF de impressão e envio à nuvem',
   },
 ];
 

@@ -8,6 +8,7 @@ import {
   Trash2,
   Check,
   ArrowRight,
+  ArrowLeft,
   Info,
   Sliders,
   CheckCircle2,
@@ -81,6 +82,8 @@ export const Process1Preparation: React.FC<Process1Props> = ({
   const [selectedPromptId, setSelectedPromptId] = useState<string>(COVER_PROMPT_PRESETS[0].id);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [showPromptGuide, setShowPromptGuide] = useState(true);
+  const [subStep, setSubStep] = useState<1 | 2 | 3>(1);
+  const [showRawPrompt, setShowRawPrompt] = useState(false);
 
   // Selected prompt definition
   const activePromptDef =
@@ -260,153 +263,221 @@ export const Process1Preparation: React.FC<Process1Props> = ({
       {/* Visual Showcase Gallery & Studio Quality Standards */}
       <StudioHeroShowcase />
 
-      {/* SECTION 1: Identificação & Detalhes da Obra */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-8">
-        <div className="flex items-center gap-3 pb-4 border-b border-[#E8DFD5]">
-          <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
-            1
+      {/* Sub-step Navigation Bar */}
+      <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
+            Etapa 1
           </div>
           <div>
-            <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-              Identificação & Detalhes da Obra
-            </h3>
-            <p className="text-xs text-[#7A685B]">
-              Esses dados serão gravados na capa (15x20 cm), ficha técnica e homologação gráfica.
+            <h4 className="font-serif font-bold text-sm text-[#2C2420]">Passo {subStep} de 3</h4>
+            <p className="text-[11px] text-[#7A685B]">
+              {subStep === 1 && '1. Dados do Cliente e da Obra'}
+              {subStep === 2 && '2. Assistente de Capa com IA & Upload da Capa'}
+              {subStep === 3 && '3. Upload & Organização das Fotos'}
             </p>
           </div>
         </div>
 
-        {/* Form Fields Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Client Name */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-              Nome do Cliente / Casal / Família *
-            </label>
-            <div className="relative">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setSubStep(1)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              subStep === 1
+                ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
+                : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
+            }`}
+          >
+            1. Dados do Projeto
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubStep(2)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              subStep === 2
+                ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
+                : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
+            }`}
+          >
+            2. Capa do Fotolivro
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubStep(3)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              subStep === 3
+                ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
+                : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
+            }`}
+          >
+            3. Fotos da Celebração ({photos.length})
+          </button>
+        </div>
+      </div>
+
+      {/* SUB-STEP 1: Identificação & Detalhes da Obra */}
+      {subStep === 1 && (
+        <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-8 animate-fadeIn">
+          <div className="flex items-center gap-3 pb-4 border-b border-[#E8DFD5]">
+            <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
+              1
+            </div>
+            <div>
+              <h3 className="font-serif text-lg font-bold text-[#2C2420]">
+                Identificação & Detalhes da Obra
+              </h3>
+              <p className="text-xs text-[#7A685B]">
+                Esses dados serão gravados na capa e na ficha técnica do fotolivro.
+              </p>
+            </div>
+          </div>
+
+          {/* Form Fields Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Client Name */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+                Nome do Cliente / Casal / Família *
+              </label>
+              <div className="relative">
+                <input
+                  id="input-client-name"
+                  type="text"
+                  value={clientData.name}
+                  onChange={(e) => onChangeClientData({ name: e.target.value })}
+                  placeholder="Ex: Mariana & Lucas Silva"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+                />
+                <User className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+            {/* Occasion */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+                Ocasião Especial
+              </label>
+              <select
+                id="select-occasion"
+                value={clientData.occasion}
+                onChange={(e) => onChangeClientData({ occasion: e.target.value as OccasionType })}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+              >
+                {OCCASIONS.map((occ) => (
+                  <option key={occ} value={occ}>
+                    {occ}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Album Title */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+                Título Gravado na Capa *
+              </label>
               <input
-                id="input-client-name"
+                id="input-album-title"
                 type="text"
-                value={clientData.name}
-                onChange={(e) => onChangeClientData({ name: e.target.value })}
-                placeholder="Ex: Mariana & Lucas Silva"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+                value={clientData.albumTitle}
+                onChange={(e) => {
+                  const newTitle = e.target.value;
+                  onChangeClientData({ albumTitle: newTitle });
+                  onChangeCover({ title: newTitle });
+                }}
+                placeholder="Ex: Nossas Melhores Memórias"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm font-serif font-semibold text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
               />
-              <User className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            </div>
+
+            {/* Album Subtitle */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+                Subtítulo / Data / Ano
+              </label>
+              <input
+                id="input-album-subtitle"
+                type="text"
+                value={clientData.albumSubtitle}
+                onChange={(e) => {
+                  const newSubtitle = e.target.value;
+                  onChangeClientData({ albumSubtitle: newSubtitle });
+                  onChangeCover({ subtitle: newSubtitle });
+                }}
+                placeholder="Ex: Momentos Inesquecíveis • 2026"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm font-serif text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+              />
+            </div>
+
+            {/* Phone (WhatsApp) */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+                WhatsApp para Envio do Álbum
+              </label>
+              <div className="relative">
+                <input
+                  id="input-client-phone"
+                  type="tel"
+                  value={clientData.phone}
+                  onChange={(e) => onChangeClientData({ phone: e.target.value })}
+                  placeholder="(11) 98765-4321"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+                />
+                <Phone className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+                E-mail para Ficha Técnica
+              </label>
+              <div className="relative">
+                <input
+                  id="input-client-email"
+                  type="email"
+                  value={clientData.email}
+                  onChange={(e) => onChangeClientData({ email: e.target.value })}
+                  placeholder="cliente@exemplo.com"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+                />
+                <Mail className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+            {/* Notes / General Observations */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
+                Observações do Projeto & Contexto do Evento (Opcional)
+              </label>
+              <input
+                id="input-project-notes"
+                type="text"
+                value={clientData.notes || ''}
+                onChange={(e) => onChangeClientData({ notes: e.target.value })}
+                placeholder="Ex: Formatura em Medicina Turma 2026 / Baile de Gala / Casamento ao pôr do sol no campo."
+                className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+              />
             </div>
           </div>
 
-          {/* Occasion */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-              Ocasião Especial
-            </label>
-            <select
-              id="select-occasion"
-              value={clientData.occasion}
-              onChange={(e) => onChangeClientData({ occasion: e.target.value as OccasionType })}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
+          <div className="flex justify-end pt-4 border-t border-[#E8DFD5]">
+            <button
+              type="button"
+              onClick={() => setSubStep(2)}
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
             >
-              {OCCASIONS.map((occ) => (
-                <option key={occ} value={occ}>
-                  {occ}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Album Title */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-              Título Gravado na Capa *
-            </label>
-            <input
-              id="input-album-title"
-              type="text"
-              value={clientData.albumTitle}
-              onChange={(e) => {
-                const newTitle = e.target.value;
-                onChangeClientData({ albumTitle: newTitle });
-                onChangeCover({ title: newTitle });
-              }}
-              placeholder="Ex: Nossas Melhores Memórias"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm font-serif font-semibold text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-            />
-          </div>
-
-          {/* Album Subtitle */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-              Subtítulo / Data / Ano
-            </label>
-            <input
-              id="input-album-subtitle"
-              type="text"
-              value={clientData.albumSubtitle}
-              onChange={(e) => {
-                const newSubtitle = e.target.value;
-                onChangeClientData({ albumSubtitle: newSubtitle });
-                onChangeCover({ subtitle: newSubtitle });
-              }}
-              placeholder="Ex: Momentos Inesquecíveis • 2026"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm font-serif text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-            />
-          </div>
-
-          {/* Phone (WhatsApp) */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-              WhatsApp para Envio do Álbum
-            </label>
-            <div className="relative">
-              <input
-                id="input-client-phone"
-                type="tel"
-                value={clientData.phone}
-                onChange={(e) => onChangeClientData({ phone: e.target.value })}
-                placeholder="(11) 98765-4321"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-              />
-              <Phone className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            </div>
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-              E-mail para Ficha Técnica
-            </label>
-            <div className="relative">
-              <input
-                id="input-client-email"
-                type="email"
-                value={clientData.email}
-                onChange={(e) => onChangeClientData({ email: e.target.value })}
-                placeholder="cliente@exemplo.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-              />
-              <Mail className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            </div>
-          </div>
-
-          {/* Notes / General Observations */}
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-              Observações do Projeto & Contexto do Evento (Opcional)
-            </label>
-            <input
-              id="input-project-notes"
-              type="text"
-              value={clientData.notes || ''}
-              onChange={(e) => onChangeClientData({ notes: e.target.value })}
-              placeholder="Ex: Formatura em Medicina Turma 2026 / Baile de Gala / Casamento ao pôr do sol no campo."
-              className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-            />
+              <span>Próximo: Capa do Fotolivro</span>
+              <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
+            </button>
           </div>
         </div>
+      )}
 
-        {/* SUBSECTION: ASSISTENTE DE CAPA COM IA (CHATGPT FREE) & UPLOAD (15x20 CM VERTICAL) */}
-        <div className="pt-6 border-t border-[#E8DFD5] space-y-5">
+      {/* SUB-STEP 2: Assistente de Capa com IA & Upload da Capa */}
+      {subStep === 2 && (
+        <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-8 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8DFD5]">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center">
@@ -415,7 +486,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="font-serif font-bold text-base text-[#2C2420]">
-                    Assistente de Capa com IA (ChatGPT Free) & Upload (15x20 cm)
+                    Assistente de Capa com IA (ChatGPT Free) & Upload da Foto
                   </h4>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                     Compatível com ChatGPT Gratuito
@@ -507,7 +578,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   </span>
                   <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Envie a Capa</h6>
                   <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
-                    Baixe a arte gerada pela IA e envie no quadro de upload da Capa 15x20 abaixo.
+                    Baixe a arte gerada pela IA e envie no quadro de upload da Capa abaixo.
                   </p>
                 </div>
               </div>
@@ -555,7 +626,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-[#8C5E3C]" />
                     <span className="text-xs font-bold text-[#2C2420]">
-                      Prompt Pronto para Copiar e Colar ({activePromptDef.title})
+                      Prompt Pronto para Copiar ({activePromptDef.title})
                     </span>
                   </div>
 
@@ -598,20 +669,34 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   </div>
                 </div>
 
-                <textarea
-                  readOnly
-                  rows={5}
-                  value={fullChatGPTMessage}
-                  className="w-full bg-[#FFFFFF] rounded-lg p-3 text-xs text-[#3D2C24] font-mono border border-[#E0D6C8] resize-none focus:outline-none focus:ring-1 focus:ring-[#8C5E3C]"
-                />
+                {/* Collapsible Technical Prompt Text Area */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowRawPrompt(!showRawPrompt)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8C5E3C] hover:text-[#5A3822] cursor-pointer py-1 transition-colors"
+                  >
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showRawPrompt ? 'rotate-180' : ''}`} />
+                    <span>{showRawPrompt ? 'Ocultar prompt técnico completo' : 'Ver prompt técnico completo'}</span>
+                  </button>
+
+                  {showRawPrompt && (
+                    <textarea
+                      readOnly
+                      rows={5}
+                      value={fullChatGPTMessage}
+                      className="w-full bg-[#FFFFFF] rounded-lg p-3 text-xs text-[#3D2C24] font-mono border border-[#E0D6C8] resize-none focus:outline-none focus:ring-1 focus:ring-[#8C5E3C] mt-2 animate-fadeIn"
+                    />
+                  )}
+                </div>
 
                 {/* Dicas de Ouro para GPT Free */}
                 <div className="pt-2 border-t border-[#E8DFD5] grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] text-[#7A685B]">
                   <div className="flex items-start gap-1.5">
                     <Lightbulb className="w-3.5 h-3.5 text-[#8C5E3C] shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-[#2C2420]">Proporção 2:3 Vertical:</strong> Peça
-                      formato vertical 15x20 cm para perfeito encaixe na encadernação.
+                      <strong className="text-[#2C2420]">Foto Vertical:</strong> Peça
+                      formato vertical no ChatGPT para perfeito encaixe na encadernação.
                     </span>
                   </div>
                   <div className="flex items-start gap-1.5">
@@ -633,13 +718,13 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             </div>
           )}
 
-          {/* ÁREA DE UPLOAD DA CAPA FOTOGRÁFICA (15x20 CM VERTICAL) */}
+          {/* ÁREA DE UPLOAD DA CAPA FOTOGRÁFICA */}
           <div className="bg-[#FAF7F2] rounded-2xl p-5 sm:p-6 border border-[#E8DFD5] space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-[#8C5E3C]" />
                 <h5 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
-                  Upload da Imagem da Capa (15x20 cm Vertical)
+                  Upload da Imagem da Capa
                 </h5>
               </div>
               <span className="text-[11px] font-semibold text-[#8C5E3C]">
@@ -693,7 +778,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                         Foto da Capa Carregada com Sucesso!
                       </span>
                       <p className="text-[11px] text-[#7A685B] mt-1">
-                        Clique para trocar a imagem da capa (15x20 cm vertical)
+                        Clique para trocar a imagem da capa
                       </p>
                     </div>
                   ) : (
@@ -703,7 +788,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                         Clique para selecionar ou arraste a Foto da Capa
                       </span>
                       <p className="text-[11px] text-[#7A685B] mt-1">
-                        Formato Vertical 15x20 cm (proporção 2:3 ou 3:4) • JPG, PNG ou WEBP
+                        Formato Vertical (JPG, PNG ou WEBP)
                       </p>
                     </div>
                   )}
@@ -713,7 +798,7 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-[#7A685B] flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Homologada para a Capa 15x20 cm
+                      Foto homologada para a capa
                     </span>
                     <button
                       type="button"
@@ -788,288 +873,324 @@ export const Process1Preparation: React.FC<Process1Props> = ({
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* SECTION 2: Fotos (Até 40 Fotos) */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8DFD5]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
-              2
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-                  Fotografias Selecionadas (Até 40 fotos)
-                </h3>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-full">
-                  <Sparkles className="w-3 h-3" /> Narrativa Cronológica
-                </span>
-              </div>
-              <p className="text-xs text-[#7A685B] mt-0.5">
-                Diagramação inteligente que analisa data, horário e ordem real dos momentos com 100% de aproveitamento.
-              </p>
-            </div>
-          </div>
+          <div className="flex items-center justify-between pt-4 border-t border-[#E8DFD5]">
+            <button
+              type="button"
+              onClick={() => setSubStep(1)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#8C5E3C]" />
+              <span>Voltar aos Dados do Projeto</span>
+            </button>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="px-3.5 py-1 rounded-full bg-[#EAE0D5] text-[#5A4638] text-xs font-bold font-mono">
-              {photos.length} / 40 fotos
-            </div>
-            {photos.length === 0 && (
-              <button
-                type="button"
-                id="btn-load-sample-photos"
-                onClick={onLoadDemo}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EFE8DE] hover:bg-[#E5DCD0] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                Carregar Demonstração (História Completa)
-              </button>
-            )}
-            {photos.length > 1 && (
-              <button
-                type="button"
-                onClick={handleSortChronologically}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8C5E3C] hover:bg-[#734A2E] text-xs font-bold text-white shadow-xs transition-all cursor-pointer"
-                title="Reorganizar todas as fotos por data, horário e ordem dos acontecimentos"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Reorganizar por Cronologia
-              </button>
-            )}
-            {photos.length > 0 && (
-              <button
-                type="button"
-                onClick={onClearAllPhotos}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Limpar fotos
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setSubStep(3)}
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
+            >
+              <span>Próximo: Fotos da Celebração</span>
+              <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Narrative Engine Info Banner */}
-        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#DDD3C5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center shrink-0 mt-0.5">
-              <Camera className="w-4 h-4" />
-            </div>
-            <div>
-              <h5 className="font-bold text-xs text-[#2C2420]">
-                Linha do Tempo & Narrativa Emocional Contínua
-              </h5>
-              <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
-                As fotos são ordenadas automaticamente por data e horário de captura, agrupando momentos de preparativos, cerimônia, retratos e festa em lâminas duplas harmônicas.
-              </p>
-            </div>
-          </div>
-          {photos.length > 0 && (
-            <div className="shrink-0 bg-[#FAF7F2] px-3 py-1.5 rounded-xl border border-[#E8DFD5] text-[11px] text-[#5A4638]">
-              <span className="font-bold text-[#8C5E3C]">Fotos Carregadas:</span> {photos.length} de 40
-            </div>
-          )}
-        </div>
-
-        {/* Upload Dropzone */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-3xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
-            isDragging
-              ? 'border-[#8C5E3C] bg-[#F5EFEB] scale-[0.99]'
-              : 'border-[#D9CFC4] hover:border-[#8C5E3C] bg-[#FFFFFF] hover:bg-[#FAF7F2]'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-
-          <div className="w-14 h-14 rounded-2xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center mx-auto mb-3">
-            <Upload className="w-7 h-7" />
-          </div>
-
-          <h4 className="font-serif font-bold text-base text-[#2C2420]">
-            Arraste suas fotos aqui ou clique para selecionar
-          </h4>
-          <p className="text-xs text-[#7A685B] mt-1 max-w-md mx-auto">
-            Envie as fotografias da sua celebração. Formatos suportados: JPG, PNG, WEBP. A IA preservará a ordem cronológica e a proporção de cada foto.
-          </p>
-
-          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFE8DE] text-[11px] font-medium text-[#5A4638]">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#8C5E3C]" />
-            Capacidade: até 40 fotos por projeto (10 Lâminas = 20 Páginas)
-          </div>
-        </div>
-
-        {/* Photos Grid Preview with Chronological Timeline */}
-        {photos.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between text-xs text-[#7A685B]">
-              <span className="font-semibold text-[#2C2420]">
-                Sequência da Narrativa ({photos.length} fotos prontas)
-              </span>
-              <span>100% de Proporção Preservada</span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3 max-h-80 overflow-y-auto p-1.5 bg-[#FBF9F6] rounded-2xl border border-[#EAE0D5]">
-              {photos.map((photo, idx) => (
-                <div
-                  key={photo.id}
-                  className="group relative aspect-square bg-[#EFE8DE] rounded-xl overflow-hidden border border-[#DDD3C5] shadow-2xs hover:shadow-md transition-all"
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {/* Sequence Badge */}
-                  <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/75 text-white text-[10px] flex items-center gap-1 font-mono">
-                    <span className="font-bold">#{idx + 1}</span>
-                  </div>
-
-                  {/* Time Badge if available */}
-                  {photo.formattedTime && (
-                    <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-mono">
-                      {photo.formattedTime}
-                    </div>
-                  )}
-
-                  {/* Remove Button on Hover */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemovePhoto(photo.id);
-                    }}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 cursor-pointer shadow-xs z-10"
-                    title="Remover foto"
-                  >
-                    ×
-                  </button>
-
-                  {/* Orientation & Name Info Overlay */}
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 text-[9px] text-white">
-                    <p className="truncate font-medium text-center">{photo.name}</p>
-                    <div className="flex items-center justify-between text-[8px] opacity-80 mt-0.5">
-                      <span>{photo.aspectRatio > 1.1 ? 'Paisagem' : photo.aspectRatio < 0.9 ? 'Retrato' : '1:1'}</span>
-                      {photo.formattedDate && <span>{photo.formattedDate}</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* SECTION 3: Estrutura Fixa (10 Lâminas / 20 Páginas) */}
-      <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs">
-        <div className="flex items-center gap-3 pb-4 border-b border-[#E8DFD5] mb-6">
-          <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
-            3
-          </div>
-          <div>
-            <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-              Estrutura Padrão: 10 Lâminas (20 Páginas)
-            </h3>
-            <p className="text-xs text-[#7A685B]">
-              Formato Fechado 15x20 cm Vertical • Lâmina Aberta 20x30 cm • Abertura Flat-lay 180° • Miolo Branco Puro
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {/* Fixed 10 Spreads Information Card */}
-          <div className="bg-[#FFFFFF] p-6 rounded-2xl border border-[#DDD3C5] space-y-4 shadow-2xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EFE8DE]">
+      {/* SUB-STEP 3: Fotos da Celebração */}
+      {subStep === 3 && (
+        <div className="space-y-8 animate-fadeIn">
+          {/* SECTION 2: Fotos (Até 40 Fotos) */}
+          <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8DFD5]">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#F5EFEB] border border-[#E0D6C8] flex items-center justify-center text-[#3D2C24]">
-                  <Layers className="w-6 h-6 text-[#8C5E3C]" />
+                <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
+                  2
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
-                    Capacidade Padronizada
-                  </span>
-                  <h4 className="font-serif font-bold text-lg text-[#2C2420] mt-0.5">
-                    10 Lâminas Duplas (20 Páginas)
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif text-lg font-bold text-[#2C2420]">
+                      Fotografias Selecionadas (Até 40 fotos)
+                    </h3>
+                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-full">
+                      <Sparkles className="w-3 h-3" /> Narrativa Cronológica
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#7A685B] mt-0.5">
+                    Diagramação inteligente que analisa data, horário e ordem real dos momentos.
+                  </p>
                 </div>
               </div>
 
-              <div className="text-left sm:text-right">
-                <span className="text-xs text-[#7A685B] block">Proporção Média de Fotos</span>
-                <span className="font-mono font-bold text-sm text-[#3D2C24]">
-                  ~{photos.length > 0 ? (photos.length / 10).toFixed(1) : '4.0'} fotos / lâmina
-                </span>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="px-3.5 py-1 rounded-full bg-[#EAE0D5] text-[#5A4638] text-xs font-bold font-mono">
+                  {photos.length} / 40 fotos
+                </div>
+                {photos.length === 0 && (
+                  <button
+                    type="button"
+                    id="btn-load-sample-photos"
+                    onClick={onLoadDemo}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EFE8DE] hover:bg-[#E5DCD0] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                    Carregar Demonstração (História Completa)
+                  </button>
+                )}
+                {photos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleSortChronologically}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8C5E3C] hover:bg-[#734A2E] text-xs font-bold text-white shadow-xs transition-all cursor-pointer"
+                    title="Reorganizar todas as fotos por data, horário e ordem dos acontecimentos"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Reorganizar por Cronologia
+                  </button>
+                )}
+                {photos.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={onClearAllPhotos}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Limpar fotos
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Formato</span>
-                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">15x20 cm Vertical</span>
+            {/* Narrative Engine Info Banner */}
+            <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#DDD3C5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center shrink-0 mt-0.5">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="font-bold text-xs text-[#2C2420]">
+                    Linha do Tempo & Narrativa Emocional Contínua
+                  </h5>
+                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
+                    As fotos são ordenadas automaticamente por data e horário de captura, agrupando momentos de preparativos, cerimônia, retratos e festa em lâminas duplas harmônicas.
+                  </p>
+                </div>
               </div>
-              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Lâminas</span>
-                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">10 Lâminas Panorâmicas</span>
+              {photos.length > 0 && (
+                <div className="shrink-0 bg-[#FAF7F2] px-3 py-1.5 rounded-xl border border-[#E8DFD5] text-[11px] text-[#5A4638]">
+                  <span className="font-bold text-[#8C5E3C]">Fotos Carregadas:</span> {photos.length} de 40
+                </div>
+              )}
+            </div>
+
+            {/* Upload Dropzone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-3xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
+                isDragging
+                  ? 'border-[#8C5E3C] bg-[#F5EFEB] scale-[0.99]'
+                  : 'border-[#D9CFC4] hover:border-[#8C5E3C] bg-[#FFFFFF] hover:bg-[#FAF7F2]'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+
+              <div className="w-14 h-14 rounded-2xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center mx-auto mb-3">
+                <Upload className="w-7 h-7" />
               </div>
-              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Páginas</span>
-                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">20 Páginas Rígidas</span>
-              </div>
-              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Fotografias</span>
-                <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">Até 40 Fotos</span>
+
+              <h4 className="font-serif font-bold text-base text-[#2C2420]">
+                Arraste suas fotos aqui ou clique para selecionar
+              </h4>
+              <p className="text-xs text-[#7A685B] mt-1 max-w-md mx-auto">
+                Envie as fotografias da sua celebração. Formatos suportados: JPG, PNG, WEBP.
+              </p>
+
+              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFE8DE] text-[11px] font-medium text-[#5A4638]">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                Capacidade: até 40 fotos por projeto (10 Lâminas = 20 Páginas)
               </div>
             </div>
 
+            {/* Photos Grid Preview with Chronological Timeline */}
             {photos.length > 0 && (
-              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/60 flex items-center gap-2.5 text-xs text-emerald-900">
-                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span>
-                  <strong>Garantia Villa7 de Álbum Completo:</strong> Todas as 10 lâminas serão preenchidas harmonicamente com as {photos.length} fotos enviadas. Nenhuma página fica em branco.
-                </span>
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between text-xs text-[#7A685B]">
+                  <span className="font-semibold text-[#2C2420]">
+                    Sequência da Narrativa ({photos.length} fotos prontas)
+                  </span>
+                  <span>100% de Proporção Preservada</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3 max-h-80 overflow-y-auto p-1.5 bg-[#FBF9F6] rounded-2xl border border-[#EAE0D5]">
+                  {photos.map((photo, idx) => (
+                    <div
+                      key={photo.id}
+                      className="group relative aspect-square bg-[#EFE8DE] rounded-xl overflow-hidden border border-[#DDD3C5] shadow-2xs hover:shadow-md transition-all"
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {/* Sequence Badge */}
+                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/75 text-white text-[10px] flex items-center gap-1 font-mono">
+                        <span className="font-bold">#{idx + 1}</span>
+                      </div>
+
+                      {/* Time Badge if available */}
+                      {photo.formattedTime && (
+                        <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-mono">
+                          {photo.formattedTime}
+                        </div>
+                      )}
+
+                      {/* Remove Button on Hover */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemovePhoto(photo.id);
+                        }}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 cursor-pointer shadow-xs z-10"
+                        title="Remover foto"
+                      >
+                        ×
+                      </button>
+
+                      {/* Orientation & Name Info Overlay */}
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 text-[9px] text-white">
+                        <p className="truncate font-medium text-center">{photo.name}</p>
+                        <div className="flex items-center justify-between text-[8px] opacity-80 mt-0.5">
+                          <span>{photo.aspectRatio > 1.1 ? 'Paisagem' : photo.aspectRatio < 0.9 ? 'Retrato' : '1:1'}</span>
+                          {photo.formattedDate && <span>{photo.formattedDate}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+
+          {/* SECTION 3: Estrutura Fixa (10 Lâminas / 20 Páginas) */}
+          <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs">
+            <div className="flex items-center gap-3 pb-4 border-b border-[#E8DFD5] mb-6">
+              <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
+                3
+              </div>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-[#2C2420]">
+                  Estrutura Padrão: 10 Lâminas (20 Páginas)
+                </h3>
+                <p className="text-xs text-[#7A685B]">
+                  Formato Fechado 15x20 cm Vertical • Lâmina Aberta 20x30 cm • Abertura Plana 180° • Miolo Branco Puro
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Fixed 10 Spreads Information Card */}
+              <div className="bg-[#FFFFFF] p-6 rounded-2xl border border-[#DDD3C5] space-y-4 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EFE8DE]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#F5EFEB] border border-[#E0D6C8] flex items-center justify-center text-[#3D2C24]">
+                      <Layers className="w-6 h-6 text-[#8C5E3C]" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
+                        Capacidade Padronizada
+                      </span>
+                      <h4 className="font-serif font-bold text-lg text-[#2C2420] mt-0.5">
+                        10 Lâminas Duplas (20 Páginas)
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="text-left sm:text-right">
+                    <span className="text-xs text-[#7A685B] block">Proporção Média de Fotos</span>
+                    <span className="font-mono font-bold text-sm text-[#3D2C24]">
+                      ~{photos.length > 0 ? (photos.length / 10).toFixed(1) : '4.0'} fotos / lâmina
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Formato</span>
+                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">15x20 cm Vertical</span>
+                  </div>
+                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Lâminas</span>
+                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">10 Lâminas Panorâmicas</span>
+                  </div>
+                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Páginas</span>
+                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">20 Páginas Rígidas</span>
+                  </div>
+                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
+                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Fotografias</span>
+                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">Até 40 Fotos</span>
+                  </div>
+                </div>
+
+                {photos.length > 0 && (
+                  <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/60 flex items-center gap-2.5 text-xs text-emerald-900">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>
+                      <strong>Garantia Villa7 de Álbum Completo:</strong> Todas as 10 lâminas serão preenchidas harmonicamente com as {photos.length} fotos enviadas. Nenhuma página fica em branco.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action: Next Step Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-[#E8DFD5]">
+            <button
+              type="button"
+              onClick={() => setSubStep(2)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer self-start sm:self-auto"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#8C5E3C]" />
+              <span>Voltar à Capa</span>
+            </button>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {photos.length > 0 && onNextAndAutoDiagram && (
+                <button
+                  type="button"
+                  id="btn-process1-advance-autodiagram"
+                  onClick={onNextAndAutoDiagram}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#8C5E3C] via-[#6F452A] to-[#3D2C24] hover:from-[#784E30] hover:to-[#2B1E18] text-[#FAF7F2] shadow-md hover:shadow-lg transition-all hover:scale-[1.01] cursor-pointer ring-2 ring-[#8C5E3C]/30"
+                >
+                  <Sparkles className="w-4 h-4 text-[#F6ECE2] animate-pulse" />
+                  <span>Avançar & Auto-diagramar Álbum (Sem Cortes)</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                id="btn-process1-advance"
+                onClick={onNext}
+                className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl font-semibold text-xs sm:text-sm bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] shadow-sm hover:shadow-md transition-all hover:scale-[1.01] cursor-pointer"
+              >
+                <span>Avançar para Estúdio de Criação</span>
+                <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Action: Next Step Button */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-[#E8DFD5]">
-        {photos.length > 0 && onNextAndAutoDiagram && (
-          <button
-            type="button"
-            id="btn-process1-advance-autodiagram"
-            onClick={onNextAndAutoDiagram}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#8C5E3C] via-[#6F452A] to-[#3D2C24] hover:from-[#784E30] hover:to-[#2B1E18] text-[#FAF7F2] shadow-md hover:shadow-lg transition-all hover:scale-[1.01] cursor-pointer ring-2 ring-[#8C5E3C]/30"
-          >
-            <Sparkles className="w-4 h-4 text-[#F6ECE2] animate-pulse" />
-            <span>Avançar & Auto-diagramar Álbum (Sem Cortes)</span>
-          </button>
-        )}
-
-        <button
-          type="button"
-          id="btn-process1-advance"
-          onClick={onNext}
-          className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl font-semibold text-xs sm:text-sm bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] shadow-sm hover:shadow-md transition-all hover:scale-[1.01] cursor-pointer"
-        >
-          <span>Avançar para Estúdio de Criação</span>
-          <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
-        </button>
-      </div>
+      )}
     </div>
   );
 };

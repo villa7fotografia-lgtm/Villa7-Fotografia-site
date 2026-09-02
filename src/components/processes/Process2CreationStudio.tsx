@@ -63,6 +63,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
   // Direct canvas drag-to-reframe state
   const [activeDraggingSlot, setActiveDraggingSlot] = useState<number | null>(null);
   const [templateCategoryTab, setTemplateCategoryTab] = useState<1 | 2 | 3 | 4 | null>(null);
+  const [showManualLayoutOptions, setShowManualLayoutOptions] = useState<boolean>(false);
   const dragStartPos = useRef<{ x: number; y: number; initialPanX: number; initialPanY: number }>({
     x: 0,
     y: 0,
@@ -420,13 +421,13 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
               <div className="space-y-1.5 max-w-2xl">
                 <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#8C5E3C]/15 text-[#5A3822] text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5 text-[#8C5E3C] animate-pulse" />
-                  Inteligência Visual Villa7 • Narrativa Cronológica Real
+                  Inteligência Visual Villa7 • Organizamos suas fotos na ordem dos fatos
                 </div>
                 <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
                   Auto-Diagramação Cronológica (Aproveitamento Máximo)
                 </h3>
                 <p className="text-xs sm:text-sm text-[#6F5B4E] leading-relaxed">
-                  Analisa data, horário e ordem dos acontecimentos para contar a história autêntica do evento. Distribui 100% das fotos enviadas pelas 10 lâminas (15x20 cm vertical), eliminando espaços vazios e preservando enquadramentos perfeitos.
+                  Analisa data, horário e ordem dos acontecimentos para contar a história autêntica do evento. Distribui 100% das fotos enviadas pelas 10 lâminas, eliminando espaços vazios e preservando enquadramentos perfeitos.
                 </p>
               </div>
 
@@ -491,88 +492,102 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
               </button>
             </div>
 
-            {/* Prominent Auto Diagram Button in Topbar */}
-            <button
-              type="button"
-              id="btn-auto-layout-all"
-              onClick={onAutoLayoutAll}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8C5E3C] to-[#5A3822] hover:from-[#7A4E2F] hover:to-[#432715] text-[#FAF7F2] text-xs font-bold transition-all shadow-sm ring-2 ring-[#8C5E3C]/30 hover:scale-[1.02] cursor-pointer"
-              title="Executar auto-diagramação cronológica inteligente com aproveitamento máximo"
-            >
-              <Sparkles className="w-4 h-4 text-[#F5E8DC] animate-pulse" />
-              <span>Auto-diagramar Álbum</span>
-            </button>
+            <div className="flex items-center flex-wrap gap-2">
+              {/* Prominent Auto Diagram Button in Topbar */}
+              <button
+                type="button"
+                id="btn-auto-layout-all"
+                onClick={onAutoLayoutAll}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8C5E3C] to-[#5A3822] hover:from-[#7A4E2F] hover:to-[#432715] text-[#FAF7F2] text-xs font-bold transition-all shadow-sm ring-2 ring-[#8C5E3C]/30 hover:scale-[1.02] cursor-pointer"
+                title="Executar auto-diagramação cronológica inteligente com aproveitamento máximo"
+              >
+                <Sparkles className="w-4 h-4 text-[#F5E8DC] animate-pulse" />
+                <span>Auto-diagramar Álbum</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowManualLayoutOptions(!showManualLayoutOptions)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FFFFFF] hover:bg-[#F5EFEB] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-all cursor-pointer shadow-2xs"
+                title="Alternar visibilidade das opções manuais de layout"
+              >
+                <Sliders className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                <span>{showManualLayoutOptions ? 'Ocultar layout manual' : 'Personalizar esta lâmina manualmente'}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Template Selection & Composition Rules Bar */}
-          <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] space-y-3 shadow-2xs">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pb-2.5 border-b border-[#E8DFD5]">
+          {/* Template Selection & Composition Rules Bar (Collapsible) */}
+          {showManualLayoutOptions && (
+            <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] space-y-3 shadow-2xs animate-fadeIn">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pb-2.5 border-b border-[#E8DFD5]">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#3D2C24]">
+                    Composição da Lâmina:
+                  </span>
+                  {([
+                    { count: 1, label: '1 Foto (Destaque)', sub: '1 Foto na Lâmina' },
+                    { count: 2, label: '2 Fotos', sub: '1 por Página' },
+                    { count: 3, label: '3 Fotos', sub: '1 a 2 por Página' },
+                    { count: 4, label: '4 Fotos (Máx)', sub: '2 por Página' },
+                  ] as const).map(({ count, label, sub }) => {
+                    const isSelected = activeTemplateCategory === count;
+                    return (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setTemplateCategoryTab(count)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#3D2C24] shadow-xs'
+                            : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
+                        }`}
+                      >
+                        <span>{label}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                          isSelected ? 'bg-white/20 text-[#FAF7F2]' : 'bg-[#EAE0D5] text-[#7A685B]'
+                        }`}>
+                          {sub}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFFFFF] border border-[#DDD3C5] text-[11px] text-[#7A685B]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#8C5E3C]" />
+                  <span className="font-semibold text-[#3D2C24]">Regra de Diagramação:</span>
+                  <span>1 a 2 fotos/página • Máx 4/lâmina</span>
+                </div>
+              </div>
+
+              {/* Template Buttons for Active Photo Count */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#3D2C24]">
-                  Composição da Lâmina:
-                </span>
-                {([
-                  { count: 1, label: '1 Foto (Destaque)', sub: '1 Foto na Lâmina' },
-                  { count: 2, label: '2 Fotos', sub: '1 por Página' },
-                  { count: 3, label: '3 Fotos', sub: '1 a 2 por Página' },
-                  { count: 4, label: '4 Fotos (Máx)', sub: '2 por Página' },
-                ] as const).map(({ count, label, sub }) => {
-                  const isSelected = activeTemplateCategory === count;
+                <span className="text-[11px] font-semibold text-[#7A685B]">Opções de Layout:</span>
+                {getTemplatesByPhotoCount(activeTemplateCategory).map((t) => {
+                  const isActive = currentSpread.templateId === t.id;
                   return (
                     <button
-                      key={count}
+                      key={t.id}
                       type="button"
-                      onClick={() => setTemplateCategoryTab(count)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                        isSelected
-                          ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#3D2C24] shadow-xs'
+                      onClick={() => {
+                        handleSelectTemplate(t);
+                        setTemplateCategoryTab(t.photoCount);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                        isActive
+                          ? 'bg-[#8C5E3C] text-white border-[#8C5E3C] shadow-xs ring-2 ring-[#8C5E3C]/25'
                           : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
                       }`}
+                      title={t.description}
                     >
-                      <span>{label}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                        isSelected ? 'bg-white/20 text-[#FAF7F2]' : 'bg-[#EAE0D5] text-[#7A685B]'
-                      }`}>
-                        {sub}
-                      </span>
+                      {t.name}
                     </button>
                   );
                 })}
               </div>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFFFFF] border border-[#DDD3C5] text-[11px] text-[#7A685B]">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                <span className="font-semibold text-[#3D2C24]">Regra de Diagramação:</span>
-                <span>1 a 2 fotos/página • Máx 4/lâmina</span>
-              </div>
             </div>
-
-            {/* Template Buttons for Active Photo Count */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-semibold text-[#7A685B]">Opções de Layout:</span>
-              {getTemplatesByPhotoCount(activeTemplateCategory).map((t) => {
-                const isActive = currentSpread.templateId === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      handleSelectTemplate(t);
-                      setTemplateCategoryTab(t.photoCount);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
-                      isActive
-                        ? 'bg-[#8C5E3C] text-white border-[#8C5E3C] shadow-xs ring-2 ring-[#8C5E3C]/25'
-                        : 'bg-[#FFFFFF] text-[#5A4638] border-[#DDD3C5] hover:bg-[#F5EFEB]'
-                    }`}
-                    title={t.description}
-                  >
-                    {t.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          )}
 
           {/* Main Layout Workspace: 20x30 (3:2) Canvas (Left 8 Cols) + Sidebar Photos (Right 4 Cols) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -665,7 +680,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                             {isDraggingThisSlot && (
                               <div className="absolute inset-0 bg-black/40 border-2 border-amber-400 z-20 flex flex-col items-center justify-center p-2 text-white text-center pointer-events-none">
                                 <Move className="w-5 h-5 text-amber-400 animate-bounce mb-1" />
-                                <span className="text-[10px] font-bold">Esquadrando Foto no Corte</span>
+                                <span className="text-[10px] font-bold">Ajustando Enquadramento da Foto</span>
                                 <span className="text-[9px] font-mono text-amber-300">
                                   X: {slot.panX || 0}% | Y: {slot.panY || 0}%
                                 </span>
@@ -686,10 +701,10 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                                     });
                                   }}
                                   className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs flex items-center gap-1 cursor-pointer transition-transform hover:scale-105"
-                                  title="Arrastar e esquadrar no corte para evitar cortes em cabeças, pernas e braços"
+                                  title="Arrastar para ajustar o enquadramento e evitar cortes indesejados"
                                 >
                                   <Move className="w-3.5 h-3.5" />
-                                  <span>Esquadrar Corte</span>
+                                  <span>Ajustar Enquadramento</span>
                                 </button>
 
                                 <button
@@ -771,7 +786,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] text-xs font-bold shadow-xs transition-transform hover:scale-105 cursor-pointer"
                       >
                         <Move className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Arrastar para Esquadrar (Ajuste Fino)</span>
+                        <span>Ajustar Enquadramento (Ajuste Fino)</span>
                       </button>
                     </div>
                   </div>
@@ -782,7 +797,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                       <div>
                         <span className="text-xs font-bold text-[#3D2C24] flex items-center gap-1.5">
                           <Move className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                          Esquadrar no Corte (Evitar Corte de Cabeça, Braços e Pernas)
+                          Ajustar Enquadramento (Evitar cortes indesejados)
                         </span>
                         <span className="text-[11px] text-[#7A685B]">
                           Clique e arraste diretamente na foto acima ou escolha um foco rápido:
@@ -966,65 +981,93 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-serif font-bold text-sm text-[#2C2420]">Galeria de Fotos</h4>
-                  <p className="text-[11px] text-[#7A685B]">Clique para colocar no espaço ativo</p>
+                  <p className="text-[11px] text-[#7A685B]">
+                    {project.photos.length > 0 ? 'Clique para colocar no espaço ativo' : 'Aguardando envio de fotos'}
+                  </p>
                 </div>
-                <span className="text-xs font-mono font-bold text-[#8C5E3C]">
-                  {usedPhotoIds.size}/{project.photos.length} usadas
-                </span>
+                {project.photos.length > 0 && (
+                  <span className="text-xs font-mono font-bold text-[#8C5E3C]">
+                    {usedPhotoIds.size}/{project.photos.length} usadas
+                  </span>
+                )}
               </div>
 
-              {/* Filter unused / used */}
-              <div className="flex items-center gap-1 p-1 bg-[#EAE0D5] rounded-xl text-xs">
-                <button
-                  type="button"
-                  onClick={() => setSelectedPhotoFilter('all')}
-                  className={`flex-1 py-1 rounded-lg font-semibold transition-all ${
-                    selectedPhotoFilter === 'all' ? 'bg-[#3D2C24] text-white' : 'text-[#5A4638]'
-                  }`}
-                >
-                  Todas ({project.photos.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPhotoFilter('unused')}
-                  className={`flex-1 py-1 rounded-lg font-semibold transition-all ${
-                    selectedPhotoFilter === 'unused' ? 'bg-[#3D2C24] text-white' : 'text-[#5A4638]'
-                  }`}
-                >
-                  Livres ({project.photos.length - usedPhotoIds.size})
-                </button>
-              </div>
-
-              {/* Photos grid */}
-              <div className="grid grid-cols-3 gap-2 max-h-[460px] overflow-y-auto p-1">
-                {availablePhotos.map((photo) => {
-                  const isUsed = usedPhotoIds.has(photo.id);
-                  return (
-                    <div
-                      key={photo.id}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('text/plain', photo.id)}
-                      onClick={() => {
-                        if (selectedSlotIndex !== null) {
-                          handleAssignPhotoToSlot(photo.id, selectedSlotIndex);
-                        }
-                      }}
-                      className="group relative aspect-square bg-[#EFE8DE] rounded-xl overflow-hidden border border-[#DDD3C5] cursor-pointer hover:border-[#8C5E3C] transition-all shadow-2xs"
+              {project.photos.length === 0 ? (
+                <div className="bg-white p-6 rounded-2xl border border-dashed border-[#DDD3C5] text-center space-y-3 my-2 shadow-2xs">
+                  <div className="w-12 h-12 rounded-2xl bg-[#F5EFEB] text-[#8C5E3C] mx-auto flex items-center justify-center border border-[#E8DFD5]">
+                    <ImageIcon className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-[#2C2420]">Nenhuma foto enviada ainda</p>
+                    <p className="text-[11px] text-[#7A685B] leading-relaxed">
+                      Volte à Etapa 1 para adicionar as fotos da celebração antes de montar o álbum.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onPrev}
+                    className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-xs transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Voltar à Etapa 1 (Adicionar Fotos)</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Filter unused / used */}
+                  <div className="flex items-center gap-1 p-1 bg-[#EAE0D5] rounded-xl text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhotoFilter('all')}
+                      className={`flex-1 py-1 rounded-lg font-semibold transition-all ${
+                        selectedPhotoFilter === 'all' ? 'bg-[#3D2C24] text-white' : 'text-[#5A4638]'
+                      }`}
                     >
-                      <img
-                        src={photo.url}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      {isUsed && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white stroke-[3]" />
+                      Todas ({project.photos.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhotoFilter('unused')}
+                      className={`flex-1 py-1 rounded-lg font-semibold transition-all ${
+                        selectedPhotoFilter === 'unused' ? 'bg-[#3D2C24] text-white' : 'text-[#5A4638]'
+                      }`}
+                    >
+                      Livres ({project.photos.length - usedPhotoIds.size})
+                    </button>
+                  </div>
+
+                  {/* Photos grid */}
+                  <div className="grid grid-cols-3 gap-2 max-h-[460px] overflow-y-auto p-1">
+                    {availablePhotos.map((photo) => {
+                      const isUsed = usedPhotoIds.has(photo.id);
+                      return (
+                        <div
+                          key={photo.id}
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData('text/plain', photo.id)}
+                          onClick={() => {
+                            if (selectedSlotIndex !== null) {
+                              handleAssignPhotoToSlot(photo.id, selectedSlotIndex);
+                            }
+                          }}
+                          className="group relative aspect-square bg-[#EFE8DE] rounded-xl overflow-hidden border border-[#DDD3C5] cursor-pointer hover:border-[#8C5E3C] transition-all shadow-2xs"
+                        >
+                          <img
+                            src={photo.url}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                          {isUsed && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <Check className="w-4 h-4 text-white stroke-[3]" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -1035,7 +1078,7 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
                 Navegação da História Cronológica ({project.spreadCount} lâminas)
               </span>
               <span className="text-[11px] text-[#8C5E3C] font-medium hidden sm:inline">
-                Abertura Flat-lay 180° • Miolo Branco Puro
+                Abertura Plana 180° • Miolo Branco Puro
               </span>
             </div>
 

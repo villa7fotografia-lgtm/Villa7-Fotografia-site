@@ -46,6 +46,12 @@ export const StudioHeroShowcase: React.FC = () => {
                 src={feature.image}
                 alt={feature.title}
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (feature.fallbackImage && target.src !== feature.fallbackImage) {
+                    target.src = feature.fallbackImage;
+                  }
+                }}
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />

@@ -633,7 +633,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
           Processo 3 • Revisão & Produção
         </div>
         <h2 className="font-serif text-2xl sm:text-4xl font-bold text-[#2C2420]">
-          Homologação Final & Envio para Produção
+          Revisão Final — confira antes de enviar
         </h2>
         <p className="text-sm sm:text-base text-[#7A685B] mt-2">
           Revise a capa e as lâminas abaixo. Após conferir, confirme a aprovação para disparar o envio automático para o sistema de produção e nuvem.
@@ -653,7 +653,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
           </div>
           <div className="flex items-center gap-1.5 font-medium">
             <ShieldCheck className="w-4 h-4 text-emerald-700" />
-            <span>Fotos preenchidas: <strong>{filledSlots} de {totalSlots}</strong></span>
+            <span>Fotos posicionadas: <strong>{filledSlots} de {totalSlots} espaços disponíveis</strong> (nas {project.spreadCount} lâminas)</span>
           </div>
         </div>
 
@@ -682,7 +682,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
               </h3>
             </div>
             <p className="text-xs text-[#7A685B] mt-1">
-              Confira a sequência das 10 lâminas. Arraste qualquer foto sobre outra para trocar posições ou clique em <strong>Esquadrar Corte</strong> para ajustar o enquadramento.
+              Confira a sequência das 10 lâminas. Arraste qualquer foto sobre outra para trocar posições ou clique em <strong>Ajustar Enquadramento</strong> para ajustar a posição.
             </p>
           </div>
 
@@ -1019,10 +1019,10 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                                   });
                                 }}
                                 className="inline-flex items-center gap-1 text-[9px] font-bold bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded-md shadow-xs transition-transform hover:scale-105 cursor-pointer"
-                                title="Esquadrar e arrastar para evitar corte de cabeças, braços ou pernas"
+                                title="Ajustar enquadramento e arrastar para evitar cortes indesejados"
                               >
                                 <Move className="w-3 h-3" />
-                                <span>🎯 Esquadrar Corte</span>
+                                <span>🎯 Ajustar Enquadramento</span>
                               </button>
 
                               <div className="flex items-center gap-1">

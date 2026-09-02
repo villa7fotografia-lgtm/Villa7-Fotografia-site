@@ -181,10 +181,10 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
                 Enquadramento Anti-Corte Villa7
               </div>
               <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C2420]">
-                Esquadrar Fotografia no Corte & Proteger Posições
+                Ajustar Enquadramento da Foto
               </h3>
               <p className="text-xs text-[#7A685B] hidden sm:block">
-                Arraste a foto diretamente para esquadrar e evitar cortes em cabeças, braços e pernas.
+                Arraste a foto diretamente para ajustar o enquadramento e evitar cortes indesejados.
               </p>
             </div>
           </div>
@@ -202,7 +202,7 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
           <div className="mb-3 flex items-center justify-between w-full max-w-md text-xs text-[#EAE0D5]">
             <span className="flex items-center gap-1.5 font-medium">
               <Move className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <strong>Dica:</strong> Clique e arraste na foto para esquadrar
+              <strong>Dica:</strong> Clique e arraste na foto para ajustar o enquadramento
             </span>
             <button
               type="button"
@@ -350,7 +350,7 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
               </span>
               <span className="text-[11px] text-[#7A685B]">
                 {fit === 'cover'
-                  ? 'Preenche todo o espaço (use o arrasto acima para esquadrar)'
+                  ? 'Preenche todo o espaço (use o arrasto acima para ajustar a posição)'
                   : 'Exibe 100% da foto sem nenhum corte, com fundo branco elegante'}
               </span>
             </div>
@@ -459,7 +459,7 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
           {/* Filter Tonalities */}
           <div className="p-3 bg-white rounded-2xl border border-[#E8DFD5]">
             <span className="block text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2">
-              Tonalidade Fotográfica Editorial:
+              Tonalidade Fotográfica:
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {[

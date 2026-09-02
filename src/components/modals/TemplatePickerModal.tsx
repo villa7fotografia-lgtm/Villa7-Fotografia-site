@@ -39,7 +39,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                 Disposição de Fotos da Lâmina (20x30 cm Aberto)
               </h3>
               <p className="text-xs text-[#7A685B]">
-                Escolha o arranjo editorial com miolo 100% branco para esta página dupla (15x20 fechado).
+                Escolha o arranjo de fotos com miolo 100% branco para esta página dupla.
               </p>
             </div>
           </div>
