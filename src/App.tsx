@@ -402,6 +402,7 @@ export default function App() {
               setProject((prev) => ({ ...prev, spreads: updatedSpreads }))
             }
             onChangeCover={handleUpdateCover}
+            onChangeClientData={handleUpdateClientData}
             onApproveProject={handleApproveProject}
             onOpenPreview={() => setIsPreviewModalOpen(true)}
             onPrev={() => handleStepChange(2)}

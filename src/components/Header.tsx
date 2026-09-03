@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles, Download, Eye, RotateCcw, CheckCircle, Save, ShieldCheck } from 'lucide-react';
 import { AlbumProject } from '../types';
 import { Villa7Logo } from './common/Villa7Logo';
+import { MERCADO_LIVRE_PRODUCT_URL } from '../constants/imageAssets';
 
 interface HeaderProps {
   project: AlbumProject;
@@ -39,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <a
-              href="https://www.mercadolivre.com.br"
+              href={MERCADO_LIVRE_PRODUCT_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#2D3277] bg-[#FFF9E6] border border-[#FFE180] rounded-full hover:bg-[#FFF3CC] transition-colors"

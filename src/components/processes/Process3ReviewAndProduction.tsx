@@ -24,8 +24,12 @@ import {
   Lock,
   ShoppingBag,
   ExternalLink,
+  AlertTriangle,
+  AlertCircle,
+  KeyRound,
+  Gift,
 } from 'lucide-react';
-import { AlbumProject, PhotoItem, SpreadItem, CoverData, SlotLayout } from '../../types';
+import { AlbumProject, PhotoItem, SpreadItem, CoverData, SlotLayout, ClientData } from '../../types';
 import { generateAlbumPDF, PDFGenerationProgress } from '../../services/pdfGenerator';
 import {
   SupabaseStorageService,
@@ -33,6 +37,7 @@ import {
 } from '../../services/supabaseStorage';
 import confetti from 'canvas-confetti';
 import { PhotoCropModal } from '../modals/PhotoCropModal';
+import { MERCADO_LIVRE_PRODUCT_URL } from '../../constants/imageAssets';
 import { sanitizeSpreads } from '../../utils/spreadOptimizer';
 import { IMAGE_ASSETS } from '../../constants/imageAssets';
 
@@ -41,6 +46,7 @@ interface Process3Props {
   onChangeSpread?: (spreadIndex: number, updatedSpread: SpreadItem) => void;
   onUpdateSpreads?: (updatedSpreads: SpreadItem[]) => void;
   onChangeCover?: (updated: Partial<CoverData>) => void;
+  onChangeClientData?: (data: Partial<ClientData>) => void;
   onApproveProject: (approved: boolean) => void;
   onOpenPreview: () => void;
   onPrev: () => void;
@@ -52,6 +58,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
   onChangeSpread,
   onUpdateSpreads,
   onChangeCover,
+  onChangeClientData,
   onApproveProject,
   onOpenPreview,
   onPrev,
@@ -60,6 +67,21 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
   const [agreementChecked, setAgreementChecked] = useState<boolean>(
     project.clientData.isApproved || false
   );
+
+  // Order ID & Special Release Password (Off Mercado Livre)
+  const [mercadoLivreOrderId, setMercadoLivreOrderId] = useState<string>(
+    project.clientData.mercadoLivreOrderId || ''
+  );
+  const [specialPassword, setSpecialPassword] = useState<string>(
+    project.clientData.specialReleasePassword || ''
+  );
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const trimmedOrderId = mercadoLivreOrderId.trim();
+  const trimmedPassword = specialPassword.trim();
+  const isPasswordValid = trimmedPassword.toLowerCase() === 'villapaz26';
+  const isOrderValid = trimmedOrderId.length > 0;
+  const isUnlocked = isOrderValid || isPasswordValid;
 
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationProgress, setGenerationProgress] = useState<PDFGenerationProgress>({
@@ -71,10 +93,6 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
   );
   const [isSentSuccessfully, setIsSentSuccessfully] = useState<boolean>(false);
   const [supabaseResult, setSupabaseResult] = useState<SupabaseUploadResult | null>(null);
-  const [showManualUpload, setShowManualUpload] = useState<boolean>(false);
-
-  const [isUploadingManual, setIsUploadingManual] = useState(false);
-  const [manualUploadResult, setManualUploadResult] = useState<SupabaseUploadResult | null>(null);
 
   // Drag and Drop & Click-to-Swap Photo State
   const [selectedSlotForSwap, setSelectedSlotForSwap] = useState<{
@@ -125,39 +143,6 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
         setPdfData(null);
         setIsSentSuccessfully(false);
       }
-    }
-  };
-
-  const handleManualPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Por favor, selecione um arquivo PDF válido.');
-      return;
-    }
-
-    setIsUploadingManual(true);
-    setManualUploadResult(null);
-
-    try {
-      const res = await SupabaseStorageService.salvarPdfNoSupabase(file, file.name.replace(/\.[^/.]+$/, ''));
-      setManualUploadResult(res);
-      if (res.success) {
-        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-      }
-    } catch (err: any) {
-      setManualUploadResult({
-        success: false,
-        fileName: file.name,
-        fileSizeMB: file.size / (1024 * 1024),
-        bucket: 'pdfs',
-        error: err?.message || 'Erro ao enviar PDF.',
-        timestamp: new Date().toISOString(),
-      });
-    } finally {
-      setIsUploadingManual(false);
-      e.target.value = '';
     }
   };
 
@@ -528,7 +513,39 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
   };
 
   const handleApproveAndSendToProduction = async () => {
-    setAgreementChecked(true);
+    setValidationError(null);
+
+    const currentOrderId = mercadoLivreOrderId.trim();
+    const currentPassword = specialPassword.trim();
+    const validPassword = currentPassword.toLowerCase() === 'villapaz26';
+    const unlocked = currentOrderId.length > 0 || validPassword;
+
+    if (!unlocked) {
+      if (currentPassword) {
+        setValidationError('Senha de liberação incorreta. A senha é oferecida diretamente em conversa no app do Mercado Livre.');
+      } else {
+        setValidationError('Informe o número do seu pedido no Mercado Livre ou a senha para pedidos avulsos/brindes.');
+      }
+      return;
+    }
+
+    if (!agreementChecked) {
+      setValidationError('Confirme a revisão da capa e das 10 lâminas do álbum.');
+      return;
+    }
+
+    const finalOrderId = currentOrderId || (validPassword ? 'OFF-ML-BRINDE-PRESENTE' : '');
+
+    // Persist updated client data
+    if (onChangeClientData) {
+      onChangeClientData({
+        mercadoLivreOrderId: finalOrderId,
+        specialReleasePassword: currentPassword,
+        isOffMlSpecial: validPassword,
+        isApproved: true,
+        approvalDate: new Date().toISOString(),
+      });
+    }
     onApproveProject(true);
 
     try {
@@ -547,14 +564,27 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
       setIsSentSuccessfully(false);
       setSupabaseResult(null);
 
-      // 1. Generate Album PDF
-      const generated = await generateAlbumPDF(project, (prog) => {
+      // Create enriched project object with confirmed order data for the PDF technical sheet
+      const projectForPdf: AlbumProject = {
+        ...project,
+        clientData: {
+          ...project.clientData,
+          mercadoLivreOrderId: finalOrderId,
+          specialReleasePassword: currentPassword,
+          isOffMlSpecial: validPassword,
+          isApproved: true,
+          approvalDate: new Date().toISOString(),
+        },
+      };
+
+      // 1. Generate Album PDF with official order data
+      const generated = await generateAlbumPDF(projectForPdf, (prog) => {
         setGenerationProgress(prog);
       });
       setPdfData(generated);
 
       // 2. Prepare structured path for Supabase Storage (bucket 'pdfs')
-      // documentos/{data}/{timestamp}_{id-aleatorio}_{nome-cliente}_{nome-arquivo}.pdf
+      // documentos/{data}/{timestamp}_{id-aleatorio}_{ml-pedido|offml}_{nome-cliente}_{nome-arquivo}.pdf
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -575,9 +605,10 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
       };
 
       const clientNameSanitized = sanitizeText(project.clientData.name || 'cliente');
+      const orderSegment = currentOrderId ? `ml-${sanitizeText(currentOrderId)}` : 'offml-brinde-presente';
       const originalBaseName = generated.fileName.replace(/\.[^/.]+$/, '');
       const sanitizedBaseName = sanitizeText(originalBaseName);
-      const customPath = `documentos/${dateStr}/${timestamp}_${randomId}_${clientNameSanitized}_${sanitizedBaseName}.pdf`;
+      const customPath = `documentos/${dateStr}/${timestamp}_${randomId}_${orderSegment}_${clientNameSanitized}_${sanitizedBaseName}.pdf`;
 
       // 3. Upload to Supabase Storage bucket 'pdfs'
       const uploadRes = await SupabaseStorageService.salvarPdfNoSupabase(
@@ -1081,67 +1112,155 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
               </div>
             </div>
 
-            {/* Approval Info & Automatic Transmission to Supadata */}
-            <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
+            {/* Approval Info & Automatic Transmission with Mercado Livre Gate */}
+            <div className="lg:col-span-8 flex flex-col justify-between space-y-3.5">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0 shadow-xs">
-                  <FileCheck className="w-5 h-5 text-[#EAE0D5]" />
+                <div className="w-10 h-10 rounded-xl bg-[#2D3277] text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <ShieldCheck className="w-5 h-5 text-amber-300" />
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Cloud className="w-3 h-3" />
-                      Envio Automático Configurado (Supadata / Nuvem)
-                    </span>
-                  </div>
+                <div>
                   <h3 className="font-serif text-lg sm:text-xl font-bold text-[#2C2420]">
-                    Aprovação Final & Envio Automático para Produção
+                    Aprovação Final & Envio para Produção Gráfica
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#685547] leading-relaxed">
-                    Ao confirmar abaixo, o sistema compila o PDF de alta resolução (15x20 cm vertical / 20x30 cm aberto panorâmico, miolo branco sem linhas de corte) e realiza a <strong>transmissão automática direta para o Supadata / Nuvem de Produção</strong>, salvando também uma cópia no seu dispositivo.
+                  <p className="text-xs sm:text-sm text-[#685547] leading-relaxed mt-0.5">
+                    O álbum diagramado nesta página é enviado diretamente para a gráfica. A confecção física só é iniciada após a confirmação do pagamento no Mercado Livre.
                   </p>
-
-                  {/* Mercado Livre Security Notice */}
-                  <div className="mt-3 p-3.5 rounded-xl bg-[#FFFDF7] border border-[#EADBBD] text-xs text-[#5A4638] space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#2D3277] text-white">
-                        Mercado Livre Oficial
-                      </span>
-                      <strong className="text-[#2C2420]">Compra Segura (Mercado Pago) & Entrega Garantida (Mercado Envios)</strong>
-                    </div>
-                    <p className="text-[11px] text-[#7A685B]">
-                      Toda a venda e expedição do seu fotolivro é realizada oficialmente na nossa conta do Mercado Livre.
-                    </p>
-                    <p className="text-[11px] font-semibold text-[#842029]">
-                      ⚠️ Atenção: Não vendemos no WhatsApp, não vendemos no TikTok Shopping, não vendemos na Shopee e não vendemos no Instagram.
-                    </p>
-                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-                <label className="flex items-center gap-3 p-3.5 bg-[#FAF7F2] rounded-2xl border border-[#DDD3C5] cursor-pointer hover:bg-white transition-colors flex-1">
-                  <input
-                    id="checkbox-formal-approval"
-                    type="checkbox"
-                    checked={agreementChecked}
-                    onChange={(e) => setAgreementChecked(e.target.checked)}
-                    className="w-4 h-4 text-[#8C5E3C] accent-[#8C5E3C] rounded cursor-pointer"
-                  />
-                  <span className="text-xs sm:text-sm text-[#2C2420] font-medium leading-normal">
-                    Revisei a capa e todas as 10 lâminas e autorizo o envio automático para produção.
+              {/* Order ID & Special Release Password Inputs */}
+              <div className="p-4 rounded-2xl bg-white border border-[#DDD3C5] shadow-xs space-y-3.5">
+                {/* 1. Apenas Número do Pedido */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-[#2C2420]">
+                      Número do Pedido no Mercado Livre
+                    </label>
+                    <a
+                      href={MERCADO_LIVRE_PRODUCT_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-[#2D3277] hover:underline font-medium inline-flex items-center gap-1"
+                    >
+                      <span>Ainda não comprou? Adquira no Mercado Livre</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="input-ml-order-id-review"
+                      type="text"
+                      value={mercadoLivreOrderId}
+                      onChange={(e) => {
+                        setMercadoLivreOrderId(e.target.value);
+                        setValidationError(null);
+                      }}
+                      placeholder="Ex: #2000008594234567"
+                      className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm font-mono rounded-xl border border-[#DDD3C5] bg-white text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#2D3277]/20 focus:border-[#2D3277]"
+                    />
+                    <ShoppingBag className="w-4 h-4 text-[#2D3277] absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+                  <span className="text-[10px] text-[#7A685B] mt-1 block">
+                    Localize o número no menu <strong>Minhas Compras</strong> do Mercado Livre.
                   </span>
-                </label>
+                </div>
+
+                {/* 2. Embaixo uma senha para pedido avulso, brindes ou presentes off mercado livre */}
+                <div className="pt-3 border-t border-[#EFE8DE]">
+                  <label className="block text-xs font-semibold text-[#2C2420] mb-1">
+                    Senha para Pedido Avulso, Brindes ou Presentes <span className="text-[11px] font-normal text-[#8C7A6B]">(Off Mercado Livre)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="input-special-password"
+                      type="text"
+                      value={specialPassword}
+                      onChange={(e) => {
+                        setSpecialPassword(e.target.value);
+                        setValidationError(null);
+                      }}
+                      placeholder="Digite a senha de liberação"
+                      className={`w-full pl-9 pr-3 py-2 text-xs sm:text-sm font-mono rounded-xl border bg-white text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 transition-all ${
+                        isPasswordValid
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20'
+                          : 'border-[#DDD3C5] focus:ring-[#2D3277]/20 focus:border-[#2D3277]'
+                      }`}
+                    />
+                    <KeyRound className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${isPasswordValid ? 'text-emerald-600' : 'text-[#8C5E3C]'}`} />
+                    {isPasswordValid && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" />
+                        Liberado
+                      </span>
+                    )}
+                  </div>
+
+                  {isPasswordValid ? (
+                    <div className="mt-1.5 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium flex items-center gap-1.5 animate-in fade-in">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Senha validada com sucesso! Produção de pedido avulso / brinde liberada.</span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-[#7A685B] mt-1 block">
+                      Senha de liberação oferecida diretamente por nós em conversa no aplicativo do Mercado Livre.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Revisão do Álbum */}
+              <label className="flex items-center gap-2.5 p-2.5 bg-[#FAF7F2] rounded-xl border border-[#DDD3C5] cursor-pointer hover:bg-white transition-colors">
+                <input
+                  id="checkbox-formal-approval"
+                  type="checkbox"
+                  checked={agreementChecked}
+                  onChange={(e) => {
+                    setAgreementChecked(e.target.checked);
+                    setValidationError(null);
+                  }}
+                  className="w-4 h-4 text-[#8C5E3C] accent-[#8C5E3C] rounded cursor-pointer shrink-0"
+                />
+                <span className="text-xs sm:text-sm text-[#2C2420] font-medium">
+                  Revisei a capa e todas as 10 lâminas (20 páginas) e autorizo o envio para produção gráfica.
+                </span>
+              </label>
+
+              {/* Validation Error Banner */}
+              {validationError && (
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-medium flex items-center gap-2 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{validationError}</span>
+                </div>
+              )}
+
+              {/* Action Buttons Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div className="text-[11px] text-[#7A685B]">
+                  {!isUnlocked ? (
+                    <span className="text-amber-800 font-medium">
+                      Informe o número do pedido ou a senha de liberação para autorizar o envio.
+                    </span>
+                  ) : !agreementChecked ? (
+                    <span>Marque a confirmação de revisão acima para habilitar o envio.</span>
+                  ) : (
+                    <span className="text-emerald-700 font-medium flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" />
+                      {isPasswordValid
+                        ? 'Pedido avulso/brinde autorizado com senha especial.'
+                        : `Pedido #${trimmedOrderId} pronto para envio à produção.`}
+                    </span>
+                  )}
+                </div>
 
                 <button
                   type="button"
                   id="btn-approve-and-send-production"
                   onClick={handleApproveAndSendToProduction}
-                  disabled={isGenerating}
-                  className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md transition-all hover:scale-[1.02] cursor-pointer shrink-0 disabled:opacity-50"
+                  disabled={isGenerating || !isUnlocked || !agreementChecked}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#2D3277] hover:bg-[#202456] text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-4 h-4 text-emerald-400" />
-                  Aprovar & Enviar Automaticamente
+                  <Send className="w-4 h-4 text-amber-300" />
+                  Aprovar & Enviar para Produção
                 </button>
               </div>
             </div>
@@ -1189,7 +1308,7 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                 Álbum Homologado & Transmitido para Produção!
               </h3>
               <p className="text-sm text-[#5A4638] leading-relaxed max-w-2xl">
-                O arquivo final do fotolivro de 10 lâminas (15x20 cm vertical) foi transmitido com sucesso para a fila de produção em nuvem. Uma cópia de segurança em PDF foi gerada e salva no seu dispositivo.
+                O arquivo final do fotolivro de 10 lâminas (15x20 cm vertical) foi transmitido com sucesso para a fila de produção em nuvem. <strong>A confecção gráfica só é iniciada após a confirmação do pedido pela plataforma do Mercado Livre.</strong>
               </p>
             </div>
           </div>
@@ -1218,21 +1337,49 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
               )}
             </div>
 
+            {/* Order Summary Badge */}
+            <div className="p-3 bg-white rounded-xl border border-[#2D3277]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
+              <div className="flex items-center gap-2">
+                {isPasswordValid && !trimmedOrderId ? (
+                  <Gift className="w-4 h-4 text-emerald-700 shrink-0" />
+                ) : (
+                  <ShoppingBag className="w-4 h-4 text-[#2D3277] shrink-0" />
+                )}
+                <div>
+                  <span className="font-bold text-[#2C2420] block">
+                    {trimmedOrderId
+                      ? `Pedido Vinculado ao Mercado Livre: #${trimmedOrderId}`
+                      : 'Pedido Avulso / Brinde / Presente (Off Mercado Livre)'}
+                  </span>
+                  <span className="text-[11px] text-[#685547]">
+                    {isPasswordValid
+                      ? 'Liberado mediante Senha Especial concedida no chat do Mercado Livre'
+                      : `Comprador: ${project.clientData.name || 'Cliente'} • Produção iniciada mediante confirmação do pagamento`}
+                  </span>
+                </div>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-white font-bold text-[10px] tracking-wide uppercase shrink-0 ${
+                isPasswordValid ? 'bg-emerald-700' : 'bg-[#2D3277]'
+              }`}>
+                {isPasswordValid ? 'Liberado com Senha Especial' : 'Aguardando Confirmação ML'}
+              </span>
+            </div>
+
             <div className="pt-2 border-t border-[#E8DFD5] flex flex-wrap items-center justify-between gap-3">
               <span className="text-[11px] text-[#7A685B]">
-                Status: <strong>Salvo no Armazenamento Seguro (Bucket: pdfs)</strong>
+                Armazenamento: <strong>Salvo no Bucket Seguro de Produção (pdfs)</strong>
               </span>
 
               <div className="flex flex-wrap items-center gap-2">
                 <a
-                  href="https://www.mercadolivre.com.br"
+                  href={MERCADO_LIVRE_PRODUCT_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFF9E6] hover:bg-[#FFF3CC] text-[#2D3277] border border-[#FFE180] font-bold text-xs shadow-2xs transition-all hover:scale-[1.01] cursor-pointer"
-                  title="Concluir ou vincular ao seu pedido no Mercado Livre"
+                  title="Conferir anúncio e compras no Mercado Livre"
                 >
                   <ShoppingBag className="w-4 h-4 text-[#2D3277]" />
-                  <span>Acessar Mercado Livre Oficial</span>
+                  <span>Acessar Mercado Livre</span>
                   <ExternalLink className="w-3 h-3 opacity-70" />
                 </a>
 
@@ -1275,15 +1422,15 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 3. RESUMO DO PROJETO & OPÇÃO MANUAL SECUNDÁRIA                           */}
+      {/* 3. RESUMO DO PROJETO CRIADO NA PÁGINA WEB                                 */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Client details card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Client & Order details card */}
         <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
               <User className="w-4 h-4 text-[#8C5E3C]" />
-              Identificação do Cliente
+              Identificação do Cliente & Pedido
             </div>
             <h4 className="font-bold text-[#2C2420] text-sm">
               {project.clientData.name || 'Cliente Villa7'}
@@ -1297,6 +1444,18 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                 <Phone className="w-3.5 h-3.5 text-[#A39282]" />
                 {project.clientData.phone || 'Não informado'}
               </div>
+              {mercadoLivreOrderId && (
+                <div className="flex items-center gap-1.5 text-[#2D3277] font-semibold pt-1">
+                  <ShoppingBag className="w-3.5 h-3.5 text-[#2D3277]" />
+                  Pedido Mercado Livre: #{mercadoLivreOrderId}
+                </div>
+              )}
+              {isPasswordValid && (
+                <div className="flex items-center gap-1.5 text-emerald-700 font-semibold pt-1">
+                  <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+                  Pedido Avulso / Brinde (Liberado com Senha)
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1306,104 +1465,20 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
               <BookOpen className="w-4 h-4 text-[#8C5E3C]" />
-              Estrutura Gráfica
+              Álbum Criado na Página Web
             </div>
             <h4 className="font-bold text-[#2C2420] text-sm font-serif">
               {project.clientData.albumTitle || 'Álbum Fotográfico'}
             </h4>
             <div className="text-xs text-[#7A685B] mt-2 space-y-0.5">
-              <div>• 10 Lâminas Duplas (20 páginas rígidas)</div>
+              <div>• 10 Lâminas Duplas (20 páginas rígidas panorâmicas)</div>
               <div>• Formato: 15x20 cm Vertical (Aberto 20x30 cm)</div>
               <div>• Miolo: Branco Puro com Impressão Livre de Linhas</div>
-              <div>• Capa: Foto Proporcional com Zero Distorção</div>
+              <div>• Arquivo Oficial gerado diretamente pela aplicação</div>
             </div>
-          </div>
-        </div>
-
-        {/* Manual PDF Upload Card (Optional / Backup) */}
-        <div className="bg-[#FAF7F2] rounded-3xl p-5 border border-[#E8DFD5] shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#7A685B] mb-2.5">
-              <Cloud className="w-4 h-4 text-[#8C5E3C]" />
-              Envio Manual de PDF (Opcional)
-            </div>
-            <p className="text-xs text-[#7A685B] mb-3">
-              Caso tenha um PDF externo pronto, envie diretamente para a nuvem de produção.
-            </p>
-          </div>
-
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowManualUpload(!showManualUpload)}
-              className="inline-flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-white hover:bg-[#EFE8DE] text-xs font-semibold text-[#3D2C24] border border-[#DDD3C5] transition-colors cursor-pointer"
-            >
-              <Cloud className="w-3.5 h-3.5 text-[#8C5E3C]" />
-              {showManualUpload ? 'Ocultar Envio Manual' : 'Enviar PDF Avulso'}
-            </button>
           </div>
         </div>
       </div>
-
-      {/* Expandable Manual PDF Upload Section */}
-      {showManualUpload && (
-        <div className="bg-[#FAF7F2] rounded-3xl p-6 border-2 border-[#E8DFD5] shadow-xs space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center shrink-0">
-              <Cloud className="w-5 h-5 text-[#EAE0D5]" />
-            </div>
-            <div>
-              <h4 className="font-serif text-lg font-bold text-[#2C2420]">
-                Upload Manual de Arquivo PDF
-              </h4>
-              <p className="text-xs text-[#7A685B]">
-                Envie arquivos PDF prontos diretamente para a fila de produção da Villa7.
-              </p>
-            </div>
-          </div>
-
-          {manualUploadResult && manualUploadResult.success ? (
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-300 text-emerald-950 text-xs space-y-2">
-              <div className="font-bold flex items-center gap-1.5 text-emerald-800">
-                <Check className="w-4 h-4" />
-                PDF avulso enviado com sucesso!
-              </div>
-              <div className="font-mono text-[11px] break-all">{manualUploadResult.fileName}</div>
-              <button
-                type="button"
-                onClick={() => setManualUploadResult(null)}
-                className="mt-2 px-3 py-1 bg-white border border-emerald-300 rounded-lg font-semibold text-emerald-900"
-              >
-                Enviar Outro Arquivo
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <label className={`px-5 py-2.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-2 ${isUploadingManual ? 'opacity-50 pointer-events-none' : ''}`}>
-                {isUploadingManual ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-3.5 h-3.5 rotate-180 text-emerald-400" />
-                    Selecionar PDF do Dispositivo
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  onChange={handleManualPdfUpload}
-                  disabled={isUploadingManual}
-                  className="hidden"
-                />
-              </label>
-              <span className="text-xs text-[#7A685B]">Até 100MB por arquivo</span>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-6 border-t border-[#E8DFD5]">

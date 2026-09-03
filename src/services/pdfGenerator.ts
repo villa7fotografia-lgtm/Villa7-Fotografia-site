@@ -376,19 +376,31 @@ export function renderCertificateToCanvas(project: AlbumProject): HTMLCanvasElem
     { label: 'E-mail de Contato', value: project.clientData.email || 'contato@cliente.com' },
     { label: 'Telefone de Contato', value: project.clientData.phone || '(11) 99999-9999' },
     { label: 'Título do Álbum', value: project.clientData.albumTitle || 'Álbum de Memórias' },
-    { label: 'Subtítulo', value: project.clientData.albumSubtitle || 'Momentos Únicos' },
-    { label: 'Ocasião', value: project.clientData.occasion || 'Ensaio / Evento' },
+    { 
+      label: project.clientData.isOffMlSpecial ? 'Identificação do Pedido' : 'Pedido Mercado Livre', 
+      value: project.clientData.isOffMlSpecial 
+        ? (project.clientData.mercadoLivreOrderId && project.clientData.mercadoLivreOrderId !== 'OFF-ML-BRINDE-PRESENTE'
+            ? `Pedido #${project.clientData.mercadoLivreOrderId} (Off-ML / Liberado com Senha Especial)`
+            : 'Pedido Especial (Avulso / Brinde / Presente - Liberado com Senha)')
+        : (project.clientData.mercadoLivreOrderId ? `Pedido #${project.clientData.mercadoLivreOrderId}` : 'Aguardando confirmação do Mercado Livre') 
+    },
+    { 
+      label: 'Condição de Fabricação', 
+      value: project.clientData.isOffMlSpecial
+        ? 'Produção autorizada via senha exclusiva (Brinde/Presente/Off-ML)'
+        : 'Produção vinculada e confirmada via Mercado Livre' 
+    },
   ];
 
   clientInfo.forEach((item, idx) => {
-    const y = 600 + idx * 80;
-    ctx.font = 'bold 18px "Plus Jakarta Sans", sans-serif';
+    const y = 590 + idx * 75;
+    ctx.font = 'bold 17px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#8C7A6B';
     ctx.fillText(item.label.toUpperCase(), rightCenterX - 370, y);
 
-    ctx.font = '22px "Plus Jakarta Sans", sans-serif';
+    ctx.font = '21px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = '#2C2420';
-    ctx.fillText(item.value, rightCenterX - 370, y + 30);
+    ctx.fillText(item.value, rightCenterX - 370, y + 26);
   });
 
   // Stamp Signature

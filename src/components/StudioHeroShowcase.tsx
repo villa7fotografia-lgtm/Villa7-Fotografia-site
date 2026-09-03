@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   ShoppingBag,
 } from 'lucide-react';
-import { IMAGE_ASSETS, COLLECTIBLE_ALBUM_MOMENTS, CollectibleMoment } from '../constants/imageAssets';
+import { IMAGE_ASSETS, COLLECTIBLE_ALBUM_MOMENTS, CollectibleMoment, MERCADO_LIVRE_PRODUCT_URL } from '../constants/imageAssets';
 import { OccasionType } from '../types';
 
 interface StudioHeroShowcaseProps {
@@ -51,7 +51,7 @@ export const StudioHeroShowcase: React.FC<StudioHeroShowcaseProps> = ({
   };
 
   const currentTheme = COLLECTIBLE_ALBUM_MOMENTS.find((m) => m.id === selectedThemeId) || COLLECTIBLE_ALBUM_MOMENTS[0];
-  const mercadoLivreUrl = 'https://www.mercadolivre.com.br';
+  const mercadoLivreUrl = MERCADO_LIVRE_PRODUCT_URL;
 
   return (
     <div className="w-full bg-[#FFFFFF] rounded-3xl p-5 sm:p-7 border border-[#E8DFD5] shadow-xs space-y-5">

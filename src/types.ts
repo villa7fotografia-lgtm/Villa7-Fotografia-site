@@ -20,6 +20,11 @@ export interface ClientData {
   isApproved?: boolean;
   approvalDate?: string;
   clientSignature?: string;
+  mercadoLivreOrderId?: string;
+  mercadoLivreBuyerName?: string;
+  mercadoLivreConfirmed?: boolean;
+  specialReleasePassword?: string;
+  isOffMlSpecial?: boolean;
 }
 
 export interface PhotoItem {

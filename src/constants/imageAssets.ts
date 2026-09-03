@@ -117,7 +117,6 @@ export const STUDIO_SHOWCASE_FEATURES = [
     fallbackImage: albumAbertoSpreadImg,
     tag: 'Aberto 20x30 cm',
   },
-];
-
-
+];export const MERCADO_LIVRE_PRODUCT_URL =
+  'https://www.mercadolivre.com.br/up/MLBU5055878877?matt_tool=38524122&pdp_filters=item_id:MLB7574587310&ua=5kWE1SnyI283SosumTBvVBif2x1AH4S2zDxavh7F5v4orPc#origin=share&sid=share&wid=MLB7574587310&action=copy';
 
