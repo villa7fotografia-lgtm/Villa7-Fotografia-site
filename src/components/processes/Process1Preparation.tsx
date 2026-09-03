@@ -24,6 +24,7 @@ import {
   Lightbulb,
   ChevronDown,
   ChevronUp,
+  Lock,
 } from 'lucide-react';
 import { ClientData, PhotoItem, OccasionType, CoverData } from '../../types';
 import { StudioHeroShowcase } from '../StudioHeroShowcase';
@@ -244,74 +245,76 @@ export const Process1Preparation: React.FC<Process1Props> = ({
   const avgPhotosPerSpread = (photos.length / spreadCount).toFixed(1);
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-8">
-      {/* Title & Introduction */}
-      <div className="text-center max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#EFE8DE] text-[#5A4638] text-xs font-semibold uppercase tracking-wider mb-3">
-          <HeartHandshake className="w-3.5 h-3.5 text-[#8C5E3C]" />
-          Processo 1 • Preparação do Álbum
-        </div>
-        <h2 className="font-serif text-2xl sm:text-4xl font-bold text-[#2C2420]">
-          Dados do Álbum, Fotos & Estrutura
-        </h2>
-        <p className="text-sm sm:text-base text-[#7A685B] mt-2 leading-relaxed">
-          Preencha a identificação, selecione até 40 fotografias de alta qualidade e configure o
-          número de lâminas (10 a 20) para dar vida às suas memórias.
-        </p>
-      </div>
-
+    <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 space-y-6">
       {/* Visual Showcase Gallery & Studio Quality Standards */}
-      <StudioHeroShowcase />
+      <StudioHeroShowcase
+        onSelectOccasion={(occ, title, subtitle) => {
+          setSubStep(1);
+          onChangeClientData({
+            occasion: occ,
+            ...(title && !clientData.albumTitle ? { albumTitle: title } : {}),
+            ...(subtitle && !clientData.albumSubtitle ? { albumSubtitle: subtitle } : {}),
+          });
+          if (title && !cover.title) {
+            onChangeCover({
+              title,
+              ...(subtitle && !cover.subtitle ? { subtitle } : {}),
+            });
+          }
+        }}
+        onScrollToForm={() => {
+          setSubStep(1);
+          const el = document.getElementById('secao-preparacao-projeto');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
 
-      {/* Sub-step Navigation Bar */}
-      <div className="bg-[#FAF7F2] p-4 rounded-2xl border border-[#E8DFD5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
-            Etapa 1
-          </div>
-          <div>
-            <h4 className="font-serif font-bold text-sm text-[#2C2420]">Passo {subStep} de 3</h4>
-            <p className="text-[11px] text-[#7A685B]">
-              {subStep === 1 && '1. Dados do Cliente e da Obra'}
-              {subStep === 2 && '2. Assistente de Capa com IA & Upload da Capa'}
-              {subStep === 3 && '3. Upload & Organização das Fotos'}
-            </p>
-          </div>
+      {/* Sub-step Navigation Bar - Minimalist 3 Steps */}
+      <div id="secao-preparacao-projeto" className="bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#E8DFD5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-serif font-bold text-[#2C2420]">
+            Configuração do Álbum:
+          </span>
+          <span className="text-xs text-[#7A685B]">
+            Passo {subStep} de 3
+          </span>
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto">
           <button
             type="button"
             onClick={() => setSubStep(1)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               subStep === 1
                 ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
                 : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
             }`}
           >
-            1. Dados do Projeto
+            1. Dados do Álbum
           </button>
           <button
             type="button"
             onClick={() => setSubStep(2)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               subStep === 2
                 ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
                 : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
             }`}
           >
-            2. Capa do Fotolivro
+            2. Foto da Capa
           </button>
           <button
             type="button"
             onClick={() => setSubStep(3)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               subStep === 3
                 ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
                 : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
             }`}
           >
-            3. Fotos da Celebração ({photos.length})
+            3. Fotos do Álbum ({photos.length})
           </button>
         </div>
       </div>
@@ -319,16 +322,16 @@ export const Process1Preparation: React.FC<Process1Props> = ({
       {/* SUB-STEP 1: Identificação & Detalhes da Obra */}
       {subStep === 1 && (
         <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-8 animate-fadeIn">
-          <div className="flex items-center gap-3 pb-4 border-b border-[#E8DFD5]">
-            <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
+          <div className="flex items-center gap-3 pb-3 border-b border-[#E8DFD5]">
+            <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
               1
             </div>
             <div>
-              <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-                Identificação & Detalhes da Obra
+              <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C2420]">
+                Dados do Álbum
               </h3>
               <p className="text-xs text-[#7A685B]">
-                Esses dados serão gravados na capa e na ficha técnica do fotolivro.
+                Informações principais gravadas na capa e na ficha técnica.
               </p>
             </div>
           </div>
@@ -410,10 +413,10 @@ export const Process1Preparation: React.FC<Process1Props> = ({
               />
             </div>
 
-            {/* Phone (WhatsApp) */}
+            {/* Phone (Contact) */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                WhatsApp para Envio do Álbum
+                Telefone / Celular de Contato
               </label>
               <div className="relative">
                 <input
@@ -426,6 +429,9 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                 />
                 <Phone className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
               </div>
+              <span className="text-[11px] text-[#7A685B] mt-1 block">
+                Contato para identificação e vinculação do seu pedido no Mercado Livre.
+              </span>
             </div>
 
             {/* Email */}
@@ -462,38 +468,59 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             </div>
           </div>
 
+          {/* Garantia Oficial Mercado Livre & Política de Compra Segura */}
+          <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#EADBBD] text-xs text-[#5A4638] space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#2D3277] text-white">
+                  Mercado Livre Oficial
+                </span>
+                <strong className="text-[#2C2420]">Compra Segura e Entrega Garantida</strong>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-[#2D3277] font-semibold">
+                <span className="flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5 text-emerald-600" /> Mercado Pago Protegido
+                </span>
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#2D3277]" /> Mercado Envios com Rastreio
+                </span>
+              </div>
+            </div>
+            <p className="text-[11px] text-[#7A685B] leading-relaxed">
+              Toda a venda dos álbuns da Villa7 é realizada oficialmente e exclusivamente na nossa conta do Mercado Livre.
+            </p>
+            <div className="text-[11px] font-semibold text-[#842029] bg-rose-50/90 rounded-lg px-3 py-2 border border-rose-200/90">
+              ⚠️ <strong>Importante:</strong> Não vendemos no WhatsApp, não vendemos no TikTok Shopping, não vendemos na Shopee e não vendemos no Instagram. Qualquer cobrança externa é fraudulenta.
+            </div>
+          </div>
+
           <div className="flex justify-end pt-4 border-t border-[#E8DFD5]">
             <button
               type="button"
               onClick={() => setSubStep(2)}
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
             >
-              <span>Próximo: Capa do Fotolivro</span>
+              <span>Avançar para Foto da Capa</span>
               <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
             </button>
           </div>
         </div>
       )}
 
-      {/* SUB-STEP 2: Assistente de Capa com IA & Upload da Capa */}
+      {/* SUB-STEP 2: Foto da Capa & Assistente IA Opcional */}
       {subStep === 2 && (
-        <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-8 animate-fadeIn">
+        <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8DFD5]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center">
-                <Bot className="w-4 h-4 text-[#C9A96E]" />
+              <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
+                2
               </div>
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-serif font-bold text-base text-[#2C2420]">
-                    Assistente de Capa com IA (ChatGPT Free) & Upload da Foto
-                  </h4>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    Compatível com ChatGPT Gratuito
-                  </span>
-                </div>
+                <h4 className="font-serif font-bold text-base text-[#2C2420]">
+                  Foto da Capa (15x20 cm Vertical)
+                </h4>
                 <p className="text-xs text-[#7A685B] mt-0.5">
-                  Dicas e prompts prontos para criar a capa com inteligência artificial no ChatGPT Free e enviar para o fotolivro.
+                  Envie a foto principal para estampar a capa dura do fotolivro.
                 </p>
               </div>
             </div>
@@ -501,18 +528,14 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             <button
               type="button"
               onClick={() => setShowPromptGuide(!showPromptGuide)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#FAF7F2] hover:bg-[#EFE8DE] text-xs font-bold text-[#5A4638] border border-[#DDD3C5] transition-all self-start sm:self-auto cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#EFE8DE] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-all self-start sm:self-auto cursor-pointer shadow-2xs"
             >
+              <Bot className="w-3.5 h-3.5 text-[#8C5E3C]" />
+              <span>{showPromptGuide ? 'Ocultar Assistente IA' : 'Assistente IA para Capa (Opcional)'}</span>
               {showPromptGuide ? (
-                <>
-                  <ChevronUp className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                  <span>Ocultar Dicas & Prompts GPT</span>
-                </>
+                <ChevronUp className="w-3 h-3 text-[#8C5E3C]" />
               ) : (
-                <>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                  <span>Ver Dicas & Prompts para ChatGPT Free</span>
-                </>
+                <ChevronDown className="w-3 h-3 text-[#8C5E3C]" />
               )}
             </button>
           </div>
@@ -878,51 +901,45 @@ export const Process1Preparation: React.FC<Process1Props> = ({
             <button
               type="button"
               onClick={() => setSubStep(1)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 text-[#8C5E3C]" />
-              <span>Voltar aos Dados do Projeto</span>
+              <span>Voltar aos Dados</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSubStep(3)}
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
             >
-              <span>Próximo: Fotos da Celebração</span>
+              <span>Avançar para Fotos do Álbum</span>
               <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
             </button>
           </div>
         </div>
       )}
 
-      {/* SUB-STEP 3: Fotos da Celebração */}
+      {/* SUB-STEP 3: Fotos do Álbum */}
       {subStep === 3 && (
-        <div className="space-y-8 animate-fadeIn">
-          {/* SECTION 2: Fotos (Até 40 Fotos) */}
+        <div className="space-y-6 animate-fadeIn">
           <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E8DFD5]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8DFD5]">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
-                  2
+                <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
+                  3
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-                      Fotografias Selecionadas (Até 40 fotos)
-                    </h3>
-                    <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-full">
-                      <Sparkles className="w-3 h-3" /> Narrativa Cronológica
-                    </span>
-                  </div>
+                  <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C2420]">
+                    Fotos do Álbum (Até 40 fotos)
+                  </h3>
                   <p className="text-xs text-[#7A685B] mt-0.5">
-                    Diagramação inteligente que analisa data, horário e ordem real dos momentos.
+                    Selecione as fotografias para a montagem das 10 lâminas panorâmicas (20 páginas).
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <div className="px-3.5 py-1 rounded-full bg-[#EAE0D5] text-[#5A4638] text-xs font-bold font-mono">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="px-3 py-1 rounded-full bg-[#EAE0D5] text-[#5A4638] text-xs font-bold font-mono">
                   {photos.length} / 40 fotos
                 </div>
                 {photos.length === 0 && (
@@ -930,56 +947,34 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                     type="button"
                     id="btn-load-sample-photos"
                     onClick={onLoadDemo}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EFE8DE] hover:bg-[#E5DCD0] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#EFE8DE] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                    Carregar Demonstração (História Completa)
+                    Carregar Fotos de Exemplo
                   </button>
                 )}
                 {photos.length > 1 && (
                   <button
                     type="button"
                     onClick={handleSortChronologically}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8C5E3C] hover:bg-[#734A2E] text-xs font-bold text-white shadow-xs transition-all cursor-pointer"
-                    title="Reorganizar todas as fotos por data, horário e ordem dos acontecimentos"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#8C5E3C] hover:bg-[#734A2E] text-xs font-bold text-white shadow-xs transition-all cursor-pointer"
+                    title="Reorganizar por data e horário"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Reorganizar por Cronologia
+                    <Sparkles className="w-3 h-3" />
+                    Organizar por Data
                   </button>
                 )}
                 {photos.length > 0 && (
                   <button
                     type="button"
                     onClick={onClearAllPhotos}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Limpar fotos
+                    <Trash2 className="w-3 h-3" />
+                    Limpar
                   </button>
                 )}
               </div>
-            </div>
-
-            {/* Narrative Engine Info Banner */}
-            <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#DDD3C5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center shrink-0 mt-0.5">
-                  <Camera className="w-4 h-4" />
-                </div>
-                <div>
-                  <h5 className="font-bold text-xs text-[#2C2420]">
-                    Linha do Tempo & Narrativa Emocional Contínua
-                  </h5>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
-                    As fotos são ordenadas automaticamente por data e horário de captura, agrupando momentos de preparativos, cerimônia, retratos e festa em lâminas duplas harmônicas.
-                  </p>
-                </div>
-              </div>
-              {photos.length > 0 && (
-                <div className="shrink-0 bg-[#FAF7F2] px-3 py-1.5 rounded-xl border border-[#E8DFD5] text-[11px] text-[#5A4638]">
-                  <span className="font-bold text-[#8C5E3C]">Fotos Carregadas:</span> {photos.length} de 40
-                </div>
-              )}
             </div>
 
             {/* Upload Dropzone */}
@@ -1003,34 +998,34 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                 onChange={(e) => handleFiles(e.target.files)}
               />
 
-              <div className="w-14 h-14 rounded-2xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center mx-auto mb-3">
-                <Upload className="w-7 h-7" />
+              <div className="w-12 h-12 rounded-2xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center mx-auto mb-2">
+                <Upload className="w-6 h-6" />
               </div>
 
-              <h4 className="font-serif font-bold text-base text-[#2C2420]">
+              <h4 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
                 Arraste suas fotos aqui ou clique para selecionar
               </h4>
               <p className="text-xs text-[#7A685B] mt-1 max-w-md mx-auto">
-                Envie as fotografias da sua celebração. Formatos suportados: JPG, PNG, WEBP.
+                JPG, PNG ou WEBP. Abertura 180° sem cortes no vinco central.
               </p>
 
-              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EFE8DE] text-[11px] font-medium text-[#5A4638]">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                Capacidade: até 40 fotos por projeto (10 Lâminas = 20 Páginas)
+              <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#EFE8DE] text-[11px] font-medium text-[#5A4638]">
+                <CheckCircle2 className="w-3 h-3 text-[#8C5E3C]" />
+                10 Lâminas Panorâmicas = 20 Páginas Rígidas
               </div>
             </div>
 
-            {/* Photos Grid Preview with Chronological Timeline */}
+            {/* Photos Grid Preview */}
             {photos.length > 0 && (
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1">
                 <div className="flex items-center justify-between text-xs text-[#7A685B]">
                   <span className="font-semibold text-[#2C2420]">
-                    Sequência da Narrativa ({photos.length} fotos prontas)
+                    Fotos prontas para o álbum ({photos.length})
                   </span>
-                  <span>100% de Proporção Preservada</span>
+                  <span>Proporções 100% preservadas</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3 max-h-80 overflow-y-auto p-1.5 bg-[#FBF9F6] rounded-2xl border border-[#EAE0D5]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-2.5 max-h-72 overflow-y-auto p-2 bg-[#FFFFFF] rounded-2xl border border-[#EAE0D5]">
                   {photos.map((photo, idx) => (
                     <div
                       key={photo.id}
@@ -1041,152 +1036,77 @@ export const Process1Preparation: React.FC<Process1Props> = ({
                         alt={photo.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      {/* Sequence Badge */}
-                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/75 text-white text-[10px] flex items-center gap-1 font-mono">
-                        <span className="font-bold">#{idx + 1}</span>
+                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/75 text-white text-[9px] font-mono">
+                        #{idx + 1}
                       </div>
 
-                      {/* Time Badge if available */}
-                      {photo.formattedTime && (
-                        <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-mono">
-                          {photo.formattedTime}
-                        </div>
-                      )}
-
-                      {/* Remove Button on Hover */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onRemovePhoto(photo.id);
                         }}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 cursor-pointer shadow-xs z-10"
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 cursor-pointer shadow-xs z-10 text-xs"
                         title="Remover foto"
                       >
                         ×
                       </button>
 
-                      {/* Orientation & Name Info Overlay */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 text-[9px] text-white">
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1 text-[8px] text-white">
                         <p className="truncate font-medium text-center">{photo.name}</p>
-                        <div className="flex items-center justify-between text-[8px] opacity-80 mt-0.5">
-                          <span>{photo.aspectRatio > 1.1 ? 'Paisagem' : photo.aspectRatio < 0.9 ? 'Retrato' : '1:1'}</span>
-                          {photo.formattedDate && <span>{photo.formattedDate}</span>}
-                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
 
-          {/* SECTION 3: Estrutura Fixa (10 Lâminas / 20 Páginas) */}
-          <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs">
-            <div className="flex items-center gap-3 pb-4 border-b border-[#E8DFD5] mb-6">
-              <div className="w-9 h-9 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-sm">
-                3
+            {/* Estrutura Enxuta e Elegante */}
+            <div className="p-3.5 bg-[#FFFFFF] rounded-2xl border border-[#DDD3C5] flex flex-wrap items-center justify-between gap-3 text-xs text-[#5A4638]">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#8C5E3C]" />
+                <span className="font-semibold text-[#2C2420]">Padrão Villa7:</span>
+                <span>Formato 15x20 cm • 10 Lâminas (20 Páginas) • Abertura Plana 180°</span>
               </div>
-              <div>
-                <h3 className="font-serif text-lg font-bold text-[#2C2420]">
-                  Estrutura Padrão: 10 Lâminas (20 Páginas)
-                </h3>
-                <p className="text-xs text-[#7A685B]">
-                  Formato Fechado 15x20 cm Vertical • Lâmina Aberta 20x30 cm • Abertura Plana 180° • Miolo Branco Puro
-                </p>
+              <div className="text-[11px] text-[#7A685B]">
+                Média: {photos.length > 0 ? (photos.length / 10).toFixed(1) : '4.0'} fotos por lâmina
               </div>
             </div>
 
-            <div className="space-y-4">
-              {/* Fixed 10 Spreads Information Card */}
-              <div className="bg-[#FFFFFF] p-6 rounded-2xl border border-[#DDD3C5] space-y-4 shadow-2xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EFE8DE]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#F5EFEB] border border-[#E0D6C8] flex items-center justify-center text-[#3D2C24]">
-                      <Layers className="w-6 h-6 text-[#8C5E3C]" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
-                        Capacidade Padronizada
-                      </span>
-                      <h4 className="font-serif font-bold text-lg text-[#2C2420] mt-0.5">
-                        10 Lâminas Duplas (20 Páginas)
-                      </h4>
-                    </div>
-                  </div>
-
-                  <div className="text-left sm:text-right">
-                    <span className="text-xs text-[#7A685B] block">Proporção Média de Fotos</span>
-                    <span className="font-mono font-bold text-sm text-[#3D2C24]">
-                      ~{photos.length > 0 ? (photos.length / 10).toFixed(1) : '4.0'} fotos / lâmina
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Formato</span>
-                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">15x20 cm Vertical</span>
-                  </div>
-                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Lâminas</span>
-                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">10 Lâminas Panorâmicas</span>
-                  </div>
-                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Páginas</span>
-                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">20 Páginas Rígidas</span>
-                  </div>
-                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E8DFD5]">
-                    <span className="text-[10px] text-[#8C7A6B] uppercase font-bold tracking-wider block">Fotografias</span>
-                    <span className="text-xs font-bold text-[#2C2420] mt-0.5 block">Até 40 Fotos</span>
-                  </div>
-                </div>
-
-                {photos.length > 0 && (
-                  <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/60 flex items-center gap-2.5 text-xs text-emerald-900">
-                    <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                    <span>
-                      <strong>Garantia Villa7 de Álbum Completo:</strong> Todas as 10 lâminas serão preenchidas harmonicamente com as {photos.length} fotos enviadas. Nenhuma página fica em branco.
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Action: Next Step Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-[#E8DFD5]">
-            <button
-              type="button"
-              onClick={() => setSubStep(2)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer self-start sm:self-auto"
-            >
-              <ArrowLeft className="w-4 h-4 text-[#8C5E3C]" />
-              <span>Voltar à Capa</span>
-            </button>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {photos.length > 0 && onNextAndAutoDiagram && (
-                <button
-                  type="button"
-                  id="btn-process1-advance-autodiagram"
-                  onClick={onNextAndAutoDiagram}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#8C5E3C] via-[#6F452A] to-[#3D2C24] hover:from-[#784E30] hover:to-[#2B1E18] text-[#FAF7F2] shadow-md hover:shadow-lg transition-all hover:scale-[1.01] cursor-pointer ring-2 ring-[#8C5E3C]/30"
-                >
-                  <Sparkles className="w-4 h-4 text-[#F6ECE2] animate-pulse" />
-                  <span>Avançar & Auto-diagramar Álbum (Sem Cortes)</span>
-                </button>
-              )}
-
+            {/* Botões de Ação */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-[#E8DFD5]">
               <button
                 type="button"
-                id="btn-process1-advance"
-                onClick={onNext}
-                className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl font-semibold text-xs sm:text-sm bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] shadow-sm hover:shadow-md transition-all hover:scale-[1.01] cursor-pointer"
+                onClick={() => setSubStep(2)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer self-start sm:self-auto"
               >
-                <span>Avançar para Estúdio de Criação</span>
-                <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
+                <ArrowLeft className="w-4 h-4 text-[#8C5E3C]" />
+                <span>Voltar à Capa</span>
               </button>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                {photos.length > 0 && onNextAndAutoDiagram && (
+                  <button
+                    type="button"
+                    id="btn-process1-advance-autodiagram"
+                    onClick={onNextAndAutoDiagram}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#8C5E3C] to-[#3D2C24] hover:from-[#784E30] hover:to-[#2B1E18] text-[#FAF7F2] shadow-sm hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#F6ECE2]" />
+                    <span>Diagramar Álbum Automaticamente</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  id="btn-process1-advance"
+                  onClick={onNext}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-xs sm:text-sm bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] shadow-sm hover:shadow-md transition-all cursor-pointer"
+                >
+                  <span>Ir para Estúdio de Criação</span>
+                  <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

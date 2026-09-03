@@ -21,6 +21,9 @@ import {
   X,
   Plus,
   ImageIcon,
+  Lock,
+  ShoppingBag,
+  ExternalLink,
 } from 'lucide-react';
 import { AlbumProject, PhotoItem, SpreadItem, CoverData, SlotLayout } from '../../types';
 import { generateAlbumPDF, PDFGenerationProgress } from '../../services/pdfGenerator';
@@ -1097,6 +1100,22 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                   <p className="text-xs sm:text-sm text-[#685547] leading-relaxed">
                     Ao confirmar abaixo, o sistema compila o PDF de alta resolução (15x20 cm vertical / 20x30 cm aberto panorâmico, miolo branco sem linhas de corte) e realiza a <strong>transmissão automática direta para o Supadata / Nuvem de Produção</strong>, salvando também uma cópia no seu dispositivo.
                   </p>
+
+                  {/* Mercado Livre Security Notice */}
+                  <div className="mt-3 p-3.5 rounded-xl bg-[#FFFDF7] border border-[#EADBBD] text-xs text-[#5A4638] space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#2D3277] text-white">
+                        Mercado Livre Oficial
+                      </span>
+                      <strong className="text-[#2C2420]">Compra Segura (Mercado Pago) & Entrega Garantida (Mercado Envios)</strong>
+                    </div>
+                    <p className="text-[11px] text-[#7A685B]">
+                      Toda a venda e expedição do seu fotolivro é realizada oficialmente na nossa conta do Mercado Livre.
+                    </p>
+                    <p className="text-[11px] font-semibold text-[#842029]">
+                      ⚠️ Atenção: Não vendemos no WhatsApp, não vendemos no TikTok Shopping, não vendemos na Shopee e não vendemos no Instagram.
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1205,6 +1224,18 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
               </span>
 
               <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href="https://www.mercadolivre.com.br"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFF9E6] hover:bg-[#FFF3CC] text-[#2D3277] border border-[#FFE180] font-bold text-xs shadow-2xs transition-all hover:scale-[1.01] cursor-pointer"
+                  title="Concluir ou vincular ao seu pedido no Mercado Livre"
+                >
+                  <ShoppingBag className="w-4 h-4 text-[#2D3277]" />
+                  <span>Acessar Mercado Livre Oficial</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+
                 <button
                   type="button"
                   id="btn-download-pdf-copy"
@@ -1225,6 +1256,19 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
                   Reenviar
                 </button>
               </div>
+            </div>
+
+            {/* Banner de Garantia Mercado Livre */}
+            <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#EADBBD] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-[#2C2420]">
+                <ShieldCheck className="w-4 h-4 text-[#2D3277] shrink-0" />
+                <span>
+                  <strong>Venda Oficial Exclusiva:</strong> Pedido coberto por Compra Segura e Entrega Garantida do Mercado Livre.
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-[#842029]">
+                Não vendemos no WhatsApp, TikTok Shopping, Shopee ou Instagram.
+              </span>
             </div>
           </div>
         </div>

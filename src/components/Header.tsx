@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Download, Eye, RotateCcw, CheckCircle, Save } from 'lucide-react';
+import { Sparkles, Download, Eye, RotateCcw, CheckCircle, Save, ShieldCheck } from 'lucide-react';
 import { AlbumProject } from '../types';
 import { Villa7Logo } from './common/Villa7Logo';
 
@@ -37,6 +37,17 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'Plataforma Profissional • 15x20 cm Vertical'}
               </span>
             </div>
+
+            <a
+              href="https://www.mercadolivre.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#2D3277] bg-[#FFF9E6] border border-[#FFE180] rounded-full hover:bg-[#FFF3CC] transition-colors"
+              title="Venda Oficial com Compra Segura e Entrega Garantida no Mercado Livre"
+            >
+              <ShieldCheck className="w-3 h-3 text-[#2D3277]" />
+              <span>Mercado Livre Oficial</span>
+            </a>
           </div>
 
           {/* Quick Actions */}

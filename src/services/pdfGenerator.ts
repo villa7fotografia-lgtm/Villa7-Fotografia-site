@@ -374,7 +374,7 @@ export function renderCertificateToCanvas(project: AlbumProject): HTMLCanvasElem
   const clientInfo = [
     { label: 'Nome do Cliente', value: project.clientData.name || 'Cliente Villa7' },
     { label: 'E-mail de Contato', value: project.clientData.email || 'contato@cliente.com' },
-    { label: 'Telefone / WhatsApp', value: project.clientData.phone || '(11) 99999-9999' },
+    { label: 'Telefone de Contato', value: project.clientData.phone || '(11) 99999-9999' },
     { label: 'Título do Álbum', value: project.clientData.albumTitle || 'Álbum de Memórias' },
     { label: 'Subtítulo', value: project.clientData.albumSubtitle || 'Momentos Únicos' },
     { label: 'Ocasião', value: project.clientData.occasion || 'Ensaio / Evento' },
