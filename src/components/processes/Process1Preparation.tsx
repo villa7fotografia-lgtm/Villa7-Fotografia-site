@@ -1,36 +1,26 @@
 import React, { useRef, useState } from 'react';
 import {
-  User,
-  Image as ImageIcon,
-  Layers,
+  Camera,
   Upload,
   Sparkles,
   Trash2,
   Check,
   ArrowRight,
-  ArrowLeft,
-  Info,
-  Sliders,
-  CheckCircle2,
-  FileText,
+  User,
   Phone,
   Mail,
-  HeartHandshake,
-  Camera,
-  ShieldCheck,
-  Bot,
-  Copy,
-  ExternalLink,
-  Lightbulb,
-  ChevronDown,
-  ChevronUp,
-  Lock,
+  MapPin,
+  Calendar,
+  Layers,
+  Heart,
+  Image as ImageIcon,
+  CheckCircle2,
+  Star,
   ShoppingBag,
+  ExternalLink,
+  Search,
 } from 'lucide-react';
-import { ClientData, PhotoItem, OccasionType, CoverData } from '../../types';
-import { StudioHeroShowcase } from '../StudioHeroShowcase';
-import { extractPhotoChronologicalData, sortPhotosByStoryChronology } from '../../utils/chronologicalStoryEngine';
-import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
+import { ClientData, PhotoItem, OccasionType, CoverData, PhotoCategory } from '../../types';
 import { MERCADO_LIVRE_PRODUCT_URL } from '../../constants/imageAssets';
 
 interface Process1Props {
@@ -53,13 +43,27 @@ interface Process1Props {
 const OCCASIONS: OccasionType[] = [
   'Casamento',
   'Família',
+  'Ensaio Fotográfico',
+  'Eventos',
+  'Conquistas & Formatura',
+  'Acompanhamento',
+  'Individual',
   'Viagem',
   '15 Anos / Debutante',
-  'Ensaio Fotográfico',
   'Gestante & Bebê',
   'Aniversário & Celebrações',
-  'Conquistas & Formatura',
   'Outro',
+];
+
+const PHOTO_CATEGORIES: Array<{ id: PhotoCategory; label: string }> = [
+  { id: 'geral', label: 'Todas' },
+  { id: 'making_of', label: 'Making of' },
+  { id: 'cerimonia', label: 'Cerimônia' },
+  { id: 'casal', label: 'Casal' },
+  { id: 'familia', label: 'Família' },
+  { id: 'padrinhos', label: 'Padrinhos' },
+  { id: 'festa', label: 'Festa' },
+  { id: 'detalhes', label: 'Detalhes' },
 ];
 
 export const Process1Preparation: React.FC<Process1Props> = ({
@@ -72,1076 +76,910 @@ export const Process1Preparation: React.FC<Process1Props> = ({
   onAddPhotos,
   onRemovePhoto,
   onClearAllPhotos,
-  onReorderPhotos,
   onChangeSpreadCount,
   onLoadDemo,
   onNext,
   onNextAndAutoDiagram,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const albumFileInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+  const refFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isDraggingAlbum, setIsDraggingAlbum] = useState(false);
   const [isDraggingCover, setIsDraggingCover] = useState(false);
-  const [selectedPromptId, setSelectedPromptId] = useState<string>(COVER_PROMPT_PRESETS[0].id);
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
-  const [showPromptGuide, setShowPromptGuide] = useState(true);
-  const [subStep, setSubStep] = useState<1 | 2 | 3>(1);
-  const [showRawPrompt, setShowRawPrompt] = useState(false);
+  const [isDraggingRef, setIsDraggingRef] = useState(false);
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<PhotoCategory>('geral');
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
-  // Selected prompt definition
-  const activePromptDef =
-    COVER_PROMPT_PRESETS.find((p) => p.id === selectedPromptId) || COVER_PROMPT_PRESETS[0];
-
-  // Generated prompt ready for copy
-  const fullChatGPTMessage = buildFormattedChatGPTMessage(
-    activePromptDef,
-    clientData.albumTitle || 'Nossas Melhores Memórias',
-    clientData.albumSubtitle || 'Momentos Especiais • 2026',
-    clientData.name || 'Família & Memórias',
-    clientData.occasion,
-    clientData.notes
-  );
-
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(fullChatGPTMessage);
-    setCopiedPrompt(true);
-    setTimeout(() => setCopiedPrompt(false), 2500);
+  // Address defaults
+  const address = clientData.address || {
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
   };
 
-  const handleCoverFileUpload = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione um arquivo de imagem válido (JPG, PNG, WEBP).');
-      return;
-    }
+  const coverPhotos = cover.coverPhotos || [];
+  const referenceImages = cover.referenceImages || [];
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      onChangeCover({
-        imageUrl: dataUrl,
-        type: 'upload',
-        approved: true,
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleFiles = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    const remainingSlots = 40 - photos.length;
-    if (remainingSlots <= 0) {
-      alert('O limite máximo de 40 fotos para este álbum já foi atingido.');
-      return;
-    }
-
-    const filesToProcess = Array.from(files).slice(0, remainingSlots);
-    const newItems: PhotoItem[] = [];
-
-    let processedCount = 0;
-    filesToProcess.forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        processedCount++;
-        return;
+  // CEP Automatic Lookup
+  const handleCepBlur = async () => {
+    const rawCep = address.cep.replace(/\D/g, '');
+    if (rawCep.length === 8) {
+      setIsSearchingCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          onChangeClientData({
+            address: {
+              ...address,
+              street: data.logradouro || address.street,
+              neighborhood: data.bairro || address.neighborhood,
+              city: data.localidade || address.city,
+              state: data.uf || address.state,
+            },
+          });
+        }
+      } catch (err) {
+        console.warn('Erro ao consultar CEP:', err);
+      } finally {
+        setIsSearchingCep(false);
       }
+    }
+  };
 
+  // Helper: Create lightweight thumbnail for fast browser performance
+  const createOptimizedThumbnail = (file: File): Promise<{ url: string; width: number; height: number }> => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const rawDataUrl = e.target?.result as string;
         const img = new Image();
-
         img.onload = () => {
-          const naturalW = img.naturalWidth || 1200;
-          const naturalH = img.naturalHeight || 800;
-
-          // If image is larger than 2400px, create high-res optimized canvas dataURL to preserve memory & speed
-          let finalUrl = rawDataUrl;
-          let finalW = naturalW;
-          let finalH = naturalH;
-
-          const maxDimension = 2400;
-          if (naturalW > maxDimension || naturalH > maxDimension) {
-            const canvas = document.createElement('canvas');
-            if (naturalW > naturalH) {
-              finalW = maxDimension;
-              finalH = Math.round((naturalH / naturalW) * maxDimension);
+          const maxDim = 1200;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
             } else {
-              finalH = maxDimension;
-              finalW = Math.round((naturalW / naturalH) * maxDimension);
-            }
-            canvas.width = finalW;
-            canvas.height = finalH;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(img, 0, 0, finalW, finalH);
-              finalUrl = canvas.toDataURL('image/jpeg', 0.92);
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
             }
           }
-
-          const chronoData = extractPhotoChronologicalData(file.name, file.lastModified, processedCount);
-
-          newItems.push({
-            id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            url: finalUrl,
-            name: file.name,
-            size: file.size,
-            width: finalW,
-            height: finalH,
-            aspectRatio: finalW / finalH,
-            createdAt: chronoData.timestamp,
-            timestamp: chronoData.timestamp,
-            formattedDate: chronoData.formattedDate,
-            formattedTime: chronoData.formattedTime,
-            chronologicalIndex: chronoData.numericOrder,
-          });
-
-          processedCount++;
-          if (processedCount === filesToProcess.length) {
-            onAddPhotos(newItems);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve({
+              url: canvas.toDataURL('image/jpeg', 0.85),
+              width: img.width,
+              height: img.height,
+            });
+            return;
           }
+          resolve({ url: e.target?.result as string, width: img.width, height: img.height });
         };
-
-        img.onerror = () => {
-          processedCount++;
-          if (processedCount === filesToProcess.length && newItems.length > 0) {
-            onAddPhotos(newItems);
-          }
-        };
-
-        img.src = rawDataUrl;
+        img.src = e.target?.result as string;
       };
-
-      reader.onerror = () => {
-        processedCount++;
-        if (processedCount === filesToProcess.length && newItems.length > 0) {
-          onAddPhotos(newItems);
-        }
-      };
-
       reader.readAsDataURL(file);
     });
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
+  // CAIXA 1: Cover Photos Upload
+  const handleCoverFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files).filter((f) => f.type.startsWith('image/'));
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    handleFiles(e.dataTransfer.files);
-  };
-
-  const handleSortChronologically = () => {
-    const sorted = sortPhotosByStoryChronology(photos);
-    if (onReorderPhotos) {
-      onReorderPhotos(sorted);
+    const newCoverPhotos: PhotoItem[] = [];
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const opt = await createOptimizedThumbnail(file);
+      const photoItem: PhotoItem = {
+        id: `cover-photo-${Date.now()}-${i}`,
+        url: opt.url,
+        name: file.name,
+        size: file.size,
+        width: opt.width,
+        height: opt.height,
+        aspectRatio: opt.width / opt.height,
+        createdAt: Date.now(),
+        category: 'capa',
+        isCoverMain: coverPhotos.length === 0 && i === 0,
+      };
+      newCoverPhotos.push(photoItem);
     }
+
+    const updatedCoverPhotos = [...coverPhotos, ...newCoverPhotos];
+    const mainPhoto = updatedCoverPhotos.find((p) => p.isCoverMain) || updatedCoverPhotos[0];
+
+    onChangeCover({
+      coverPhotos: updatedCoverPhotos,
+      imageUrl: mainPhoto ? mainPhoto.url : cover.imageUrl,
+    });
   };
 
-  const avgPhotosPerSpread = (photos.length / spreadCount).toFixed(1);
+  const handleSetMainCoverPhoto = (photo: PhotoItem) => {
+    const updated = coverPhotos.map((p) => ({
+      ...p,
+      isCoverMain: p.id === photo.id,
+    }));
+    onChangeCover({
+      coverPhotos: updated,
+      imageUrl: photo.url,
+    });
+  };
+
+  const handleRemoveCoverPhoto = (photoId: string) => {
+    const updated = coverPhotos.filter((p) => p.id !== photoId);
+    const mainPhoto = updated.find((p) => p.isCoverMain) || updated[0];
+    onChangeCover({
+      coverPhotos: updated,
+      imageUrl: mainPhoto ? mainPhoto.url : undefined,
+    });
+  };
+
+  // CAIXA 2: Reference Images Upload
+  const handleReferenceFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files).filter((f) => f.type.startsWith('image/'));
+
+    const newRefs: string[] = [];
+    for (const file of fileList) {
+      const opt = await createOptimizedThumbnail(file);
+      newRefs.push(opt.url);
+    }
+
+    onChangeCover({
+      referenceImages: [...referenceImages, ...newRefs],
+    });
+  };
+
+  const handleRemoveReferenceImage = (idx: number) => {
+    const updated = referenceImages.filter((_, i) => i !== idx);
+    onChangeCover({ referenceImages: updated });
+  };
+
+  // CAIXA 3: Album Spreads Photos Upload
+  const handleAlbumFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files).filter((f) => f.type.startsWith('image/'));
+
+    const newItems: PhotoItem[] = [];
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const opt = await createOptimizedThumbnail(file);
+      const photoItem: PhotoItem = {
+        id: `photo-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
+        url: opt.url,
+        name: file.name,
+        size: file.size,
+        width: opt.width,
+        height: opt.height,
+        aspectRatio: opt.width / opt.height,
+        createdAt: Date.now() + i,
+        category: 'geral',
+      };
+      newItems.push(photoItem);
+    }
+
+    onAddPhotos(newItems);
+  };
+
+  const filteredPhotos =
+    selectedCategoryFilter === 'geral'
+      ? photos
+      : photos.filter((p) => p.category === selectedCategoryFilter);
 
   return (
-    <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 space-y-6">
-      {/* Visual Showcase Gallery & Studio Quality Standards */}
-      <StudioHeroShowcase
-        onSelectOccasion={(occ, title, subtitle) => {
-          setSubStep(1);
-          onChangeClientData({
-            occasion: occ,
-            ...(title && !clientData.albumTitle ? { albumTitle: title } : {}),
-            ...(subtitle && !clientData.albumSubtitle ? { albumSubtitle: subtitle } : {}),
-          });
-          if (title && !cover.title) {
-            onChangeCover({
-              title,
-              ...(subtitle && !cover.subtitle ? { subtitle } : {}),
-            });
-          }
-        }}
-        onScrollToForm={() => {
-          setSubStep(1);
-          const el = document.getElementById('secao-preparacao-projeto');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
-      />
-
-      {/* Sub-step Navigation Bar - Minimalist 3 Steps */}
-      <div id="secao-preparacao-projeto" className="bg-[#FAF7F2] p-3.5 rounded-2xl border border-[#E8DFD5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-serif font-bold text-[#2C2420]">
-            Configuração do Álbum:
-          </span>
-          <span className="text-xs text-[#7A685B]">
-            Passo {subStep} de 3
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setSubStep(1)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              subStep === 1
-                ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
-                : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
-            }`}
-          >
-            1. Dados do Álbum
-          </button>
-          <button
-            type="button"
-            onClick={() => setSubStep(2)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              subStep === 2
-                ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
-                : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
-            }`}
-          >
-            2. Foto da Capa
-          </button>
-          <button
-            type="button"
-            onClick={() => setSubStep(3)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              subStep === 3
-                ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
-                : 'bg-white text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
-            }`}
-          >
-            3. Fotos do Álbum ({photos.length})
-          </button>
-        </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-10">
+      {/* SECTION HEADER */}
+      <div className="text-center space-y-2 max-w-2xl mx-auto">
+        <span className="text-xs font-bold uppercase tracking-wider text-[#B39770]">
+          Passo 1 • Preparação
+        </span>
+        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#211D19]">
+          Agora vamos escolher suas fotos.
+        </h2>
+        <p className="text-sm sm:text-base text-[#6B5749]">
+          Separe suas imagens para organizarmos tudo com carinho.
+        </p>
       </div>
 
-      {/* SUB-STEP 1: Identificação & Detalhes da Obra */}
-      {subStep === 1 && (
-        <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-8 animate-fadeIn">
-          <div className="flex items-center gap-3 pb-3 border-b border-[#E8DFD5]">
-            <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
-              1
+      {/* 1. DADOS DO CLIENTE & ENTREGA */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#DDD3C5] shadow-xs space-y-6">
+        <div className="flex items-center justify-between border-b border-[#E8DFD5] pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#FAF7F2] border border-[#DDD3C5] flex items-center justify-center text-[#B39770]">
+              <User className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C2420]">
-                Dados do Álbum
+              <h3 className="font-serif text-lg font-bold text-[#211D19]">
+                Identificação e Endereço de Envio
               </h3>
               <p className="text-xs text-[#7A685B]">
-                Informações principais gravadas na capa e na ficha técnica.
+                Dados necessários para a gravação na lombada e remessa física do álbum
               </p>
             </div>
           </div>
 
-          {/* Form Fields Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Client Name */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                Nome do Cliente / Casal / Família *
-              </label>
-              <div className="relative">
-                <input
-                  id="input-client-name"
-                  type="text"
-                  value={clientData.name}
-                  onChange={(e) => onChangeClientData({ name: e.target.value })}
-                  placeholder="Ex: Mariana & Lucas Silva"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-                />
-                <User className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
+          <span className="text-[11px] font-medium text-[#8C7A6B]">
+            ✓ Salvo automaticamente
+          </span>
+        </div>
 
-            {/* Occasion */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                Ocasião Especial
-              </label>
-              <select
-                id="select-occasion"
-                value={clientData.occasion}
-                onChange={(e) => onChangeClientData({ occasion: e.target.value as OccasionType })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-              >
-                {OCCASIONS.map((occ) => (
-                  <option key={occ} value={occ}>
-                    {occ}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Album Title */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                Título Gravado na Capa *
-              </label>
-              <input
-                id="input-album-title"
-                type="text"
-                value={clientData.albumTitle}
-                onChange={(e) => {
-                  const newTitle = e.target.value;
-                  onChangeClientData({ albumTitle: newTitle });
-                  onChangeCover({ title: newTitle });
-                }}
-                placeholder="Ex: Nossas Melhores Memórias"
-                className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm font-serif font-semibold text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-              />
-            </div>
-
-            {/* Album Subtitle */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                Subtítulo / Data / Ano
-              </label>
-              <input
-                id="input-album-subtitle"
-                type="text"
-                value={clientData.albumSubtitle}
-                onChange={(e) => {
-                  const newSubtitle = e.target.value;
-                  onChangeClientData({ albumSubtitle: newSubtitle });
-                  onChangeCover({ subtitle: newSubtitle });
-                }}
-                placeholder="Ex: Momentos Inesquecíveis • 2026"
-                className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm font-serif text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-              />
-            </div>
-
-            {/* Phone (Contact) */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                Telefone / Celular de Contato
-              </label>
-              <div className="relative">
-                <input
-                  id="input-client-phone"
-                  type="tel"
-                  value={clientData.phone}
-                  onChange={(e) => onChangeClientData({ phone: e.target.value })}
-                  placeholder="(11) 98765-4321"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-                />
-                <Phone className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-              <span className="text-[11px] text-[#7A685B] mt-1 block">
-                Contato para identificação e vinculação do seu pedido no Mercado Livre.
-              </span>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                E-mail para Ficha Técnica
-              </label>
-              <div className="relative">
-                <input
-                  id="input-client-email"
-                  type="email"
-                  value={clientData.email}
-                  onChange={(e) => onChangeClientData({ email: e.target.value })}
-                  placeholder="cliente@exemplo.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-                />
-                <Mail className="w-4 h-4 text-[#8C5E3C] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            {/* Número do Pedido no Mercado Livre */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5 flex items-center justify-between">
-                <span>Número / Código do Pedido no Mercado Livre</span>
-                <span className="text-[11px] font-normal text-[#2D3277]">
-                  (Obrigatório para liberação da produção gráfica)
-                </span>
-              </label>
-              <div className="relative">
-                <input
-                  id="input-client-ml-order"
-                  type="text"
-                  value={clientData.mercadoLivreOrderId || ''}
-                  onChange={(e) => onChangeClientData({ mercadoLivreOrderId: e.target.value })}
-                  placeholder="Ex: #2000008594234567 (ou informe na Aprovação Final)"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-                />
-                <ShoppingBag className="w-4 h-4 text-[#2D3277] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-              <span className="text-[11px] text-[#7A685B] mt-1 block">
-                Se já realizou a compra no Mercado Livre, insira o número para vincular de imediato. A produção gráfica só é iniciada com a confirmação da plataforma.
-              </span>
-            </div>
-
-            {/* Notes / General Observations */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A4638] mb-1.5">
-                Observações do Projeto & Contexto do Evento (Opcional)
-              </label>
-              <input
-                id="input-project-notes"
-                type="text"
-                value={clientData.notes || ''}
-                onChange={(e) => onChangeClientData({ notes: e.target.value })}
-                placeholder="Ex: Formatura em Medicina Turma 2026 / Baile de Gala / Casamento ao pôr do sol no campo."
-                className="w-full px-4 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FFFFFF] text-sm text-[#2C2420] placeholder-[#A39282] focus:outline-none focus:ring-2 focus:ring-[#8C5E3C]/30 focus:border-[#8C5E3C]"
-              />
-            </div>
+        {/* Client Inputs Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Nome Completo */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">Seu Nome Completo *</label>
+            <input
+              type="text"
+              value={clientData.name}
+              onChange={(e) => onChangeClientData({ name: e.target.value })}
+              placeholder="Ex: Mariana & Lucas Silva"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            />
           </div>
 
-          {/* Garantia Oficial Mercado Livre & Política de Compra Segura */}
-          <div className="p-4 rounded-2xl bg-[#FFFDF7] border border-[#EADBBD] text-xs text-[#5A4638] space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[#2D3277] text-white">
-                  Mercado Livre Oficial
-                </span>
-                <strong className="text-[#2C2420]">Compra Segura e Entrega Garantida</strong>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={MERCADO_LIVRE_PRODUCT_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FFF9E6] hover:bg-[#FFF3CC] text-[#2D3277] border border-[#FFE180] font-bold text-[11px] transition-colors shadow-2xs"
-                  title="Ver anúncio oficial do produto no Mercado Livre"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 text-[#2D3277]" />
-                  <span>Ver Produto no Mercado Livre</span>
-                  <ExternalLink className="w-3 h-3 opacity-70" />
-                </a>
-              </div>
-            </div>
-            <p className="text-[11px] text-[#7A685B] leading-relaxed">
-              Toda a venda dos álbuns da Villa7 é realizada oficialmente e exclusivamente na nossa conta do Mercado Livre (Mercado Pago protegido + Mercado Envios com rastreio).
-            </p>
-            <div className="text-[11px] font-semibold text-[#842029] bg-rose-50/90 rounded-lg px-3 py-2 border border-rose-200/90">
-              ⚠️ <strong>Importante:</strong> Não vendemos no WhatsApp, não vendemos no TikTok Shopping, não vendemos na Shopee e não vendemos no Instagram. Qualquer cobrança externa é fraudulenta.
-            </div>
+          {/* WhatsApp */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">WhatsApp com DDD *</label>
+            <input
+              type="tel"
+              value={clientData.phone}
+              onChange={(e) => onChangeClientData({ phone: e.target.value })}
+              placeholder="(11) 99999-9999"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            />
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-[#E8DFD5]">
-            <button
-              type="button"
-              onClick={() => setSubStep(2)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
+          {/* E-mail */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">E-mail para Acompanhamento *</label>
+            <input
+              type="email"
+              value={clientData.email}
+              onChange={(e) => onChangeClientData({ email: e.target.value })}
+              placeholder="seuemail@exemplo.com"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            />
+          </div>
+
+          {/* Título do Álbum */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">Título Principal do Álbum *</label>
+            <input
+              type="text"
+              value={clientData.albumTitle}
+              onChange={(e) => {
+                onChangeClientData({ albumTitle: e.target.value });
+                onChangeCover({ title: e.target.value, spineText: `${e.target.value} • 2026` });
+              }}
+              placeholder="Ex: Nossas Memórias Inesquecíveis"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            />
+          </div>
+
+          {/* Subtítulo */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">Subtítulo ou Nomes</label>
+            <input
+              type="text"
+              value={clientData.albumSubtitle}
+              onChange={(e) => {
+                onChangeClientData({ albumSubtitle: e.target.value });
+                onChangeCover({ subtitle: e.target.value });
+              }}
+              placeholder="Ex: Mariana & Lucas"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            />
+          </div>
+
+          {/* Ocasião */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">Tipo de Evento</label>
+            <select
+              value={clientData.occasion}
+              onChange={(e) => onChangeClientData({ occasion: e.target.value as OccasionType })}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
             >
-              <span>Avançar para Foto da Capa</span>
-              <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
-            </button>
+              {OCCASIONS.map((occ) => (
+                <option key={occ} value={occ}>
+                  {occ}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Data do Evento */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">Data da Celebração</label>
+            <input
+              type="text"
+              value={clientData.eventDate || ''}
+              onChange={(e) => onChangeClientData({ eventDate: e.target.value })}
+              placeholder="Ex: 18 de Maio de 2026"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            />
+          </div>
+
+          {/* Quantidade de Lâminas */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#3D2C24]">Quantidade de Lâminas</label>
+            <select
+              value={spreadCount}
+              onChange={(e) => onChangeSpreadCount(Number(e.target.value))}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            >
+              <option value={10}>10 Lâminas (20 páginas - Padrão Colecionável)</option>
+              <option value={12}>12 Lâminas (24 páginas)</option>
+              <option value={15}>15 Lâminas (30 páginas)</option>
+              <option value={20}>20 Lâminas (40 páginas)</option>
+            </select>
+          </div>
+
+          {/* Código Mercado Livre */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#2D3277] flex items-center gap-1">
+              <ShoppingBag className="w-3.5 h-3.5 text-[#2D3277]" />
+              Código da Compra Mercado Livre (Opcional)
+            </label>
+            <input
+              type="text"
+              value={clientData.mercadoLivreOrderId || ''}
+              onChange={(e) => onChangeClientData({ mercadoLivreOrderId: e.target.value })}
+              placeholder="Ex: #200000847291"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs sm:text-sm text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+            />
           </div>
         </div>
-      )}
 
-      {/* SUB-STEP 2: Foto da Capa & Assistente IA Opcional */}
-      {subStep === 2 && (
-        <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-6 animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8DFD5]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
-                2
+        {/* Endereço de Envio */}
+        <div className="pt-4 border-t border-[#E8DFD5] space-y-3">
+          <span className="text-xs font-bold text-[#7A685B] uppercase tracking-wider flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-[#B39770]" />
+            Endereço de Entrega
+          </span>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            {/* CEP */}
+            <div className="col-span-2 space-y-1">
+              <label className="text-[11px] font-bold text-[#3D2C24]">CEP</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={address.cep}
+                  onChange={(e) =>
+                    onChangeClientData({
+                      address: { ...address, cep: e.target.value },
+                    })
+                  }
+                  onBlur={handleCepBlur}
+                  placeholder="00000-000"
+                  className="w-full px-3 py-2 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs text-[#211D19] focus:ring-2 focus:ring-[#B39770]"
+                />
+                {isSearchingCep && (
+                  <span className="absolute right-2.5 top-2 text-[10px] text-[#B39770] animate-pulse">
+                    Buscando...
+                  </span>
+                )}
               </div>
-              <div>
-                <h4 className="font-serif font-bold text-base text-[#2C2420]">
-                  Foto da Capa (15x20 cm Vertical)
-                </h4>
-                <p className="text-xs text-[#7A685B] mt-0.5">
-                  Envie a foto principal para estampar a capa dura do fotolivro.
-                </p>
-              </div>
+            </div>
+
+            {/* Rua */}
+            <div className="col-span-2 sm:col-span-3 space-y-1">
+              <label className="text-[11px] font-bold text-[#3D2C24]">Rua / Logradouro</label>
+              <input
+                type="text"
+                value={address.street}
+                onChange={(e) =>
+                  onChangeClientData({
+                    address: { ...address, street: e.target.value },
+                  })
+                }
+                placeholder="Nome da rua ou avenida"
+                className="w-full px-3 py-2 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs text-[#211D19]"
+              />
+            </div>
+
+            {/* Número */}
+            <div className="col-span-1 space-y-1">
+              <label className="text-[11px] font-bold text-[#3D2C24]">Número</label>
+              <input
+                type="text"
+                value={address.number}
+                onChange={(e) =>
+                  onChangeClientData({
+                    address: { ...address, number: e.target.value },
+                  })
+                }
+                placeholder="123"
+                className="w-full px-3 py-2 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs text-[#211D19]"
+              />
+            </div>
+
+            {/* Complemento */}
+            <div className="col-span-1 sm:col-span-2 space-y-1">
+              <label className="text-[11px] font-bold text-[#3D2C24]">Complemento</label>
+              <input
+                type="text"
+                value={address.complement || ''}
+                onChange={(e) =>
+                  onChangeClientData({
+                    address: { ...address, complement: e.target.value },
+                  })
+                }
+                placeholder="Apto 42, Bloco B"
+                className="w-full px-3 py-2 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs text-[#211D19]"
+              />
+            </div>
+
+            {/* Bairro */}
+            <div className="col-span-2 space-y-1">
+              <label className="text-[11px] font-bold text-[#3D2C24]">Bairro</label>
+              <input
+                type="text"
+                value={address.neighborhood}
+                onChange={(e) =>
+                  onChangeClientData({
+                    address: { ...address, neighborhood: e.target.value },
+                  })
+                }
+                placeholder="Bairro"
+                className="w-full px-3 py-2 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs text-[#211D19]"
+              />
+            </div>
+
+            {/* Cidade */}
+            <div className="col-span-1 space-y-1">
+              <label className="text-[11px] font-bold text-[#3D2C24]">Cidade</label>
+              <input
+                type="text"
+                value={address.city}
+                onChange={(e) =>
+                  onChangeClientData({
+                    address: { ...address, city: e.target.value },
+                  })
+                }
+                placeholder="Cidade"
+                className="w-full px-3 py-2 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs text-[#211D19]"
+              />
+            </div>
+
+            {/* Estado */}
+            <div className="col-span-1 space-y-1">
+              <label className="text-[11px] font-bold text-[#3D2C24]">UF</label>
+              <input
+                type="text"
+                value={address.state}
+                onChange={(e) =>
+                  onChangeClientData({
+                    address: { ...address, state: e.target.value.toUpperCase() },
+                  })
+                }
+                placeholder="SP"
+                maxLength={2}
+                className="w-full px-3 py-2 rounded-xl border border-[#DDD3C5] bg-[#FAF7F2] text-xs text-[#211D19]"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. AS 3 CAIXAS DE UPLOAD */}
+      <div className="space-y-6">
+        {/* ========================================================= */}
+        {/* CAIXA 1: FOTOS PARA A CAPA                                */}
+        {/* ========================================================= */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#DDD3C5] shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8DFD5] pb-3">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#B39770]">
+                Caixa 1
+              </span>
+              <h3 className="font-serif text-lg font-bold text-[#211D19]">
+                Fotos para a Capa
+              </h3>
+              <p className="text-xs text-[#7A685B]">
+                Envie as fotos mais marcantes. Você poderá escolher uma como principal para a capa e lombada.
+              </p>
             </div>
 
             <button
               type="button"
-              onClick={() => setShowPromptGuide(!showPromptGuide)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#EFE8DE] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-all self-start sm:self-auto cursor-pointer shadow-2xs"
+              onClick={() => coverFileInputRef.current?.click()}
+              className="px-4 py-2 bg-[#3D2C24] hover:bg-[#211D19] text-[#FAF7F2] text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
             >
-              <Bot className="w-3.5 h-3.5 text-[#8C5E3C]" />
-              <span>{showPromptGuide ? 'Ocultar Assistente IA' : 'Assistente IA para Capa (Opcional)'}</span>
-              {showPromptGuide ? (
-                <ChevronUp className="w-3 h-3 text-[#8C5E3C]" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-[#8C5E3C]" />
-              )}
+              <Upload className="w-3.5 h-3.5 text-[#B39770]" />
+              <span>Adicionar Fotos da Capa</span>
             </button>
+            <input
+              ref={coverFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => handleCoverFiles(e.target.files)}
+              className="hidden"
+            />
           </div>
 
-          {/* GUIA DE PROMPTS PARA O CHATGPT FREE (EXPANSÍVEL / OCULTÁVEL) */}
-          {showPromptGuide && (
-            <div className="bg-[#FFFFFF] rounded-2xl p-5 sm:p-6 border border-[#DDD3C5] shadow-xs space-y-5">
-              {/* Header with External Link */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EFE8DE]">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#8C5E3C]" />
-                  <span className="font-bold text-xs sm:text-sm text-[#2C2420]">
-                    Como Criar sua Capa Grátis no ChatGPT (Passo a Passo)
-                  </span>
-                </div>
+          {/* Dropzone */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingCover(true);
+            }}
+            onDragLeave={() => setIsDraggingCover(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingCover(false);
+              handleCoverFiles(e.dataTransfer.files);
+            }}
+            onClick={() => coverFileInputRef.current?.click()}
+            className={`p-6 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all ${
+              isDraggingCover
+                ? 'border-[#B39770] bg-[#FAF7F2]'
+                : 'border-[#DDD3C5] hover:border-[#B39770] bg-[#FAF7F2]/50'
+            }`}
+          >
+            <Camera className="w-8 h-8 text-[#B39770] mx-auto mb-2" />
+            <p className="text-xs font-semibold text-[#211D19]">
+              Arraste aqui as fotos para a capa ou clique para selecionar
+            </p>
+            <p className="text-[11px] text-[#8C7A6B] mt-0.5">
+              JPG, PNG ou WEBP em alta resolução
+            </p>
+          </div>
 
-                <a
-                  href="https://chatgpt.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8C5E3C] hover:text-[#5A3E28] self-start sm:self-auto bg-[#FAF7F2] hover:bg-[#F2ECE4] px-3 py-1.5 rounded-xl border border-[#DDD3C5] transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Abrir ChatGPT Grátis (chatgpt.com)
-                </a>
-              </div>
-
-              {/* 4 Super Simple Steps */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
-                    1. ESTILO
-                  </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Escolha o Tema</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
-                    Selecione o estilo do evento abaixo (Formatura, Casamento, Minimalista, etc.).
-                  </p>
-                </div>
-
-                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
-                    2. COPIAR
-                  </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Copie o Prompt</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
-                    Clique em &quot;Copiar Prompt&quot;. O nome do projeto e detalhes já vêm inseridos!
-                  </p>
-                </div>
-
-                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
-                    3. GPT FREE
-                  </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Cole com a Foto</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
-                    No ChatGPT Free, anexe a melhor foto do formando/casal e cole o prompt.
-                  </p>
-                </div>
-
-                <div className="bg-[#FAF7F2] p-3.5 rounded-xl border border-[#E8DFD5]">
-                  <span className="text-[10px] font-bold font-mono text-[#8C5E3C] bg-[#EAE0D5] px-2 py-0.5 rounded-md">
-                    4. UPLOAD
-                  </span>
-                  <h6 className="font-bold text-xs text-[#2C2420] mt-1.5">Envie a Capa</h6>
-                  <p className="text-[11px] text-[#7A685B] mt-0.5 leading-relaxed">
-                    Baixe a arte gerada pela IA e envie no quadro de upload da Capa abaixo.
-                  </p>
-                </div>
-              </div>
-
-              {/* Estilos de Prompt */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#5A4638] mb-2">
-                  Selecione o Estilo Desejado para o seu Prompt:
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {COVER_PROMPT_PRESETS.map((preset) => {
-                    const isSelected = preset.id === selectedPromptId;
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => setSelectedPromptId(preset.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
-                            : 'bg-[#FAF7F2] text-[#5A4638] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
-                        }`}
-                      >
-                        {preset.title}
-                        {preset.badge && (
-                          <span
-                            className={`ml-1.5 text-[9px] px-1.5 py-0.2 rounded-md ${
-                              isSelected
-                                ? 'bg-white/20 text-white'
-                                : 'bg-[#EAE0D5] text-[#5A4638]'
-                            }`}
-                          >
-                            {preset.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Prompt Text Box & Copy Button */}
-              <div className="bg-[#FAF7F2] rounded-xl p-4 border border-[#DDD3C5] space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-[#8C5E3C]" />
-                    <span className="text-xs font-bold text-[#2C2420]">
-                      Prompt Pronto para Copiar ({activePromptDef.title})
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleCopyPrompt}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer ${
-                      copiedPrompt
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-[#8C5E3C] hover:bg-[#734A2E] text-white hover:scale-[1.01]'
-                    }`}
-                  >
-                    {copiedPrompt ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Prompt Copiado com Sucesso!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copiar Prompt para ChatGPT Free
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Highlighted Project Data */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#F5EFEB] border border-[#E0D6C8] text-xs">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="font-bold text-[#8C5E3C] shrink-0">📌 Título do Álbum:</span>
-                    <span className="font-semibold text-[#2C2420] truncate">
-                      {clientData.albumTitle || 'Nossas Melhores Memórias'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="font-bold text-[#8C5E3C] shrink-0">📝 Contexto:</span>
-                    <span className="text-[#5A4638] truncate">
-                      {clientData.notes || (clientData.occasion !== 'Outro' ? clientData.occasion : 'Memórias Especiais')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Collapsible Technical Prompt Text Area */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowRawPrompt(!showRawPrompt)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8C5E3C] hover:text-[#5A3822] cursor-pointer py-1 transition-colors"
-                  >
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showRawPrompt ? 'rotate-180' : ''}`} />
-                    <span>{showRawPrompt ? 'Ocultar prompt técnico completo' : 'Ver prompt técnico completo'}</span>
-                  </button>
-
-                  {showRawPrompt && (
-                    <textarea
-                      readOnly
-                      rows={5}
-                      value={fullChatGPTMessage}
-                      className="w-full bg-[#FFFFFF] rounded-lg p-3 text-xs text-[#3D2C24] font-mono border border-[#E0D6C8] resize-none focus:outline-none focus:ring-1 focus:ring-[#8C5E3C] mt-2 animate-fadeIn"
-                    />
-                  )}
-                </div>
-
-                {/* Dicas de Ouro para GPT Free */}
-                <div className="pt-2 border-t border-[#E8DFD5] grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] text-[#7A685B]">
-                  <div className="flex items-start gap-1.5">
-                    <Lightbulb className="w-3.5 h-3.5 text-[#8C5E3C] shrink-0 mt-0.5" />
-                    <span>
-                      <strong className="text-[#2C2420]">Foto Vertical:</strong> Peça
-                      formato vertical no ChatGPT para perfeito encaixe na encadernação.
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <Lightbulb className="w-3.5 h-3.5 text-[#8C5E3C] shrink-0 mt-0.5" />
-                    <span>
-                      <strong className="text-[#2C2420]">Foto de Referência:</strong> Anexe uma
-                      foto nítida no ChatGPT para que a IA preserve o formando ou casal.
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <Lightbulb className="w-3.5 h-3.5 text-[#8C5E3C] shrink-0 mt-0.5" />
-                    <span>
-                      <strong className="text-[#2C2420]">Sem Logos Estranhos:</strong> O prompt já
-                      proíbe marcas d&apos;água e propagandas na capa.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ÁREA DE UPLOAD DA CAPA FOTOGRÁFICA */}
-          <div className="bg-[#FAF7F2] rounded-2xl p-5 sm:p-6 border border-[#E8DFD5] space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-[#8C5E3C]" />
-                <h5 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
-                  Upload da Imagem da Capa
-                </h5>
-              </div>
-              <span className="text-[11px] font-semibold text-[#8C5E3C]">
-                Arte da IA ou Foto Principal
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              {/* Upload Box */}
-              <div className="md:col-span-7 space-y-3">
-                <input
-                  ref={coverInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleCoverFileUpload(e.target.files[0]);
-                    }
-                  }}
-                />
-
+          {/* Cover Photos Thumbnails with 'Usar como principal' and 'Remover' */}
+          {coverPhotos.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-2">
+              {coverPhotos.map((photo) => (
                 <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDraggingCover(true);
-                  }}
-                  onDragLeave={() => setIsDraggingCover(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDraggingCover(false);
-                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                      handleCoverFileUpload(e.dataTransfer.files[0]);
-                    }
-                  }}
-                  onClick={() => coverInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-                    isDraggingCover
-                      ? 'border-[#8C5E3C] bg-[#F2ECE4]'
-                      : cover.imageUrl
-                      ? 'border-emerald-400 bg-emerald-50/40 hover:bg-emerald-50/70'
-                      : 'border-[#D9CFC4] bg-[#FFFFFF] hover:border-[#8C5E3C] hover:bg-[#FDFCFB]'
+                  key={photo.id}
+                  className={`group relative rounded-2xl overflow-hidden border p-1 bg-white transition-all shadow-2xs ${
+                    photo.isCoverMain
+                      ? 'border-[#B39770] ring-2 ring-[#B39770]/30'
+                      : 'border-[#DDD3C5]'
                   }`}
                 >
-                  {cover.imageUrl ? (
-                    <div className="flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-2">
-                        <Check className="w-5 h-5" />
-                      </div>
-                      <span className="text-xs font-bold text-emerald-800">
-                        Foto da Capa Carregada com Sucesso!
-                      </span>
-                      <p className="text-[11px] text-[#7A685B] mt-1">
-                        Clique para trocar a imagem da capa
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      <Upload className="w-8 h-8 text-[#8C5E3C] mb-2" />
-                      <span className="text-xs font-bold text-[#2C2420]">
-                        Clique para selecionar ou arraste a Foto da Capa
-                      </span>
-                      <p className="text-[11px] text-[#7A685B] mt-1">
-                        Formato Vertical (JPG, PNG ou WEBP)
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  <div className="aspect-[3/4] rounded-xl overflow-hidden bg-[#FAF7F2] relative">
+                    <img
+                      src={photo.url}
+                      alt={photo.name}
+                      className="w-full h-full object-cover"
+                    />
 
-                {cover.imageUrl && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#7A685B] flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Foto homologada para a capa
-                    </span>
+                    {photo.isCoverMain && (
+                      <span className="absolute top-1.5 left-1.5 bg-[#3D2C24] text-[#FAF7F2] text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                        <Star className="w-2.5 h-2.5 text-[#B39770] fill-[#B39770]" /> Principal
+                      </span>
+                    )}
+
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onChangeCover({ imageUrl: undefined });
+                        handleRemoveCoverPhoto(photo.id);
                       }}
-                      className="text-xs text-rose-700 hover:text-rose-900 inline-flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                      className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white hover:bg-rose-600 transition-colors"
+                      title="Remover foto da capa"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remover Foto da Capa
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
-                )}
-              </div>
 
-              {/* Mini Cover Preview Card (15x20 Vertical) */}
-              <div className="md:col-span-5 flex flex-col items-center">
-                <div className="relative w-44 h-60 rounded-2xl bg-[#FFFFFF] border-4 border-[#3D2C24] shadow-xl overflow-hidden p-3 flex flex-col justify-between text-center transition-all hover:scale-[1.02]">
-                  <div className="absolute inset-y-0 left-0 w-2.5 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
-
-                  {cover.imageUrl ? (
-                    <div className="absolute inset-0 z-0">
-                      <img
-                        src={cover.imageUrl}
-                        alt="Capa do Álbum"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/35" />
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-b from-[#FAF7F2] to-[#EAE0D5] flex flex-col items-center justify-center p-3 text-[#8C7A6B]">
-                      <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
-                      <span className="text-[10px] font-semibold text-center">Prévia 15x20 cm</span>
-                    </div>
-                  )}
-
-                  {/* Top Badge */}
-                  <div className="relative z-10">
-                    <span
-                      className={`text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full inline-block ${
-                        cover.imageUrl
-                          ? 'bg-black/40 text-white/90 backdrop-blur-xs'
-                          : 'bg-[#E0D6C8] text-[#5A4638]'
-                      }`}
-                    >
-                      15x20 cm • Vertical
-                    </span>
-                  </div>
-
-                  {/* Bottom Title & Subtitle */}
-                  <div className="relative z-10 text-center">
-                    <h5
-                      className={`font-serif font-bold text-xs leading-tight drop-shadow-sm ${
-                        cover.imageUrl ? 'text-white' : 'text-[#2C2420]'
-                      }`}
-                    >
-                      {clientData.albumTitle || 'Nossas Melhores Memórias'}
-                    </h5>
-                    <p
-                      className={`font-serif italic text-[9px] mt-0.5 ${
-                        cover.imageUrl ? 'text-white/80' : 'text-[#7A685B]'
-                      }`}
-                    >
-                      {clientData.albumSubtitle || 'Momentos Especiais • 2026'}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-medium text-[#8C7A6B] mt-2">
-                  Prévia da Capa (15x20 cm Vertical)
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-4 border-t border-[#E8DFD5]">
-            <button
-              type="button"
-              onClick={() => setSubStep(1)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4 text-[#8C5E3C]" />
-              <span>Voltar aos Dados</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSubStep(3)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] font-bold text-sm shadow-md hover:scale-[1.01] transition-all cursor-pointer"
-            >
-              <span>Avançar para Fotos do Álbum</span>
-              <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* SUB-STEP 3: Fotos do Álbum */}
-      {subStep === 3 && (
-        <div className="space-y-6 animate-fadeIn">
-          <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-8 border border-[#E8DFD5] shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8DFD5]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#3D2C24] text-[#FAF7F2] flex items-center justify-center font-serif font-bold text-xs">
-                  3
-                </div>
-                <div>
-                  <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C2420]">
-                    Fotos do Álbum (Até 40 fotos)
-                  </h3>
-                  <p className="text-xs text-[#7A685B] mt-0.5">
-                    Selecione as fotografias para a montagem das 10 lâminas panorâmicas (20 páginas).
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="px-3 py-1 rounded-full bg-[#EAE0D5] text-[#5A4638] text-xs font-bold font-mono">
-                  {photos.length} / 40 fotos
-                </div>
-                {photos.length === 0 && (
-                  <button
-                    type="button"
-                    id="btn-load-sample-photos"
-                    onClick={onLoadDemo}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#EFE8DE] text-xs font-semibold text-[#5A4638] border border-[#DDD3C5] transition-colors cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-[#8C5E3C]" />
-                    Carregar Fotos de Exemplo
-                  </button>
-                )}
-                {photos.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={handleSortChronologically}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#8C5E3C] hover:bg-[#734A2E] text-xs font-bold text-white shadow-xs transition-all cursor-pointer"
-                    title="Reorganizar por data e horário"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    Organizar por Data
-                  </button>
-                )}
-                {photos.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={onClearAllPhotos}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Limpar
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Upload Dropzone */}
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-3xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
-                isDragging
-                  ? 'border-[#8C5E3C] bg-[#F5EFEB] scale-[0.99]'
-                  : 'border-[#D9CFC4] hover:border-[#8C5E3C] bg-[#FFFFFF] hover:bg-[#FAF7F2]'
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFiles(e.target.files)}
-              />
-
-              <div className="w-12 h-12 rounded-2xl bg-[#F5EFEB] text-[#8C5E3C] flex items-center justify-center mx-auto mb-2">
-                <Upload className="w-6 h-6" />
-              </div>
-
-              <h4 className="font-serif font-bold text-sm sm:text-base text-[#2C2420]">
-                Arraste suas fotos aqui ou clique para selecionar
-              </h4>
-              <p className="text-xs text-[#7A685B] mt-1 max-w-md mx-auto">
-                JPG, PNG ou WEBP. Abertura 180° sem cortes no vinco central.
-              </p>
-
-              <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#EFE8DE] text-[11px] font-medium text-[#5A4638]">
-                <CheckCircle2 className="w-3 h-3 text-[#8C5E3C]" />
-                10 Lâminas Panorâmicas = 20 Páginas Rígidas
-              </div>
-            </div>
-
-            {/* Photos Grid Preview */}
-            {photos.length > 0 && (
-              <div className="space-y-3 pt-1">
-                <div className="flex items-center justify-between text-xs text-[#7A685B]">
-                  <span className="font-semibold text-[#2C2420]">
-                    Fotos prontas para o álbum ({photos.length})
-                  </span>
-                  <span>Proporções 100% preservadas</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-2.5 max-h-72 overflow-y-auto p-2 bg-[#FFFFFF] rounded-2xl border border-[#EAE0D5]">
-                  {photos.map((photo, idx) => (
-                    <div
-                      key={photo.id}
-                      className="group relative aspect-square bg-[#EFE8DE] rounded-xl overflow-hidden border border-[#DDD3C5] shadow-2xs hover:shadow-md transition-all"
-                    >
-                      <img
-                        src={photo.url}
-                        alt={photo.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/75 text-white text-[9px] font-mono">
-                        #{idx + 1}
-                      </div>
-
+                  {/* Actions */}
+                  <div className="p-1 text-center">
+                    {!photo.isCoverMain ? (
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemovePhoto(photo.id);
-                        }}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 cursor-pointer shadow-xs z-10 text-xs"
-                        title="Remover foto"
+                        onClick={() => handleSetMainCoverPhoto(photo)}
+                        className="w-full py-1 text-[10px] font-semibold text-[#8C5E3C] hover:text-[#3D2C24] hover:bg-[#FAF7F2] rounded-md transition-colors"
                       >
-                        ×
+                        Usar como principal
                       </button>
-
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1 text-[8px] text-white">
-                        <p className="truncate font-medium text-center">{photo.name}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ) : (
+                      <span className="text-[10px] font-bold text-[#B39770]">Capa Selecionada</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+          )}
+        </div>
 
-            {/* Estrutura Enxuta e Elegante */}
-            <div className="p-3.5 bg-[#FFFFFF] rounded-2xl border border-[#DDD3C5] flex flex-wrap items-center justify-between gap-3 text-xs text-[#5A4638]">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#8C5E3C]" />
-                <span className="font-semibold text-[#2C2420]">Padrão Villa7:</span>
-                <span>Formato 15x20 cm • 10 Lâminas (20 Páginas) • Abertura Plana 180°</span>
-              </div>
-              <div className="text-[11px] text-[#7A685B]">
-                Média: {photos.length > 0 ? (photos.length / 10).toFixed(1) : '4.0'} fotos por lâmina
-              </div>
+        {/* ========================================================= */}
+        {/* CAIXA 2: REFERÊNCIAS DE CAPA                              */}
+        {/* ========================================================= */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#DDD3C5] shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8DFD5] pb-3">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#B39770]">
+                Caixa 2
+              </span>
+              <h3 className="font-serif text-lg font-bold text-[#211D19]">
+                Referências de Capa
+              </h3>
+              <p className="text-xs text-[#7A685B]">
+                Envie exemplos, prints, layouts ou capas anteriores que você goste para inspirar a IA de criação.
+              </p>
             </div>
 
-            {/* Botões de Ação */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-[#E8DFD5]">
-              <button
-                type="button"
-                onClick={() => setSubStep(2)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#F5EFEB] text-[#5A4638] font-semibold text-xs border border-[#DDD3C5] transition-colors cursor-pointer self-start sm:self-auto"
-              >
-                <ArrowLeft className="w-4 h-4 text-[#8C5E3C]" />
-                <span>Voltar à Capa</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => refFileInputRef.current?.click()}
+              className="px-4 py-2 bg-[#FAF7F2] hover:bg-[#EFE8DE] text-[#3D2C24] text-xs font-semibold rounded-xl border border-[#DDD3C5] transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5 text-[#B39770]" />
+              <span>Enviar Referências</span>
+            </button>
+            <input
+              ref={refFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => handleReferenceFiles(e.target.files)}
+              className="hidden"
+            />
+          </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                {photos.length > 0 && onNextAndAutoDiagram && (
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingRef(true);
+            }}
+            onDragLeave={() => setIsDraggingRef(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingRef(false);
+              handleReferenceFiles(e.dataTransfer.files);
+            }}
+            onClick={() => refFileInputRef.current?.click()}
+            className={`p-5 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all ${
+              isDraggingRef
+                ? 'border-[#B39770] bg-[#FAF7F2]'
+                : 'border-[#DDD3C5] hover:border-[#B39770] bg-[#FAF7F2]/50'
+            }`}
+          >
+            <Sparkles className="w-7 h-7 text-[#B39770] mx-auto mb-1.5" />
+            <p className="text-xs font-semibold text-[#211D19]">
+              Arraste prints ou exemplos de capas que você admira
+            </p>
+            <p className="text-[11px] text-[#8C7A6B]">
+              A IA utilizará essas imagens apenas como linguagem de design e paleta
+            </p>
+          </div>
+
+          {/* Reference Thumbnails */}
+          {referenceImages.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-2">
+              {referenceImages.map((refUrl, idx) => (
+                <div
+                  key={idx}
+                  className="group relative aspect-square rounded-xl overflow-hidden border border-[#DDD3C5] bg-[#FAF7F2]"
+                >
+                  <img src={refUrl} alt={`Referência ${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
-                    id="btn-process1-advance-autodiagram"
-                    onClick={onNextAndAutoDiagram}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#8C5E3C] to-[#3D2C24] hover:from-[#784E30] hover:to-[#2B1E18] text-[#FAF7F2] shadow-sm hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => handleRemoveReferenceImage(idx)}
+                    className="absolute top-1 right-1 p-1 rounded-md bg-black/60 text-white hover:bg-rose-600 transition-colors"
                   >
-                    <Sparkles className="w-4 h-4 text-[#F6ECE2]" />
-                    <span>Diagramar Álbum Automaticamente</span>
+                    <Trash2 className="w-3 h-3" />
                   </button>
-                )}
+                  <span className="absolute bottom-1 left-1 bg-black/50 text-white text-[9px] px-1 rounded">
+                    Ref #{idx + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-                <button
-                  type="button"
-                  id="btn-process1-advance"
-                  onClick={onNext}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-xs sm:text-sm bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] shadow-sm hover:shadow-md transition-all cursor-pointer"
-                >
-                  <span>Ir para Estúdio de Criação</span>
-                  <ArrowRight className="w-4 h-4 text-[#EAE0D5]" />
-                </button>
+        {/* ========================================================= */}
+        {/* CAIXA 3: FOTOS DO ÁLBUM (MIOLO)                           */}
+        {/* ========================================================= */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#DDD3C5] shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8DFD5] pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#B39770]">
+                  Caixa 3
+                </span>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#EAE1D5] text-[#5A4638]">
+                  {photos.length} fotos carregadas
+                </span>
               </div>
+              <h3 className="font-serif text-lg font-bold text-[#211D19] mt-0.5">
+                Fotos do Miolo do Álbum
+              </h3>
+              <p className="text-xs text-[#7A685B]">
+                Upload múltiplo para compor as lâminas. Thumbnails leves geradas no navegador para agilidade total.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => albumFileInputRef.current?.click()}
+                className="px-4 py-2 bg-[#3D2C24] hover:bg-[#211D19] text-[#FAF7F2] text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5 text-[#B39770]" />
+                <span>Adicionar Fotos do Álbum</span>
+              </button>
+              <input
+                ref={albumFileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleAlbumFiles(e.target.files)}
+                className="hidden"
+              />
             </div>
           </div>
+
+          {/* Large Dropzone */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingAlbum(true);
+            }}
+            onDragLeave={() => setIsDraggingAlbum(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingAlbum(false);
+              handleAlbumFiles(e.dataTransfer.files);
+            }}
+            onClick={() => albumFileInputRef.current?.click()}
+            className={`p-8 border-2 border-dashed rounded-3xl text-center cursor-pointer transition-all ${
+              isDraggingAlbum
+                ? 'border-[#B39770] bg-[#FAF7F2]'
+                : 'border-[#DDD3C5] hover:border-[#B39770] bg-[#FAF7F2]/40'
+            }`}
+          >
+            <ImageIcon className="w-10 h-10 text-[#B39770] mx-auto mb-2" />
+            <p className="text-sm font-semibold text-[#211D19]">
+              Arraste aqui todas as fotografias do seu evento
+            </p>
+            <p className="text-xs text-[#8C7A6B] mt-1">
+              Aceita grandes volumes de fotos simultâneas. Selecione pastas completas ou múltiplos arquivos.
+            </p>
+          </div>
+
+          {/* Categories Pill Filters */}
+          {photos.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#E8DFD5]">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {PHOTO_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter(cat.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-medium transition-all ${
+                      selectedCategoryFilter === cat.id
+                        ? 'bg-[#3D2C24] text-[#FAF7F2]'
+                        : 'bg-[#FAF7F2] text-[#6B5749] hover:bg-[#EFE8DE] border border-[#DDD3C5]'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {confirmClearAll ? (
+                <div className="flex items-center gap-1.5 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200">
+                  <span className="text-[11px] text-rose-800 font-semibold">Remover todas?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmClearAll(false);
+                      onClearAllPhotos();
+                    }}
+                    className="px-2 py-0.5 rounded bg-rose-700 hover:bg-rose-800 text-white text-[11px] font-bold transition-colors cursor-pointer"
+                  >
+                    Sim, limpar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearAll(false)}
+                    className="px-1.5 py-0.5 rounded bg-white text-[#6B5749] text-[11px] border border-[#DDD3C5] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+                  >
+                    Não
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmClearAll(true)}
+                  className="text-xs text-rose-700 hover:text-rose-900 font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Limpar todas
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Photos Grid */}
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2.5 pt-2">
+              {filteredPhotos.map((photo, index) => (
+                <div
+                  key={photo.id}
+                  className="group relative aspect-square rounded-xl overflow-hidden border border-[#DDD3C5] bg-[#FAF7F2] shadow-2xs"
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+
+                  {/* Touch-Friendly & Mobile-Accessible Delete Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemovePhoto(photo.id);
+                    }}
+                    className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-rose-600/90 text-white hover:bg-rose-700 active:scale-95 shadow-md flex items-center justify-center transition-all cursor-pointer opacity-90 sm:opacity-0 sm:group-hover:opacity-100"
+                    title="Remover foto do álbum"
+                    aria-label={`Remover foto #${index + 1}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+
+                  <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded pointer-events-none">
+                    #{index + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* BOTTOM ACTION BAR */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 sm:p-6 bg-white rounded-3xl border border-[#DDD3C5] shadow-xs">
+        <div>
+          <h4 className="font-serif text-base font-bold text-[#211D19]">
+            Tudo pronto para diagramar?
+          </h4>
+          <p className="text-xs text-[#6B5749]">
+            {photos.length > 0
+              ? `${photos.length} fotos prontas para serem diagramadas no formato 15x20 cm vertical.`
+              : 'Carregue suas fotos ou teste com nosso exemplo para continuar.'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {photos.length > 0 && onNextAndAutoDiagram && (
+            <button
+              type="button"
+              onClick={onNextAndAutoDiagram}
+              className="flex-1 sm:flex-none px-5 py-3 rounded-xl bg-[#FAF7F2] hover:bg-[#EFE8DE] text-[#3D2C24] font-semibold text-xs sm:text-sm transition-all border border-[#DDD3C5] flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-[#B39770]" />
+              <span>Diagramar Automaticamente</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onNext}
+            className="flex-1 sm:flex-none px-7 py-3 rounded-xl bg-[#3D2C24] hover:bg-[#211D19] text-[#FAF7F2] font-semibold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>AVANÇAR PARA SEU ÁLBUM</span>
+            <ArrowRight className="w-4 h-4 text-[#B39770]" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

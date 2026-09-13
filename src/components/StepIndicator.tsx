@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, LayoutGrid, CheckSquare, Check, Sparkles } from 'lucide-react';
+import { Camera, Palette, Eye, CheckCircle, Check, ChevronRight } from 'lucide-react';
 
 interface StepIndicatorProps {
   currentStep: number;
@@ -10,27 +10,35 @@ interface StepIndicatorProps {
 export const PROCESS_STEPS = [
   {
     id: 1,
-    label: '1. Preparação do Álbum',
-    sub: 'Identificação, Fotos & Estrutura',
-    badge: 'Passo 1',
-    icon: Layers,
-    description: 'Dados do projeto, fotos da celebração e definição de lâminas',
+    short: 'Fotos',
+    label: '1. Suas Fotos',
+    sub: 'Fotos & Identificação',
+    icon: Camera,
+    description: 'Upload das fotos da capa, referências e miolo do álbum',
   },
   {
     id: 2,
-    label: '2. Estúdio de Criação',
-    sub: 'Organização das Fotos & Capa',
-    badge: 'Passo 2',
-    icon: LayoutGrid,
-    description: 'Montagem das 10 lâminas e foto da capa do fotolivro',
+    short: 'Personalizar',
+    label: '2. Seu Álbum',
+    sub: 'Capa IA & Lâminas',
+    icon: Palette,
+    description: 'Estúdio de IA para capa e diagramação de lâminas',
   },
   {
     id: 3,
-    label: '3. Revisão & Produção',
-    sub: 'Revisão Final & Envio',
-    badge: 'Passo 3',
-    icon: CheckSquare,
-    description: 'Conferência das 10 lâminas, geração do PDF de impressão e envio à nuvem',
+    short: 'Conferir',
+    label: '3. Veja Como Ficou',
+    sub: 'Visualização 2D & 3D',
+    icon: Eye,
+    description: 'Folheie seu álbum virtualmente antes de enviar',
+  },
+  {
+    id: 4,
+    short: 'Pronto',
+    label: '4. Tudo Pronto',
+    sub: 'Aprovação & Produção',
+    icon: CheckCircle,
+    description: 'Aprovação final, geração de PDFs e envio à gráfica',
   },
 ];
 
@@ -40,10 +48,42 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
   maxReachedStep,
 }) => {
   return (
-    <div className="bg-[#FAF7F2] border-b border-[#E8DFD5] py-3.5 px-3 sm:px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {PROCESS_STEPS.map((step, index) => {
+    <div className="bg-[#FAF7F2] border-b border-[#E8DFD5] py-2.5 px-3 sm:px-6">
+      <div className="max-w-6xl mx-auto space-y-2.5">
+        {/* Discrete Top Progress Breadcrumb: Fotos → Personalizar → Conferir → Pronto */}
+        <div className="flex items-center justify-center gap-1 sm:gap-2 text-[11px] sm:text-xs text-[#7A685B] py-0.5">
+          {PROCESS_STEPS.map((step, idx) => {
+            const isCurrent = currentStep === step.id;
+            const isCompleted = step.id < currentStep;
+
+            return (
+              <React.Fragment key={step.id}>
+                <button
+                  type="button"
+                  onClick={() => step.id <= maxReachedStep && onStepClick(step.id)}
+                  disabled={step.id > maxReachedStep}
+                  className={`flex items-center gap-1 font-medium transition-colors ${
+                    isCurrent
+                      ? 'text-[#211D19] font-bold underline decoration-[#B39770] decoration-2 underline-offset-4'
+                      : isCompleted
+                      ? 'text-[#6E5536] hover:text-[#211D19]'
+                      : 'text-[#A39282] cursor-not-allowed'
+                  }`}
+                >
+                  {isCompleted && <Check className="w-3 h-3 text-[#B39770]" />}
+                  <span>{step.short}</span>
+                </button>
+                {idx < PROCESS_STEPS.length - 1 && (
+                  <ChevronRight className="w-3 h-3 text-[#D9CFC4] shrink-0" />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* 4 Responsive Step Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+          {PROCESS_STEPS.map((step) => {
             const Icon = step.icon;
             const isCurrent = currentStep === step.id;
             const isCompleted = step.id < currentStep;
@@ -56,9 +96,9 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
                 type="button"
                 onClick={() => isAccessible && onStepClick(step.id)}
                 disabled={!isAccessible}
-                className={`relative flex items-center gap-3.5 p-3 sm:p-4 rounded-2xl transition-all text-left border ${
+                className={`relative flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl transition-all text-left border ${
                   isCurrent
-                    ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#2C2420] shadow-md ring-2 ring-[#8C5E3C]/25'
+                    ? 'bg-[#3D2C24] text-[#FAF7F2] border-[#2C2420] shadow-md ring-2 ring-[#B39770]/30'
                     : isCompleted
                     ? 'bg-[#F5EFEB] text-[#3D2C24] border-[#DDD3C5] hover:bg-[#EFE8DE]'
                     : isAccessible
@@ -68,35 +108,28 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
               >
                 {/* Number Badge / Icon */}
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 transition-colors shadow-2xs ${
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
                     isCurrent
                       ? 'bg-[#FAF7F2] text-[#3D2C24]'
                       : isCompleted
-                      ? 'bg-[#8C5E3C] text-[#FAF7F2]'
-                      : 'bg-[#EAE0D5] text-[#5A4638]'
+                      ? 'bg-[#B39770] text-white'
+                      : 'bg-[#EAE1D5] text-[#5A4638]'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-5 h-5 stroke-[2.5]" /> : <Icon className="w-5 h-5" />}
+                  {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : <Icon className="w-4 h-4" />}
                 </div>
 
                 {/* Text Labels */}
                 <div className="flex flex-col min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1 mb-0.5">
-                    <span
-                      className={`text-xs font-bold font-serif tracking-wide truncate ${
-                        isCurrent ? 'text-[#FAF7F2]' : 'text-[#2C2420]'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                    {isCompleted && (
-                      <span className="text-[10px] uppercase font-semibold text-emerald-700 bg-emerald-100/90 px-2 py-0.2 rounded-full shrink-0">
-                        Concluído
-                      </span>
-                    )}
-                  </div>
                   <span
-                    className={`text-[11px] font-medium truncate ${
+                    className={`text-xs font-bold font-serif tracking-wide truncate ${
+                      isCurrent ? 'text-[#FAF7F2]' : 'text-[#211D19]'
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                  <span
+                    className={`text-[10px] sm:text-[11px] font-medium truncate ${
                       isCurrent ? 'text-[#EAE0D5]' : 'text-[#8C5E3C]'
                     }`}
                   >

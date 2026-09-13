@@ -1501,13 +1501,15 @@ export const Process3ReviewAndProduction: React.FC<Process3Props> = ({
       </div>
 
       {/* Photo Crop & Safe Framing Modal */}
-      <PhotoCropModal
-        isOpen={cropModalSlot !== null}
-        slot={cropModalSlot?.slot || null}
-        photo={cropModalSlot?.photo || null}
-        onSave={handleSaveCropModal}
-        onClose={() => setCropModalSlot(null)}
-      />
+      {cropModalSlot && (
+        <PhotoCropModal
+          isOpen={true}
+          slot={cropModalSlot.slot}
+          photo={cropModalSlot.photo}
+          onSave={handleSaveCropModal}
+          onClose={() => setCropModalSlot(null)}
+        />
+      )}
     </div>
   );
 };

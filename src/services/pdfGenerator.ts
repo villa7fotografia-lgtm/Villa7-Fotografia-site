@@ -196,43 +196,224 @@ export async function renderSpreadToCanvas(
   return canvas;
 }
 
-// Render Album Cover onto canvas (15x20 vertical closed -> 30x20 cm full open wrap with spine)
+// Render Full Open Horizontal Hardcover Art onto canvas (Contracapa 15x20 + Lombada 2x20 com texto 2x6 cm + Capa Frontal 15x20)
 export async function renderCoverToCanvas(
   project: AlbumProject,
   loadedImages: Map<string, HTMLImageElement>
 ): Promise<HTMLCanvasElement> {
-  const canvasWidth = 2400; // 30cm wide (Back cover 14.5cm + Spine 1cm + Front cover 14.5cm)
-  const canvasHeight = 1600; // 20cm high
+  // Scale: 80 px/cm -> Contracapa 15cm (1200px) + Lombada 2cm (160px) + Capa 15cm (1200px) = 2560 px width x 1600 px height (20cm)
+  const canvasWidth = 2560; // 32 cm wide open flat hardcover
+  const canvasHeight = 1600; // 20 cm high
   const canvas = document.createElement('canvas');
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
 
-  // Background
-  ctx.fillStyle = project.cover.bgColor || '#FFFFFF';
+  // Background color
+  const bgColor = project.cover.bgColor || '#F7F3EC';
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  // Front Cover Area (right half: x from 1200 to 2400, center at 1800)
-  const frontCenterX = 1800;
-  const photoW = 1040;
-  const photoH = 1450;
-  const photoX = frontCenterX - photoW / 2; // 1280
-  const photoY = 75;
+  // Foil color resolution
+  const foilType = project.cover.foilColor || 'gold';
+  let foilHex = '#B39770'; // Dourado Champanhe
+  if (foilType === 'silver') foilHex = '#8F969E';
+  else if (foilType === 'rose') foilHex = '#B58888';
+  else if (foilType === 'black') foilHex = '#211D19';
+  else if (foilType === 'white') foilHex = '#FFFFFF';
 
-  // If cover has a photograph (check cover image or fallback to first project photo)
+  const isDarkBg = bgColor === '#211D19' || bgColor === '#1A1816';
+  const textColor = project.cover.textColor || (isDarkBg ? '#FAF7F2' : '#211D19');
+  const borderMuted = isDarkBg ? '#3E3730' : '#E4DACD';
+  const subtextColor = isDarkBg ? '#A89E92' : '#7A685B';
+
+  // =========================================================================
+  // 1. CONTRACAPA (Back Cover - Left side: 0 to 1200 px, center at 600 px)
+  // =========================================================================
+  const backCenterX = 600;
+
+  // Discrete luxury border on contracapa
+  ctx.strokeStyle = borderMuted;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(80, 80, 1040, 1440);
+
+  // Decorative inner corner accents
+  const cornerSize = 16;
+  ctx.lineWidth = 2;
+  // Top-left
+  ctx.beginPath();
+  ctx.moveTo(90, 90 + cornerSize);
+  ctx.lineTo(90, 90);
+  ctx.lineTo(90 + cornerSize, 90);
+  ctx.stroke();
+  // Bottom-right
+  ctx.beginPath();
+  ctx.moveTo(1110, 1510 - cornerSize);
+  ctx.lineTo(1110, 1510);
+  ctx.lineTo(1110 - cornerSize, 1510);
+  ctx.stroke();
+
+  // Seal / Monogram Emblem on Contracapa
+  ctx.save();
+  ctx.textAlign = 'center';
+
+  // Crest circle
+  ctx.strokeStyle = foilHex;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(backCenterX, 680, 52, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = borderMuted;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(backCenterX, 680, 46, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = foilHex;
+  ctx.font = 'bold 34px "Cinzel", "Playfair Display", serif';
+  ctx.fillText('V7', backCenterX, 692);
+
+  // Brand text below crest
+  ctx.font = 'bold 22px "Cinzel", "Playfair Display", serif';
+  ctx.fillStyle = foilHex;
+  ctx.fillText('VILLA7 ÁLBUNS', backCenterX, 780);
+
+  ctx.font = '13px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = subtextColor;
+  ctx.fillText('ENCADERNAÇÃO ARTESANAL FINE ART • 180° FLAT-LAY', backCenterX, 815);
+
+  // Discrete bottom production footnote
+  ctx.font = '11px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = subtextColor;
+  ctx.fillText('Papel Silk Fotográfico 800g/m² • Laminação UV Térmica Anti-Digital', backCenterX, 1460);
+  ctx.fillText('Ateliê Villa7 • Feito à mão com padrão museológico', backCenterX, 1485);
+  ctx.restore();
+
+  // =========================================================================
+  // 2. LOMBADA (Spine - Center: 1200 to 1360 px, Width: 160 px / 2 cm)
+  // =========================================================================
+  const spineCenterX = 1280;
+  const spineWidth = 160; // 2 cm exact at 80 px/cm
+
+  // Crease fold guide lines (left and right of spine)
+  ctx.strokeStyle = borderMuted;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(1200, 40);
+  ctx.lineTo(1200, 1560);
+  ctx.moveTo(1360, 40);
+  ctx.lineTo(1360, 1560);
+  ctx.stroke();
+  ctx.setLineDash([]); // Reset dash
+
+  // Delicate spine background tone
+  ctx.fillStyle = isDarkBg ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)';
+  ctx.fillRect(1200, 0, spineWidth, canvasHeight);
+
+  // ÁREA DE TEXTO DA LOMBADA PRÉ-DEFINIDO EM 2x6 CM (160 px de largura x 480 px de altura)
+  const spineBoxW = spineWidth; // 2 cm = 160 px
+  const spineBoxH = 480; // 6 cm = 480 px (6 * 80)
+  const spineBoxX = 1200;
+  const spineBoxY = (canvasHeight - spineBoxH) / 2; // 560 px (centered vertically)
+
+  // Technical guide box indicating the exact 2x6 cm hot-stamping zone
+  ctx.strokeStyle = isDarkBg ? 'rgba(179,151,112,0.3)' : 'rgba(179,151,112,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(spineBoxX + 8, spineBoxY, spineBoxW - 16, spineBoxH);
+
+  // Corner marks on 2x6 cm area
+  ctx.fillStyle = foilHex;
+  ctx.fillRect(spineBoxX + 6, spineBoxY - 1, 6, 2);
+  ctx.fillRect(spineBoxX + spineBoxW - 12, spineBoxY - 1, 6, 2);
+  ctx.fillRect(spineBoxX + 6, spineBoxY + spineBoxH - 1, 6, 2);
+  ctx.fillRect(spineBoxX + spineBoxW - 12, spineBoxY + spineBoxH - 1, 6, 2);
+
+  // Technical indicator for print shop
+  ctx.save();
+  ctx.font = '8px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = isDarkBg ? '#7A685B' : '#B0A294';
+  ctx.textAlign = 'center';
+  ctx.fillText('LOMBADA 2x6 CM', spineCenterX, spineBoxY - 10);
+  ctx.fillText('ÁREA DE GRAVAÇÃO', spineCenterX, spineBoxY + spineBoxH + 18);
+  ctx.restore();
+
+  // Texto da Lombada alinhado verticalmente dentro da área 2x6 cm
+  const spineText = (
+    project.cover.spineText ||
+    `${project.cover.title || project.clientData.albumTitle || 'ÁLBUM FOTOGRÁFICO'} • ${project.cover.yearOrDate || '2026'}`
+  ).toUpperCase();
+
+  ctx.save();
+  ctx.translate(spineCenterX, canvasHeight / 2);
+  // Orient from top to bottom (rotate 90 degrees)
+  ctx.rotate(Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 21px "Cinzel", "Playfair Display", serif';
+  ctx.fillStyle = foilHex;
+
+  // Subtle hot-stamping emboss shadow
+  ctx.shadowColor = isDarkBg ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.7)';
+  ctx.shadowOffsetX = 0.5;
+  ctx.shadowOffsetY = 0.5;
+  ctx.shadowBlur = 1;
+
+  ctx.fillText(spineText, 0, 0);
+  ctx.restore();
+
+  // =========================================================================
+  // 3. CAPA FRONTAL (Front Cover - Right side: 1360 to 2560 px, center at 1960 px)
+  // =========================================================================
+  const frontCenterX = 1960;
+
+  // Frame on front cover
+  ctx.strokeStyle = borderMuted;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(1440, 80, 1040, 1440);
+
+  // Front corner accents
+  ctx.beginPath();
+  ctx.moveTo(1450, 90 + cornerSize);
+  ctx.lineTo(1450, 90);
+  ctx.lineTo(1450 + cornerSize, 90);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(2470, 1510 - cornerSize);
+  ctx.lineTo(2470, 1510);
+  ctx.lineTo(2470 - cornerSize, 1510);
+  ctx.stroke();
+
+  // Front Header brand note
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 12px "Cinzel", serif';
+  ctx.fillStyle = foilHex;
+  ctx.fillText('V I L L A 7   Á L B U N S', frontCenterX, 135);
+  ctx.restore();
+
+  // Load cover image if available
   let coverImg = loadedImages.get('cover-image');
   if (!coverImg && project.cover.imageUrl) {
     coverImg = await loadImage(project.cover.imageUrl);
     loadedImages.set('cover-image', coverImg);
   }
   if (!coverImg && project.photos && project.photos.length > 0 && project.photos[0].url) {
-    coverImg = loadedImages.get(project.photos[0].id) || await loadImage(project.photos[0].url);
+    coverImg = loadedImages.get(project.photos[0].id) || (await loadImage(project.photos[0].url));
   }
+
+  // Cover photo dimensions (proporção 15x20 vertical)
+  const photoW = 860;
+  const photoH = 1050;
+  const photoX = frontCenterX - photoW / 2; // 1530 px
+  const photoY = 175;
 
   if (coverImg) {
     ctx.save();
-    // ZERO DISTORÇÃO: Cálculo matemático preciso mantendo proporção natural da imagem
+    // Zero Distorção: aspect ratio math
     const imgNatW = coverImg.naturalWidth || coverImg.width || 1200;
     const imgNatH = coverImg.naturalHeight || coverImg.height || 800;
     const imgAspect = imgNatW / imgNatH;
@@ -244,34 +425,124 @@ export async function renderCoverToCanvas(
     let drawY = photoY;
 
     if (imgAspect > targetAspect) {
-      // Imagem mais larga que a área: preenche altura e centraliza horizontalmente sem esticar
       drawH = photoH;
       drawW = photoH * imgAspect;
       drawX = photoX + (photoW - drawW) / 2;
       drawY = photoY;
     } else {
-      // Imagem mais alta que a área: preenche largura e centraliza verticalmente sem esticar
       drawW = photoW;
       drawH = photoW / imgAspect;
       drawX = photoX;
       drawY = photoY + (photoH - drawH) / 2;
     }
 
-    // Clip retangular na área designada da capa com cantos finos
+    // Clip rect
     ctx.beginPath();
     ctx.rect(photoX, photoY, photoW, photoH);
     ctx.clip();
     ctx.drawImage(coverImg, drawX, drawY, drawW, drawH);
     ctx.restore();
 
-    // Moldura fina editorial
-    ctx.strokeStyle = '#E0D6C8';
+    // Fine frame around cover photo
+    ctx.strokeStyle = borderMuted;
     ctx.lineWidth = 2;
     ctx.strokeRect(photoX, photoY, photoW, photoH);
+
+    // Subtle inner foil accent on photo border
+    ctx.strokeStyle = foilHex;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(photoX + 6, photoY + 6, photoW - 12, photoH - 12);
+  } else {
+    // Elegant typographic placeholder if no photo
+    ctx.save();
+    ctx.strokeStyle = borderMuted;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(photoX, photoY, photoW, photoH);
+
+    ctx.textAlign = 'center';
+    ctx.font = 'italic 22px "Cormorant Garamond", serif';
+    ctx.fillStyle = subtextColor;
+    ctx.fillText('Fotografia de Capa 15x20 cm', frontCenterX, photoY + photoH / 2);
+    ctx.restore();
   }
+
+  // Front Cover Typography (Below photo: y = 1260 to 1480) - Matching official Villa7 reference
+  ctx.save();
+  ctx.textAlign = 'center';
+
+  const frontTitle =
+    project.cover.title ||
+    project.clientData.albumTitle ||
+    'Marcelo e Vitória';
+  const frontSubtitle =
+    project.cover.subtitle ||
+    project.clientData.albumSubtitle ||
+    project.clientData.eventDate ||
+    'Uma história de amor';
+
+  // 1. Hot Stamping Title
+  ctx.font = 'bold 36px "Cinzel", "Playfair Display", serif';
+  ctx.fillStyle = foilHex;
+  ctx.fillText(frontTitle, frontCenterX, 1290);
+
+  // 2. Subtitle in delicate italic serif
+  ctx.font = 'italic 20px "Cormorant Garamond", "Playfair Display", serif';
+  ctx.fillStyle = textColor;
+  ctx.fillText(frontSubtitle, frontCenterX, 1335);
+
+  // 3. Delicate Centered Floral Ornament Divider (— ❦ —)
+  ctx.strokeStyle = foilHex;
+  ctx.lineWidth = 1;
+  // Left line
+  ctx.beginPath();
+  ctx.moveTo(frontCenterX - 90, 1368);
+  ctx.lineTo(frontCenterX - 20, 1368);
+  ctx.stroke();
+  // Right line
+  ctx.beginPath();
+  ctx.moveTo(frontCenterX + 20, 1368);
+  ctx.lineTo(frontCenterX + 90, 1368);
+  ctx.stroke();
+  // Center small diamond / leaf ornament
+  ctx.fillStyle = foilHex;
+  ctx.beginPath();
+  ctx.arc(frontCenterX, 1368, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 4. Official "by VILLA7" Signature Mark with Open Book Symbol
+  // Small book icon
+  const bookIconX = frontCenterX - 46;
+  const bookIconY = 1405;
+  ctx.strokeStyle = foilHex;
+  ctx.lineWidth = 1.5;
+  // Open book left page
+  ctx.beginPath();
+  ctx.moveTo(bookIconX, bookIconY - 4);
+  ctx.quadraticCurveTo(bookIconX + 6, bookIconY - 6, bookIconX + 11, bookIconY - 4);
+  ctx.lineTo(bookIconX + 11, bookIconY + 8);
+  ctx.quadraticCurveTo(bookIconX + 6, bookIconY + 6, bookIconX, bookIconY + 8);
+  ctx.closePath();
+  ctx.stroke();
+  // Open book right page
+  ctx.beginPath();
+  ctx.moveTo(bookIconX + 11, bookIconY - 4);
+  ctx.quadraticCurveTo(bookIconX + 16, bookIconY - 6, bookIconX + 22, bookIconY - 4);
+  ctx.lineTo(bookIconX + 22, bookIconY + 8);
+  ctx.quadraticCurveTo(bookIconX + 16, bookIconY + 6, bookIconX + 11, bookIconY + 8);
+  ctx.closePath();
+  ctx.stroke();
+
+  // "by VILLA7" text
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 13px "Cinzel", "Playfair Display", serif';
+  ctx.fillStyle = foilHex;
+  ctx.fillText('by VILLA7', frontCenterX - 18, 1412);
+
+  ctx.restore();
 
   return canvas;
 }
+
 
 // Render Technical Certificate & Production Approval Page (2400 x 1600 px)
 export function renderCertificateToCanvas(project: AlbumProject): HTMLCanvasElement {
@@ -615,20 +886,28 @@ export async function generateAlbumPDF(
   let currentPage = 1;
 
   // =========================================================================
-  // PAGE 1: Capa do Álbum 15x20 Vertical (Aberta 30x20 cm com Foto sem Distorção)
+  // PAGE 1: Arte Horizontal da Capa Dura (Contracapa + Lombada 2x6 cm + Capa 15x20 cm)
   // =========================================================================
-  onProgress?.({ step: 'Renderizando Capa Fotográfica 15x20 (Página 1 A4)...', percent: 35 });
+  onProgress?.({
+    step: 'Renderizando Arte Horizontal da Capa Dura (Contracapa + Lombada 2x6 cm + Capa Frontal)...',
+    percent: 35,
+  });
 
   const coverCanvas = await renderCoverToCanvas(project, loadedImages);
   const coverData = coverCanvas.toDataURL('image/jpeg', 0.96);
-  pdf.addImage(coverData, 'JPEG', spreadX, spreadY, spreadW, spreadH, undefined, 'FAST');
+  // Cover canvas is 2560x1600 px (32x20 cm ratio: 1.6)
+  const coverSpreadW = 270;
+  const coverSpreadH = (270 * 1600) / 2560; // 168.75 mm
+  const coverSpreadX = (297 - coverSpreadW) / 2;
+  const coverSpreadY = (210 - coverSpreadH) / 2;
+  pdf.addImage(coverData, 'JPEG', coverSpreadX, coverSpreadY, coverSpreadW, coverSpreadH, undefined, 'FAST');
 
   drawA4SheetGuides(
     pdf,
     currentPage,
     totalPages,
     project,
-    'CAPA FOTOGRÁFICA 15x20 VERTICAL (ABERTA 30x20 CM)'
+    'ARTE HORIZONTAL DE CAPA DURA (CONTRACAPA + LOMBADA COM TEXTO 2x6 CM + CAPA 15x20 CM)'
   );
 
   // =========================================================================

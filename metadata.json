@@ -1,6 +1,6 @@
 {
   "name": "Villa7 Álbuns — Diagramação de Álbuns Fotográficos 15x20 Vertical",
-  "description": "Plataforma profissional para diagramação, arte de capa fotográfica e produção de fotolivros 15x20 cm vertical (20x30 cm aberto).",
+  "description": "Plataforma profissional para compra de álbum, envio de fotos, criação de capa com IA, personalização de miolo, visualização 2D/3D e envio automatizado para produção.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

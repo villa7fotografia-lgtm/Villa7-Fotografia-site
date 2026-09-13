@@ -3,14 +3,23 @@ import { Header } from './components/Header';
 import { StepIndicator } from './components/StepIndicator';
 import { Process1Preparation } from './components/processes/Process1Preparation';
 import { Process2CreationStudio } from './components/processes/Process2CreationStudio';
-import { Process3ReviewAndProduction } from './components/processes/Process3ReviewAndProduction';
+import { Process3Review } from './components/processes/Process3Review';
+import { Process4Production } from './components/processes/Process4Production';
 import { AlbumFlipbookModal } from './components/modals/AlbumFlipbookModal';
 import { AlbumProject, ClientData, CoverData, PhotoItem, SpreadItem } from './types';
-import { createInitialProject, SAMPLE_PHOTOS } from './constants/sampleData';
+import { createInitialProject } from './constants/sampleData';
 import { SPREAD_TEMPLATES } from './constants/templates';
 import { distributePhotosToSpreads, sanitizeSpreads } from './utils/spreadOptimizer';
 
 const STORAGE_KEY = 'villa7_album_project_v2';
+
+// Helper to detect sample/placeholder unsplash photos
+const isSamplePhoto = (p: { id?: string; url?: string; name?: string }) =>
+  p.id?.startsWith('sample-') ||
+  p.url?.includes('images.unsplash.com') ||
+  p.name?.includes('Preparativos_Aliancas') ||
+  p.name?.includes('MakingOf_Vestido') ||
+  p.name?.includes('Detalhes_Buque');
 
 export default function App() {
   const [project, setProject] = useState<AlbumProject>(() => {
@@ -18,11 +27,38 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Normalize step to 1..3
-        if (parsed.currentStep > 3) {
-          parsed.currentStep = parsed.currentStep >= 6 ? 3 : 2;
+        // Normalize step to 1..4
+        if (parsed.currentStep > 4) {
+          parsed.currentStep = 4;
         }
-        return parsed;
+
+        // Purge any sample/unsplash photos from saved project
+        const cleanedPhotos = (parsed.photos || []).filter((p: PhotoItem) => !isSamplePhoto(p));
+        const cleanedSpreads = (parsed.spreads || []).map((spread: any) => ({
+          ...spread,
+          slots: (spread.slots || []).map((slot: any) => {
+            const isSample =
+              slot.photoId?.startsWith('sample-') ||
+              (parsed.photos || []).some(
+                (p: PhotoItem) => p.id === slot.photoId && isSamplePhoto(p)
+              );
+            return isSample ? { ...slot, photoId: undefined } : slot;
+          }),
+        }));
+        const coverImageUrl =
+          parsed.cover?.imageUrl && parsed.cover.imageUrl.includes('images.unsplash.com')
+            ? undefined
+            : parsed.cover?.imageUrl;
+
+        return {
+          ...parsed,
+          photos: cleanedPhotos,
+          spreads: cleanedSpreads,
+          cover: {
+            ...parsed.cover,
+            imageUrl: coverImageUrl,
+          },
+        };
       }
     } catch {
       // ignore
@@ -31,10 +67,56 @@ export default function App() {
   });
 
   const [maxReachedStep, setMaxReachedStep] = useState<number>(() =>
-    project.currentStep && project.currentStep <= 3 ? project.currentStep : 1
+    project.currentStep && project.currentStep <= 4 ? project.currentStep : 1
   );
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>('');
+
+  // Immediate purge of sample photos on mount and save clean state to localStorage
+  useEffect(() => {
+    setProject((prev) => {
+      const hasSample = prev.photos.some((p) => isSamplePhoto(p));
+      const hasCoverSample = prev.cover.imageUrl?.includes('images.unsplash.com');
+      const hasSlotSample = prev.spreads.some((s) =>
+        s.slots.some((slot) => slot.photoId?.startsWith('sample-'))
+      );
+
+      if (!hasSample && !hasCoverSample && !hasSlotSample) {
+        return prev;
+      }
+
+      const cleanedPhotos = prev.photos.filter((p) => !isSamplePhoto(p));
+      const cleanedSpreads = prev.spreads.map((spread) => ({
+        ...spread,
+        slots: spread.slots.map((slot) => {
+          const isSample =
+            slot.photoId?.startsWith('sample-') ||
+            prev.photos.some((p) => p.id === slot.photoId && isSamplePhoto(p));
+          return isSample ? { ...slot, photoId: undefined } : slot;
+        }),
+      }));
+
+      const cleanedCover = {
+        ...prev.cover,
+        imageUrl: hasCoverSample ? undefined : prev.cover.imageUrl,
+      };
+
+      const updated = {
+        ...prev,
+        photos: cleanedPhotos,
+        spreads: cleanedSpreads,
+        cover: cleanedCover,
+      };
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Error saving sanitized project:', err);
+      }
+
+      return updated;
+    });
+  }, []);
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -120,16 +202,22 @@ export default function App() {
   };
 
   const handleClearAllPhotos = () => {
-    if (window.confirm('Deseja realmente remover todas as fotos carregadas?')) {
-      setProject((prev) => ({
-        ...prev,
-        photos: [],
-        spreads: prev.spreads.map((s) => ({
-          ...s,
-          slots: s.slots.map((slot) => ({ ...slot, photoId: undefined })),
-        })),
-      }));
-    }
+    setProject((prev) => ({
+      ...prev,
+      photos: [],
+      spreads: prev.spreads.map((s) => ({
+        ...s,
+        slots: s.slots.map((slot) => ({ ...slot, photoId: undefined })),
+      })),
+      cover: {
+        ...prev.cover,
+        imageUrl: prev.photos.some((p) => p.url === prev.cover.imageUrl)
+          ? undefined
+          : prev.cover.imageUrl,
+      },
+    }));
+    setSaveStatus('Fotos removidas');
+    setTimeout(() => setSaveStatus(''), 2000);
   };
 
   // Process 1: Spread count manipulation (10 to 20)
@@ -237,86 +325,31 @@ export default function App() {
     }));
   };
 
-  // Demo loader
+  // Project Reset / Clean Start
   const handleLoadSampleData = () => {
-    const spreadCount = 10;
-    let photoIdx = 0;
-
-    const sampleSpreads = Array.from({ length: spreadCount }, (_, i) => {
-      const template = SPREAD_TEMPLATES[i % SPREAD_TEMPLATES.length];
-      return {
-        id: `spread-${i + 1}`,
-        spreadNumber: i + 1,
-        templateId: template.id,
-        slots: template.slots.map((s, sIdx) => {
-          const photo = SAMPLE_PHOTOS[photoIdx % SAMPLE_PHOTOS.length];
-          photoIdx++;
-          return {
-            id: `slot-${i + 1}-${sIdx + 1}-${Date.now()}`,
-            x: s.x,
-            y: s.y,
-            width: s.width,
-            height: s.height,
-            photoId: photo.id,
-            zoom: 1,
-            panX: 0,
-            panY: 0,
-            fit: 'cover' as const,
-            filter: 'none' as const,
-          };
-        }),
-        layoutTitle: `Lâmina ${i + 1} (Páginas ${i * 2 + 1}-${i * 2 + 2})`,
-        backgroundColor: '#FAF7F2',
-      };
-    });
-
-    setProject({
-      id: 'villa7-sample-' + Date.now(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      clientData: {
-        name: 'Mariana & Lucas Silva',
-        email: 'mariana.silva@exemplo.com',
-        phone: '(11) 98765-4321',
-        albumTitle: 'Nossas Melhores Memórias',
-        albumSubtitle: 'Momentos Especiais • 2026',
-        occasion: 'Casamento',
-        isApproved: true,
-        approvalDate: new Date().toLocaleDateString('pt-BR'),
-      },
-      photos: SAMPLE_PHOTOS,
-      spreadCount: 10,
-      spreads: sampleSpreads,
-      cover: {
-        type: 'chatgpt',
-        imageUrl: SAMPLE_PHOTOS[0].url,
-        title: 'Nossas Melhores Memórias',
-        subtitle: 'Mariana & Lucas • 2026',
-        yearOrDate: '2026',
-        approved: true,
-        approvalDate: new Date().toLocaleDateString('pt-BR'),
-        bgColor: '#F5EFEB',
-        textColor: '#3D2C24',
-        foilColor: 'gold',
-      },
-      currentStep: 2,
-    });
-    setMaxReachedStep(3);
-    setSaveStatus('Demonstração carregada!');
+    const fresh = createInitialProject();
+    setProject(fresh);
+    setMaxReachedStep(1);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+    } catch {
+      // ignore
+    }
+    setSaveStatus('Álbum limpo iniciado');
     setTimeout(() => setSaveStatus(''), 2000);
   };
 
   const handleResetProject = () => {
-    if (
-      window.confirm(
-        'Tem certeza que deseja iniciar um novo álbum? Todos os dados atuais serão reiniciados.'
-      )
-    ) {
-      const fresh = createInitialProject();
-      setProject(fresh);
-      setMaxReachedStep(1);
+    const fresh = createInitialProject();
+    setProject(fresh);
+    setMaxReachedStep(1);
+    try {
       localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
     }
+    setSaveStatus('Novo álbum iniciado');
+    setTimeout(() => setSaveStatus(''), 2000);
   };
 
   return (
@@ -393,19 +426,26 @@ export default function App() {
           />
         )}
 
-        {/* PROCESSO 3: REVISÃO & PRODUÇÃO (Aprovação Final, PDF & Drive) */}
+        {/* PROCESSO 3: VEJA COMO FICOU (Visualização 2D, 3D & Miniaturas) */}
         {project.currentStep === 3 && (
-          <Process3ReviewAndProduction
+          <Process3Review
             project={project}
             onChangeSpread={handleUpdateSpread}
             onUpdateSpreads={(updatedSpreads) =>
               setProject((prev) => ({ ...prev, spreads: updatedSpreads }))
             }
-            onChangeCover={handleUpdateCover}
+            onNext={() => handleStepChange(4)}
+            onPrev={() => handleStepChange(2)}
+          />
+        )}
+
+        {/* PROCESSO 4: TUDO PRONTO (Aprovação Final, PDF & Envio à Gráfica) */}
+        {project.currentStep === 4 && (
+          <Process4Production
+            project={project}
             onChangeClientData={handleUpdateClientData}
             onApproveProject={handleApproveProject}
-            onOpenPreview={() => setIsPreviewModalOpen(true)}
-            onPrev={() => handleStepChange(2)}
+            onPrev={() => handleStepChange(3)}
             onReset={handleResetProject}
           />
         )}

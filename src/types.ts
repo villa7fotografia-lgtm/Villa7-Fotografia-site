@@ -7,25 +7,68 @@ export type OccasionType =
   | 'Gestante & Bebê' 
   | 'Aniversário & Celebrações' 
   | 'Conquistas & Formatura' 
+  | 'Individual'
+  | 'Eventos'
+  | 'Acompanhamento'
   | 'Outro';
+
+export type OrderStatus =
+  | 'NOVO'
+  | 'COMPRA_INFORMADA'
+  | 'FOTOS_RECEBIDAS'
+  | 'EM_CRIACAO'
+  | 'EM_REVISAO'
+  | 'APROVADO_PELO_CLIENTE'
+  | 'AUTORIZADO_PRODUCAO'
+  | 'PDF_GERADO'
+  | 'PRONTO_PRODUCAO'
+  | 'ENVIADO';
+
+export interface ClientAddress {
+  cep: string;
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
 
 export interface ClientData {
   name: string;
   email: string;
   phone: string;
+  address?: ClientAddress;
   albumTitle: string;
   albumSubtitle: string;
   occasion: OccasionType;
+  eventDate?: string;
   notes?: string;
+  orderStatus?: OrderStatus;
   isApproved?: boolean;
   approvalDate?: string;
   clientSignature?: string;
+  adminAuthorized?: boolean;
+  adminAuthorizedDate?: string;
+  adminToken?: string;
   mercadoLivreOrderId?: string;
   mercadoLivreBuyerName?: string;
   mercadoLivreConfirmed?: boolean;
   specialReleasePassword?: string;
   isOffMlSpecial?: boolean;
 }
+
+export type PhotoCategory =
+  | 'capa'
+  | 'referencia'
+  | 'making_of'
+  | 'cerimonia'
+  | 'casal'
+  | 'familia'
+  | 'padrinhos'
+  | 'festa'
+  | 'detalhes'
+  | 'geral';
 
 export interface PhotoItem {
   id: string;
@@ -40,6 +83,9 @@ export interface PhotoItem {
   formattedTime?: string; // e.g. "14:35"
   formattedDate?: string; // e.g. "15/09/2024"
   chronologicalIndex?: number;
+  category?: PhotoCategory;
+  isCoverMain?: boolean;
+  isReference?: boolean;
 }
 
 export type PhotoFitMode = 'cover' | 'contain';
@@ -99,6 +145,24 @@ export interface CoverPromptDef {
   promptText: string;
   suggestedTypography: string;
   paletteDescription: string;
+  referenceArchetype?: string;
+  defaultBgColor?: string;
+  defaultFoilColor?: 'gold' | 'silver' | 'rose' | 'black' | 'white';
+  suggestedTitleExample?: string;
+  suggestedSubtitleExample?: string;
+}
+
+export interface CoverAiHistoryItem {
+  id: string;
+  url?: string;
+  prompt: string;
+  artDirection?: string;
+  createdAt: string;
+  suggestedTitle?: string;
+  suggestedSubtitle?: string;
+  recommendedBgColor?: string;
+  recommendedTextColor?: string;
+  recommendedFoilColor?: string;
 }
 
 export interface CoverData {
@@ -108,8 +172,17 @@ export interface CoverData {
   subtitle: string;
   yearOrDate: string;
   spineText?: string;
+  spineWidthMm?: number; // 10 to 25 mm (default 15mm)
   selectedPromptId?: string;
   generatedPromptUsed?: string;
+  aiPrompt?: string;
+  aiHistory?: CoverAiHistoryItem[];
+  referenceImages?: string[];
+  coverPhotos?: PhotoItem[];
+  photoZoom?: number;
+  photoPanX?: number;
+  photoPanY?: number;
+  fontStyle?: 'serif' | 'display' | 'minimal';
   approved: boolean;
   approvalDate?: string;
   bgColor?: string;
@@ -123,11 +196,19 @@ export interface AlbumProject {
   updatedAt: string;
   clientData: ClientData;
   photos: PhotoItem[];
-  spreadCount: number; // Exatamente 10 lâminas (20 páginas)
+  spreadCount: number; // Padrão 10 lâminas (20 páginas)
   spreads: SpreadItem[];
   cover: CoverData;
-  currentStep: number; // 1 to 3 (1: Preparação, 2: Estúdio de Criação, 3: Revisão & Produção)
+  currentStep: number; // 1: Suas Fotos, 2: Seu Álbum, 3: Veja Como Ficou, 4: Tudo Pronto
+  viewMode?: 'home' | 'app' | 'admin';
   pdfDriveUrl?: string;
   driveFolderId?: string;
   driveUploadStatus?: 'idle' | 'uploading' | 'success' | 'error';
+  generatedPdfs?: {
+    capaPdfUrl?: string;
+    mioloPdfUrl?: string;
+    albumFinalPdfUrl?: string;
+    timestamp?: string;
+    fileName?: string;
+  };
 }

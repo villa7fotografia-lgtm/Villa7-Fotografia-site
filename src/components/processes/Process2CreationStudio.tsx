@@ -30,6 +30,7 @@ import { AlbumProject, CoverData, PhotoItem, SpreadItem, SlotLayout, TemplateDef
 import { SPREAD_TEMPLATES, getTemplatesByPhotoCount, getTemplateById, findBestTemplateForPhotos } from '../../constants/templates';
 import { COVER_PROMPT_PRESETS, buildFormattedChatGPTMessage } from '../../constants/coverPrompts';
 import { PhotoCropModal } from '../modals/PhotoCropModal';
+import { CoverStudioAi } from '../studio/CoverStudioAi';
 
 interface Process2Props {
   project: AlbumProject;
@@ -1142,304 +1143,10 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW B: ESTÚDIO DE CAPA (15x20 CM VERTICAL & CHATGPT)                     */}
+      {/* VIEW B: ESTÚDIO DE CAPA (STUDIO DE IA VILLA7)                             */}
       {/* ========================================================================= */}
       {studioTab === 'cover' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Cover Tools (7 Cols) */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Method Tabs */}
-            <div className="bg-[#EAE0D5] p-1 rounded-2xl flex items-center gap-1 border border-[#DDD3C5]">
-              <button
-                type="button"
-                id="btn-cover-tab-chatgpt"
-                onClick={() => setCoverTab('chatgpt')}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
-                  coverTab === 'chatgpt'
-                    ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
-                    : 'text-[#5A4638] hover:bg-[#E0D6C8]'
-                }`}
-              >
-                <Sparkles className="w-4 h-4 text-[#EAE0D5]" />
-                Gerar Capa com IA (ChatGPT)
-              </button>
-
-              <button
-                type="button"
-                id="btn-cover-tab-upload"
-                onClick={() => setCoverTab('upload')}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
-                  coverTab === 'upload'
-                    ? 'bg-[#3D2C24] text-[#FAF7F2] shadow-xs'
-                    : 'text-[#5A4638] hover:bg-[#E0D6C8]'
-                }`}
-              >
-                <Upload className="w-4 h-4 text-[#8C5E3C]" />
-                Enviar Foto da Capa 15x20
-              </button>
-            </div>
-
-            {/* AI Prompts Section */}
-            {coverTab === 'chatgpt' && (
-              <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E8DFD5] shadow-xs space-y-5">
-                <div>
-                  <h3 className="font-serif text-base sm:text-lg font-bold text-[#2C2420]">
-                    1. Escolha o Estilo Visual da Capa
-                  </h3>
-                  <p className="text-xs text-[#7A685B]">
-                    {COVER_PROMPT_PRESETS.length} presets profissionais para gerar no ChatGPT:
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  {COVER_PROMPT_PRESETS.map((preset) => {
-                    const isSelected = selectedPromptId === preset.id;
-                    return (
-                      <div
-                        key={preset.id}
-                        onClick={() => setSelectedPromptId(preset.id)}
-                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-[#F5EFEB] border-[#8C5E3C] shadow-xs ring-2 ring-[#8C5E3C]/20'
-                            : 'bg-[#FFFFFF] border-[#DDD3C5] hover:bg-[#FAF7F2]'
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-serif font-bold text-xs sm:text-sm text-[#2C2420]">
-                              {preset.title}
-                            </h4>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#EAE0D5] text-[#5A4638] font-medium">
-                              {preset.badge}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-[#7A685B] mt-0.5">
-                            {preset.subtitle} • {preset.paletteDescription}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <div className="w-6 h-6 rounded-full bg-[#8C5E3C] text-white flex items-center justify-center shrink-0">
-                            <Check className="w-3.5 h-3.5" />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Prompt Box & Actions */}
-                <div className="pt-3 border-t border-[#E8DFD5] space-y-3">
-                  {/* Highlighted Project Data Badges */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-[#FFFFFF] border border-[#E0D6C8] text-xs">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="font-bold text-[#8C5E3C] shrink-0">📌 Projeto:</span>
-                      <span className="font-semibold text-[#2C2420] truncate">
-                        {project.cover.title || project.clientData.albumTitle || 'Nossas Melhores Memórias'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="font-bold text-[#8C5E3C] shrink-0">📝 Contexto:</span>
-                      <span className="text-[#5A4638] truncate">
-                        {project.clientData.notes || (project.clientData.occasion !== 'Outro' ? project.clientData.occasion : 'Memórias Especiais')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#FFFFFF] p-3.5 rounded-2xl border border-[#DDD3C5] text-xs font-mono text-[#5A4638] leading-relaxed max-h-28 overflow-y-auto">
-                    {formattedCoverPrompt}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      id="btn-copy-cover-prompt"
-                      onClick={handleCopyCoverPrompt}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2] text-xs font-semibold transition-all shadow-xs"
-                    >
-                      {copiedPrompt ? (
-                        <>
-                          <Check className="w-4 h-4 text-emerald-400" />
-                          Prompt Copiado!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          Copiar Prompt Formatado
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => window.open('https://chatgpt.com', '_blank', 'noopener,noreferrer')}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#FFFFFF] hover:bg-[#EFE8DE] text-[#3D2C24] text-xs font-semibold border border-[#DDD3C5] transition-all shadow-2xs"
-                    >
-                      <ExternalLink className="w-4 h-4 text-[#8C5E3C]" />
-                      Abrir ChatGPT
-                    </button>
-                  </div>
-                </div>
-
-                {/* Upload generated image */}
-                <div className="pt-3 border-t border-[#E8DFD5]">
-                  <input
-                    ref={coverFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) =>
-                      e.target.files?.[0] && handleCoverUpload(e.target.files[0])
-                    }
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => coverFileInputRef.current?.click()}
-                    className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-[#8C5E3C] bg-[#F5EFEB] hover:bg-[#EFE8DE] text-[#3D2C24] text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Upload className="w-4 h-4 text-[#8C5E3C]" />
-                    {project.cover.imageUrl
-                      ? 'Substituir Imagem da Capa'
-                      : 'Fazer Upload da Imagem Gerada no ChatGPT'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Direct Upload Section */}
-            {coverTab === 'upload' && (
-              <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E8DFD5] shadow-xs space-y-4">
-                <h3 className="font-serif text-base font-bold text-[#2C2420]">
-                  Upload de Arquivo de Capa Pronto
-                </h3>
-                <div
-                  onClick={() => coverFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-[#DDD3C5] hover:border-[#8C5E3C] bg-[#FFFFFF] hover:bg-[#F5EFEB] rounded-2xl p-8 text-center cursor-pointer transition-all"
-                >
-                  <Upload className="w-8 h-8 text-[#8C5E3C] mx-auto mb-2" />
-                  <h4 className="font-semibold text-sm text-[#2C2420]">
-                    Clique para selecionar a imagem da capa (15x20 cm vertical)
-                  </h4>
-                  <p className="text-xs text-[#7A685B] mt-1">Formatos: JPG, PNG, WEBP</p>
-                </div>
-              </div>
-            )}
-
-            {/* Cover Texts Customization */}
-            <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E8DFD5] shadow-xs space-y-4">
-              <h3 className="font-serif text-base font-bold text-[#2C2420] flex items-center gap-2">
-                <Type className="w-4 h-4 text-[#8C5E3C]" />
-                Gravação de Título & Subtítulo na Capa
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#7A685B] mb-1">
-                    Título da Capa
-                  </label>
-                  <input
-                    type="text"
-                    value={project.cover.title || project.clientData.albumTitle}
-                    onChange={(e) => onChangeCover({ title: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#DDD3C5] bg-white text-xs font-serif font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#7A685B] mb-1">
-                    Subtítulo / Ano
-                  </label>
-                  <input
-                    type="text"
-                    value={project.cover.subtitle || project.clientData.albumSubtitle}
-                    onChange={(e) => onChangeCover({ subtitle: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-[#DDD3C5] bg-white text-xs font-serif"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Physical Cover Preview 15x20 cm (5 Cols) */}
-          <div className="lg:col-span-5 sticky top-24">
-            <div className="bg-[#FAF7F2] rounded-3xl p-6 border border-[#E8DFD5] shadow-md flex flex-col items-center">
-              <div className="flex items-center justify-between w-full mb-4">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#7A685B]">
-                  Prévia da Capa (15x20 cm Vertical)
-                </span>
-                {project.cover.approved ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Capa Aprovada
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-[#8C7A6B]">Pendente de aprovação</span>
-                )}
-              </div>
-
-              {/* 15x20 Physical Cover Card (3:4 vertical ratio) */}
-              <div className="relative w-64 h-85 rounded-2xl bg-[#FFFFFF] border-4 border-[#3D2C24] shadow-2xl overflow-hidden p-5 flex flex-col justify-between text-center transition-all hover:scale-[1.01]">
-                <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
-
-                {project.cover.imageUrl && (
-                  <div className="absolute inset-0 z-0">
-                    <img
-                      src={project.cover.imageUrl}
-                      alt="Capa"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
-                  </div>
-                )}
-
-                <div className="relative z-10">
-                  <span className="text-[10px] font-serif tracking-widest uppercase font-bold text-[#8C7A6B]">
-                    VILLA7
-                  </span>
-                </div>
-
-                {!project.cover.imageUrl && project.photos[0] && (
-                  <div className="relative z-10 w-32 h-32 mx-auto rounded-xl overflow-hidden border-2 border-[#DDD3C5] bg-white p-1 shadow-sm">
-                    <img
-                      src={project.photos[0].url}
-                      alt=""
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                )}
-
-                <div className="relative z-10 mt-auto">
-                  <h4 className="font-serif text-base sm:text-lg font-bold text-[#2C2420]">
-                    {project.cover.title || project.clientData.albumTitle || 'VILLA7 ÁLBUM'}
-                  </h4>
-                  <p className="font-serif italic text-xs text-[#5A4638] mt-0.5">
-                    {project.cover.subtitle || project.clientData.albumSubtitle || 'Memórias Especiais'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Cover Approve Toggle */}
-              <div className="w-full mt-6 pt-4 border-t border-[#E8DFD5]">
-                <button
-                  type="button"
-                  id="btn-approve-cover-studio"
-                  onClick={() =>
-                    onChangeCover({
-                      approved: !project.cover.approved,
-                      approvalDate: new Date().toLocaleDateString('pt-BR'),
-                    })
-                  }
-                  className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                    project.cover.approved
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'bg-[#3D2C24] hover:bg-[#2C2420] text-[#FAF7F2]'
-                  }`}
-                >
-                  <Check className="w-4 h-4" />
-                  {project.cover.approved ? 'Capa Homologada ✓' : 'Aprovar Capa'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CoverStudioAi project={project} onChangeCover={onChangeCover} />
       )}
 
       {/* Navigation Buttons */}
@@ -1465,13 +1172,15 @@ export const Process2CreationStudio: React.FC<Process2Props> = ({
       </div>
 
       {/* Photo Crop & Safe Framing Modal */}
-      <PhotoCropModal
-        isOpen={cropModalSlot !== null}
-        slot={cropModalSlot?.slot || null}
-        photo={cropModalSlot?.photo || null}
-        onSave={handleSaveCropModal}
-        onClose={() => setCropModalSlot(null)}
-      />
+      {cropModalSlot && (
+        <PhotoCropModal
+          isOpen={true}
+          slot={cropModalSlot.slot}
+          photo={cropModalSlot.photo}
+          onSave={handleSaveCropModal}
+          onClose={() => setCropModalSlot(null)}
+        />
+      )}
     </div>
   );
 };

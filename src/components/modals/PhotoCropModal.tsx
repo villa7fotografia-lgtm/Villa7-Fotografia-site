@@ -34,13 +34,11 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
   onSave,
   onClose,
 }) => {
-  if (!isOpen || !slot || !photo) return null;
-
-  const [zoom, setZoom] = useState<number>(slot.zoom || 1);
-  const [panX, setPanX] = useState<number>(slot.panX || 0);
-  const [panY, setPanY] = useState<number>(slot.panY || 0);
-  const [fit, setFit] = useState<PhotoFitMode>(slot.fit || 'cover');
-  const [filter, setFilter] = useState<PhotoFilterMode>(slot.filter || 'none');
+  const [zoom, setZoom] = useState<number>(slot?.zoom || 1);
+  const [panX, setPanX] = useState<number>(slot?.panX || 0);
+  const [panY, setPanY] = useState<number>(slot?.panY || 0);
+  const [fit, setFit] = useState<PhotoFitMode>(slot?.fit || 'cover');
+  const [filter, setFilter] = useState<PhotoFilterMode>(slot?.filter || 'none');
   const [showGuides, setShowGuides] = useState<boolean>(true);
 
   // Dragging state for direct canvas interaction
@@ -63,6 +61,9 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
       setFilter(slot.filter || 'none');
     }
   }, [slot]);
+
+  // If modal is not open or required data is missing, render nothing (after all hooks have been invoked)
+  if (!isOpen || !slot || !photo) return null;
 
   // Pointer drag events for direct interactive repositioning
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {

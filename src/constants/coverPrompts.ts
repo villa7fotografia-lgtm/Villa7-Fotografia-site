@@ -1,149 +1,158 @@
 import { CoverPromptDef } from '../types';
 
+/**
+ * 5 Arquétipos Oficiais Villa7 extraídos diretamente do catálogo de álbuns físicos:
+ * 1. Casamento ("Marcelo e Vitória - Uma história de amor")
+ * 2. Infantil ("Primeiros Momentos")
+ * 3. Ensaio Feminino ("Seu Melhor Momento")
+ * 4. Masculino / Lifestyle ("Minha História - Meus caminhos, minhas conquistas")
+ * 5. Formatura ("Formatura - Uma nova jornada")
+ */
 export const COVER_PROMPT_PRESETS: CoverPromptDef[] = [
   {
-    id: 'formatura-graduacao',
-    title: 'Formatura & Colação de Grau',
-    subtitle: 'Nome do Curso, Formando & Subtexto',
-    badge: 'Formatura & Acadêmico',
-    paletteDescription: 'Tons nobres acadêmicos (azul marinho, verde esmeralda, bordeaux ou preto acetinado) com detalhes em dourado ou prata.',
-    suggestedTypography: 'Serifada solene acadêmica (Trajan / Garamond / Cinzel) e sans-serif refinada',
-    description: 'Composição solene para formaturas: destaque total para o Nome do Curso (Projeto), Nome do Aluno e Descrição do Evento/Turma.',
-    promptText: `Gere uma arte de capa fotográfica vertical em formato 15x20 cm (proporção 2:3) para álbum de formatura e graduação.
-Instruções de composição:
-- FOTOGRAFIA PRINCIPAL: Destaque a fotografia da formanda/formando selecionada como elemento central nobre e imponente.
-- TEXTOS NA CAPA (conter estritamente apenas estes elementos):
-  1. TÍTULO PRINCIPAL / NOME DO CURSO (Em grande destaque na arte)
-  2. NOME DO ALUNO(A) / FORMANDO(A)
-  3. SUBTEXTO / DESCRIÇÃO (Turma, Ano de Formatura ou Mensagem Comemorativa)
-- FUNDO E ESTÉTICA: Fundo com textura requintada de linho escuro, papel algodão ou acabamento fosco em tons sóbrios (azul marinho, grafite profundo, verde esmeralda ou preto), com detalhes tipográficos solenes em baixo-relevo ou hot stamping dourado/prateado.
-- REGRA DE IDENTIDADE: A arte deve conter única e exclusivamente a foto selecionada e os textos informados (Curso, Aluno e Subtexto), sem logotipos comerciais ou textos institucionais de empresas.`
+    id: 'casamento-marcelo-vitoria',
+    title: 'Casamento & Amor (Ref: Marcelo e Vitória)',
+    subtitle: 'Uma história de amor • Capa Escura & Ouro Champanhe',
+    badge: 'Referência Oficial 01',
+    referenceArchetype: 'Marcelo e Vitória - Uma história de amor',
+    defaultBgColor: '#1A1816',
+    defaultFoilColor: 'gold',
+    suggestedTitleExample: 'Marcelo e Vitória',
+    suggestedSubtitleExample: 'Uma história de amor',
+    paletteDescription: 'Couro/linho preto fosco profundo, iluminação noturna acolhedora com luzes de fadas e vegetação botânica, detalhes tipográficos em Hot Stamping Ouro Champanhe.',
+    suggestedTypography: 'Serif Display de alto luxo (Trajan / Cormorant Garamond / Didot) e itálico delicado',
+    description: 'Inspirado na capa clássica de casamento da Villa7: fotografia cinematográfica de casal em fundo escuro noturno com luzes quentes, terço inferior com títulos em dourado e assinatura oficial by VILLA7.',
+    promptText: `Gere uma capa dura fotográfica vertical de altíssimo luxo em formato 15x20 cm (proporção 2:3 ou 3:4) para álbum de casamento, seguindo estritamente a referência oficial da Villa7 "Marcelo e Vitória - Uma história de amor":
+- FOTOGRAFIA PRINCIPAL: Casal de noivos em enquadramento nobre, iluminação cinematográfica quente e romântica com luzes de fadas/folhagens suaves e fundo escuro envolvente.
+- TERÇO INFERIOR DA CAPA (Diagramação Oficial Villa7):
+  1. TÍTULO PRINCIPAL: "{TITLE}" em tipografia serifada romana de alto luxo com efeito metálico Hot Stamping Ouro Champanhe em relevo.
+  2. SUBTÍTULO: "{SUBTITLE}" em serifa itálica delicada e espaçada.
+  3. FLORÃO CENTRALIZADO: Delicado ornamento floral/botânico clássico (— ❦ —).
+  4. ASSINATURA OBRIGATÓRIA: Inscrição "by VILLA7" com o emblema do livro aberto estilizado no rodapé central.
+- LOMBADA (2x20 cm): Revestida em couro preto fosco com o título em caixa alta vertical dourado e logotipo Villa7.
+- ACABAMENTO: Estética editorial de ateliê fine art, 300 DPI, zero marcas d'água de terceiros, enquadramento vertical com área de respiro para encadernação térmica.`
+  },
+  {
+    id: 'infantil-primeiros-momentos',
+    title: 'Infantil & Bebê (Ref: Primeiros Momentos)',
+    subtitle: 'Linho Areia Nobre • Ternura, Aconchego & Bronze',
+    badge: 'Referência Oficial 02',
+    referenceArchetype: 'Primeiros Momentos',
+    defaultBgColor: '#EAE1D5',
+    defaultFoilColor: 'gold',
+    suggestedTitleExample: 'Primeiros Momentos',
+    suggestedSubtitleExample: 'Acompanhamento & Primeiros Passos',
+    paletteDescription: 'Linho cru, areia e marfim suave com tons acolhedores de algodão, luz natural de berço e tipografia em bronze nobre.',
+    suggestedTypography: 'Serifada terna e acolhedora com entrelinha suave',
+    description: 'Inspirado na capa infantil da Villa7: fotografia de bebê com elemento afetivo (ursinho/manta), paleta neutra em linho areia e gravação sutil com assinatura by VILLA7.',
+    promptText: `Crie uma arte de capa fotográfica vertical 15x20 cm para álbum infantil/acompanhamento, baseando-se estritamente na referência física oficial da Villa7 "Primeiros Momentos":
+- FOTOGRAFIA PRINCIPAL: Bebê em repouso terno com ursinho de pelúcia ou manta de algodão, sob iluminação natural suave, envolvente e acolhedora em tons terrosos suaves.
+- TERÇO INFERIOR DA CAPA (Diagramação Oficial Villa7):
+  1. TÍTULO PRINCIPAL: "{TITLE}" gravado com serifa suave em tom bronze nobre ou dourado champanhe.
+  2. SUBTÍTULO: "{SUBTITLE}" em itálico delicado.
+  3. FLORÃO CENTRALIZADO: Pequeno ornamento botânico delicado.
+  4. ASSINATURA OBRIGATÓRIA: Inscrição "by VILLA7" com ícone de livro aberto no rodapé.
+- REVESTIMENTO: Textura tátil de linho fino areia/cru com lombada elegante.
+- ACABAMENTO: Pureza visual, proporção vertical perfeita, ausência total de logotipos de terceiros.`
+  },
+  {
+    id: 'ensaio-seu-melhor-momento',
+    title: 'Ensaio Feminino & Retrato (Ref: Seu Melhor Momento)',
+    subtitle: 'Golden Hour & Âmbar • Elegância Editorial',
+    badge: 'Referência Oficial 03',
+    referenceArchetype: 'Seu Melhor Momento',
+    defaultBgColor: '#261D17',
+    defaultFoilColor: 'gold',
+    suggestedTitleExample: 'Seu Melhor Momento',
+    suggestedSubtitleExample: 'Retratos & Ensaios Fotográficos',
+    paletteDescription: 'Tons âmbar, dourado pôr do sol, bosque com bokeh aconchegante e acabamento de alta costura.',
+    suggestedTypography: 'Serifada editorial elegante de alto contraste com acabamento dourado',
+    description: 'Inspirado no modelo de retrato da Villa7: luz dourada mágica (golden hour), pose poética, encadernação em tom âmbar e tipografia em ouro reluzente.',
+    promptText: `Crie uma capa de fotolivro vertical 15x20 cm no estilo editorial de retrato, inspirada diretamente na referência oficial Villa7 "Seu Melhor Momento":
+- FOTOGRAFIA PRINCIPAL: Retrato feminino expressivo com vestido suave, iluminado por luz dourada mágica de golden hour / pôr do sol, com reflexos quentes de folhagens e bokeh refinado.
+- TERÇO INFERIOR DA CAPA:
+  1. TÍTULO PRINCIPAL: "{TITLE}" em serifa elegante de alto padrão com brilho metálico ouro.
+  2. SUBTÍTULO: "{SUBTITLE}" em serifa itálica clássica.
+  3. FLORÃO CENTRALIZADO: Mini divisor ornamental botânico.
+  4. ASSINATURA: Marca "by VILLA7" com ícone do livro no rodapé.
+- TEXTURA & LOMBADA: Revestimento premium em tons de terracota/âmbar nobre com lombada personalizada de 2 cm.
+- ACABAMENTO: Estética de livro de fotografia de arte de colecionador.`
+  },
+  {
+    id: 'masculino-minha-historia',
+    title: 'Masculino & Conquistas (Ref: Minha História)',
+    subtitle: 'Meus caminhos, minhas conquistas • Couro Preto Luxo',
+    badge: 'Referência Oficial 04',
+    referenceArchetype: 'Minha História - Meus caminhos, minhas conquistas',
+    defaultBgColor: '#141211',
+    defaultFoilColor: 'gold',
+    suggestedTitleExample: 'Minha História',
+    suggestedSubtitleExample: 'Meus caminhos, minhas conquistas',
+    paletteDescription: 'Couro preto fosco nobre, iluminação de estúdio direcional com recorte suave e detalhes em ouro tradicional.',
+    suggestedTypography: 'Serifada imponente clássica (Cinzel / Trajan Pro) com espaçamento nobre',
+    description: 'Inspirado na referência de retrato individual e masculino da Villa7: fundo escuro minimalista, presença marcante, couro preto fosco e tipografia clássica dourada.',
+    promptText: `Gere uma capa fotográfica vertical 15x20 cm para álbum de biografia e conquistas, seguindo a referência oficial Villa7 "Minha História":
+- FOTOGRAFIA PRINCIPAL: Retrato expressivo de estúdio com iluminação lateral dramática e sutil luz de contorno (rim light), transmitindo confiança, maturidade e sobriedade.
+- TERÇO INFERIOR DA CAPA:
+  1. TÍTULO PRINCIPAL: "{TITLE}" em caixa alta/baixa com fonte serifada solene em Hot Stamping Ouro Clássico.
+  2. SUBTÍTULO: "{SUBTITLE}" ("Meus caminhos, minhas conquistas") em itálico fino.
+  3. FLORÃO: Pequeno traço decorativo central.
+  4. ASSINATURA: Inscrição "by VILLA7" com o logotipo do livro aberto.
+- REVESTIMENTO: Couro sintético premium preto fosco, com lombada de 2 cm gravada a quente.
+- ACABAMENTO: Design sóbrio, atemporal e luxuoso, sem elementos visuais poluídos.`
+  },
+  {
+    id: 'formatura-nova-jornada',
+    title: 'Formatura & Acadêmico (Ref: Formatura)',
+    subtitle: 'Uma nova jornada • Beca, Capelo & Ouro Nobre',
+    badge: 'Referência Oficial 05',
+    referenceArchetype: 'Formatura - Uma nova jornada',
+    defaultBgColor: '#171615',
+    defaultFoilColor: 'gold',
+    suggestedTitleExample: 'Formatura',
+    suggestedSubtitleExample: 'Uma nova jornada',
+    paletteDescription: 'Preto acetinado, azul marinho acadêmico e douração solene para celebração de diploma e formatura.',
+    suggestedTypography: 'Serifada acadêmica tradicional (Cinzel / Garamond / Trajan)',
+    description: 'Inspirado na capa de formatura oficial da Villa7: retrato do formando em beca e capelo, iluminação solene de estúdio e tipografia em ouro nobre com subtítulo "Uma nova jornada".',
+    promptText: `Gere uma arte de capa fotográfica vertical 15x20 cm para álbum de formatura e graduação, inspirada fielmente na referência física oficial da Villa7 "Formatura - Uma nova jornada":
+- FOTOGRAFIA PRINCIPAL: Formanda ou formando trajado em beca acadêmica com capelo e diploma, sorriso confiante e iluminação quente de estúdio com fundo escuro elegante.
+- TERÇO INFERIOR DA CAPA (Diagramação Oficial Villa7):
+  1. TÍTULO PRINCIPAL: "{TITLE}" (Ex: "Formatura" ou Nome do Curso) em serifa acadêmica solene em Hot Stamping Dourado.
+  2. SUBTÍTULO: "{SUBTITLE}" (Ex: "Uma nova jornada" ou Nome do Formando e Turma) em itálico refinado.
+  3. FLORÃO CENTRALIZADO: Ornamento clássico formal.
+  4. ASSINATURA: Selo "by VILLA7" com o emblema do livro no rodapé.
+- LOMBADA (2x20 cm): Couro preto luxo com o nome do formando/curso gravado a ouro.
+- ACABAMENTO: Padrão comemorativo de alto prestígio, 300 DPI, enquadramento perfeito para encadernação rígida.`
   },
   {
     id: 'personalizado-inteligente',
     title: 'Personalizado com Dados da Obra',
-    subtitle: 'Nome do Projeto, Descrição do Evento & Subtexto',
+    subtitle: 'Harmonização com a Foto & Referências Enviadas',
     badge: 'Recomendado',
-    paletteDescription: 'Tons orgânicos, linho nobre, areia, off-white e acabamento em baixo-relevo.',
-    suggestedTypography: 'Serifada contemporânea com espaçamento editorial generoso',
-    description: 'Prompt dinâmico preenchido automaticamente com o Nome do Projeto e a Descrição do Evento em destaque supremo.',
-    promptText: `Gere uma capa fotográfica profissional para um fotolivro vertical 15x20 cm (proporção 2:3 ou 3:4).
-Instruções de composição:
-- FOTOGRAFIA PRINCIPAL: Use a fotografia selecionada como o elemento de destaque principal, com iluminação envolvente e enquadramento vertical harmonioso.
-- TEXTOS NA CAPA (conter apenas estes elementos essenciais):
-  1. NOME DO PROJETO (Título Principal da Obra em destaque)
-  2. SUBTÍTULO / DATA / SUBTEXTO SECUNDÁRIO
-- CONTEXTO & DESCRIÇÃO DO EVENTO: Harmonize a atmosfera visual e a iluminação conforme a descrição do evento fornecida.
-- FUNDO E TEXTURA: Fundo em textura nobre de linho cru, papel algodão artesanal ou couro vegetal em tons neutros (off-white, areia, fendi suave).
-- REGRA DE IDENTIDADE: Apenas a foto selecionada, o título e o subtítulo devem constar na arte, sem marcas d'água, logotipos ou menções comerciais.`
-  },
-  {
-    id: 'minimalista-elegante',
-    title: 'Minimalista & Linho Fino',
-    subtitle: 'Design limpo, Foto central & Tipografia nobre',
-    badge: 'Mais Popular',
-    paletteDescription: 'Tons de areia, linho cru, marfim e gravação sutil em baixo-relevo.',
-    suggestedTypography: 'Serifa refinada de alto contraste (Cormorant Garamond / Didot)',
-    description: 'Capa atemporal com foco central na fotografia com paspatur generoso, Nome do Projeto e Descrição do Evento.',
-    promptText: `Gere uma capa fotográfica no estilo "Minimalista Elegante" em formato vertical 15x20 cm (proporção 2:3).
-Instruções de composição:
-- FOTOGRAFIA: Posicione a foto selecionada no centro com paspatur generoso e enquadramento vertical equilibrado.
-- TEXTOS: Inclua o Nome do Projeto (Título Principal) e o Subtítulo/Subtexto gravados com tipografia serifada minimalista de alto padrão.
-- FUNDO: Textura tátil de linho nobre ou papel algodão em tons neutros quentes (areia, off-white, terracota suave).
-- ACABAMENTO: Estética clean, elegante e sem excesso de elementos gráficos, sem inclusão de logomarcas comerciais.`
-  },
-  {
-    id: 'casamento-fine-art',
-    title: 'Casamento & Ensaio Romântico',
-    subtitle: 'Golden hour & Atmosfera etérea',
-    badge: 'Casamentos & Noivados',
-    paletteDescription: 'Champagne, marfim suave, dourado sutil e tons terrosos quentes.',
-    suggestedTypography: 'Caligrafia fina clássica com serifa suave',
-    description: 'Ideal para celebrações a dois: foto romântica, Nome do Projeto (Casal), Descrição do Evento e data/subtexto.',
-    promptText: `Crie uma arte de capa fotográfica vertical 15x20 cm para álbum de casamento no estilo Fine Art Romântico.
-Instruções de composição:
-- FOTOGRAFIA: Destaque o casal com luz suave e atmosfera calorosa e cinematográfica, refletindo o contexto do casamento.
-- TEXTOS: Apenas o Nome do Projeto / Noivos (Título Principal) e o Subtítulo (Data / Local / Subtexto) gravados de forma delicada.
-- FUNDO: Textura de linho marfim ou couro vegetal claro com paspatur elegante.
-- ACABAMENTO: Visual clássico e limpo, sem selos, logotipos ou inscrições de empresas.`
-  },
-  {
-    id: 'familia-afeto',
-    title: 'Família & Infantil Aconchegante',
-    subtitle: 'Luz natural & Momentos espontâneos',
-    badge: 'Família & Crianças',
-    paletteDescription: 'Tons de baunilha, amêndoa, terracota suave e linho lavado.',
-    suggestedTypography: 'Serifada humanista acolhedora',
-    description: 'Perfeito para celebrar momentos em família, aniversários e encontros de afeto com o contexto do evento em destaque.',
-    promptText: `Crie uma capa para álbum fotográfico de família em formato vertical 15x20 cm (proporção 2:3).
-Instruções de composição:
-- FOTOGRAFIA: Integre a foto de família selecionada com iluminação natural acolhedora e atmosfera calorosa de lar e carinho.
-- TEXTOS: Inclua estritamente o Nome do Projeto / Família (Título Principal) e Subtítulo (Ano / Subtexto).
-- FUNDO: Textura suave e orgânica em tons neutros terrosos (bege, baunilha e linho lavado).
-- ACABAMENTO: Visual nobre e atemporal, sem logotipos comerciais ou textos estranhos à família.`
-  },
-  {
-    id: 'editorial-feminino',
-    title: 'Ensaio Feminino / Editorial',
-    subtitle: 'Elegância contemporânea & Estilo revista',
-    badge: 'Moda & Retratos',
-    paletteDescription: 'Neutros sofisticados, bege quente, fendi e iluminação de estúdio.',
-    suggestedTypography: 'Sans-serif geométrica minimalista',
-    description: 'Diagramação de livro de fotografia de autor com recorte marcante, Nome do Projeto e luz sofisticada.',
-    promptText: `Gere uma capa de fotolivro vertical 15x20 cm (proporção 2:3) no estilo Retrato Editorial.
-Instruções de composição:
-- FOTOGRAFIA: Valorize a expressão e presença da pessoa na foto com iluminação suave de estúdio e bokeh sofisticado.
-- TEXTOS: Apenas o Nome do Projeto / Título Principal e o Subtítulo/Ano com hierarquia tipográfica limpa e contemporânea.
-- FUNDO: Tom neutro sofisticado com textura de papel de arte fosco.
-- ACABAMENTO: Sem marcas comerciais, logotipos ou elementos promocionais.`
-  },
-  {
-    id: 'debutante-15anos',
-    title: '15 Anos & Celebração',
-    subtitle: 'Brilho sutil & Sofisticação jovem',
-    badge: '15 Anos & Debutante',
-    paletteDescription: 'Rose gold, lavanda suave, marfim e detalhes delicados de brilho.',
-    suggestedTypography: 'Moderna refinada com detalhes elegantes',
-    description: 'Perfeita para eternizar festas de 15 anos com Nome da Debutante (Projeto) e Descrição da Festa.',
-    promptText: `Crie uma capa de álbum vertical 15x20 cm para celebração de 15 Anos / Debutante.
-Instruções de composição:
-- FOTOGRAFIA: Destaque a debutante com iluminação brilhante e suave, capturando a energia e encanto da celebração.
-- TEXTOS: Apenas o Nome do Projeto / Debutante como Título Principal e a Data / Idade / Subtexto como secundário.
-- FUNDO: Textura em linho marfim com toques discretos em tom metálico delicado.
-- ACABAMENTO: Limpo, nobre e sem qualquer logotipo ou texto comercial.`
-  },
-  {
-    id: 'gestante-newborn',
-    title: 'Gestante & Bebê (Newborn)',
-    subtitle: 'Delicadeza, pureza e ternura',
-    badge: 'Maternidade',
-    paletteDescription: 'Tons pastéis terrosos, camomila, areia e branco quente.',
-    suggestedTypography: 'Tipografia suave e orgânica',
-    description: 'Aconchegante e suave para os primeiros dias e a doce espera da maternidade com contexto em destaque.',
-    promptText: `Gere uma capa de álbum de maternidade e gestante no formato vertical 15x20 cm (proporção 2:3).
-Instruções de composição:
-- FOTOGRAFIA: Fotografia selecionada em primeiro plano com suavidade extrema, tons claros e iluminação difusa etérea.
-- TEXTOS: Apenas o Nome do Bebê / Família (Título Principal / Projeto) e Data de Nascimento / Subtexto (Secundário).
-- FUNDO: Textura de algodão puro ou veludo suave no fundo, evocando ternura e cuidado.
-- ACABAMENTO: Puro, atemporal, sem logotipos ou textos de empresas.`
-  },
-  {
-    id: 'viagem-paisagem',
-    title: 'Viagens & Aventuras',
-    subtitle: 'Fotografia de paisagem & Exploração',
-    badge: 'Viagens',
-    paletteDescription: 'Tons da natureza, areia dourada, céu suave e terracota.',
-    suggestedTypography: 'Display clean ou serifa contemporânea',
-    description: 'Destaque para cenários inesquecíveis, passeios e registros de férias com Nome do Destino em destaque.',
-    promptText: `Crie uma capa de livro de memórias de viagem em formato vertical 15x20 cm (proporção 2:3).
-Instruções de composição:
-- FOTOGRAFIA: Destaque a foto da paisagem ou dos viajantes com profundidade de campo e cores ricas.
-- TEXTOS: Apenas o Nome do Projeto / Destino (Título Principal) e Ano / Subtexto (Secundário).
-- FUNDO: Textura de diário de bordo refinado em linho cru ou areia.
-- ACABAMENTO: Sem logotipos de agências ou empresas, mantendo foco total na viagem.`
+    referenceArchetype: 'Catálogo Oficial Villa7 Fine Art',
+    defaultBgColor: '#F7F3EC',
+    defaultFoilColor: 'gold',
+    suggestedTitleExample: 'Nossas Melhores Memórias',
+    suggestedSubtitleExample: 'Momentos Especiais • 2026',
+    paletteDescription: 'Harmonização automática com as fotos enviadas, linho nobre, areia, marfim ou grafite.',
+    suggestedTypography: 'Serifada contemporânea de alta costura com entrelinha harmônica',
+    description: 'Aplica a fórmula estética oficial dos 5 álbuns da Villa7 de forma personalizada com os dados do seu projeto.',
+    promptText: `Gere uma capa fotográfica profissional para fotolivro vertical 15x20 cm da Villa7, utilizando a fórmula visual dos álbuns oficiais:
+- FOTOGRAFIA PRINCIPAL: Foto selecionada como elemento principal com enquadramento vertical harmonioso e iluminação envolvente.
+- TERÇO INFERIOR (Padrão Oficial Villa7):
+  1. TÍTULO PRINCIPAL: "{TITLE}" gravado em Hot Stamping metálico.
+  2. SUBTÍTULO: "{SUBTITLE}" em itálico delicado.
+  3. FLORÃO: Divisor decorativo centralizado (— ❦ —).
+  4. ASSINATURA: Marca "by VILLA7" com o ícone do livro aberto.
+- LOMBADA: 2 cm com título em caixa alta vertical e acabamento em couro ou linho nobre.
+- ACABAMENTO: Respiro generoso de encadernação e acabamento editorial museológico.`
   }
 ];
 
+/**
+ * Constrói a mensagem formatada para o cliente copiar e colar no ChatGPT / DALL-E
+ * contendo as 5 referências reais da Villa7 como guia de estilo.
+ */
 export function buildFormattedChatGPTMessage(
   prompt: CoverPromptDef,
   albumTitle: string,
@@ -152,60 +161,153 @@ export function buildFormattedChatGPTMessage(
   occasion?: string,
   eventDescription?: string
 ): string {
-  const isFormatura = prompt.id === 'formatura-graduacao' || occasion === 'Conquistas & Formatura';
+  const isFormatura = prompt.id === 'formatura-nova-jornada' || occasion === 'Conquistas & Formatura';
 
   // Resolved dynamic values with sensible fallbacks
-  const projectName = (albumTitle || '').trim() || (isFormatura ? 'Formatura em Medicina' : 'Nossas Melhores Memórias');
-  const projectSubtitle = (albumSubtitle || '').trim() || (isFormatura ? 'Turma de 2026 • Colação de Grau' : 'Momentos Inesquecíveis • 2026');
-  const projectClient = (clientName || '').trim() || (isFormatura ? 'Dr(a). Formando(a)' : 'Família & Memórias');
-  
+  const projectName = (albumTitle || '').trim() || prompt.suggestedTitleExample || (isFormatura ? 'Formatura' : 'Marcelo e Vitória');
+  const projectSubtitle = (albumSubtitle || '').trim() || prompt.suggestedSubtitleExample || (isFormatura ? 'Uma nova jornada' : 'Uma história de amor');
+  const projectClient = (clientName || '').trim() || 'Cliente Villa7';
+
   // Resolved event context / description
   let resolvedDescription = (eventDescription || '').trim();
   if (!resolvedDescription) {
     if (occasion && occasion !== 'Outro') {
-      resolvedDescription = `Celebração especial de ${occasion}, registrando momentos inesquecíveis com alta carga emocional e elegância.`;
+      resolvedDescription = `Celebração de ${occasion}, eternizando momentos especiais com alta carga afetiva e estética refinada de ateliê.`;
     } else {
-      resolvedDescription = 'Álbum comemorativo de memórias fotográficas especiais, com estética refinada e atemporal.';
+      resolvedDescription = 'Álbum de memórias comemorativas, com diagramação editorial atemporal e acabamento em capa dura.';
     }
   }
 
   const occasionBadge = occasion && occasion !== 'Outro' ? occasion : (isFormatura ? 'Formatura & Graduação' : 'Celebração Especial');
 
-  return `Olá ChatGPT! Por favor, crie uma imagem de capa de álbum fotográfico profissional em FORMATO VERTICAL 15x20 cm (proporção 2:3 ou 3:4) utilizando com MÁXIMO DESTAQUE os dados pré-enviados do projeto abaixo:
+  // Substituted prompt text
+  const customPromptWithTokens = prompt.promptText
+    .replace('{TITLE}', projectName)
+    .replace('{SUBTITLE}', projectSubtitle);
+
+  return `Olá ChatGPT! Por favor, crie uma imagem de capa dura para álbum fotográfico profissional em FORMATO VERTICAL 15x20 cm (proporção 2:3 ou 3:4) seguindo rigorosamente a identidade visual e os arquétipos físicos dos álbuns da Villa7 Álbuns:
 
 =======================================================
-🌟 DADOS PRINCIPAIS EM DESTAQUE NA OBRA
+📚 PADRÃO DE REFERÊNCIA OFICIAL VILLA7
 =======================================================
-📌 NOME DO PROJETO (TÍTULO PRINCIPAL DA CAPA):
+Os álbuns da Villa7 seguem uma assinatura de design editorial consagrada:
+• MODELO DE INSPIRAÇÃO: "${prompt.referenceArchetype || prompt.title}"
+• LIVRO FÍSICO: Encadernação vertical 15x20 cm em capa dura, com lombada espessa de 2 cm revestida em linho nobre ou couro fosco, contendo o título em caixa alta vertical dourado e o emblema da Villa7.
+• DIAGRAMAÇÃO DO TERÇO INFERIOR DA CAPA:
+  1. TÍTULO PRINCIPAL: Gravado em Hot Stamping Ouro Champanhe (fonte serifada nobre como Trajan / Cormorant Garamond).
+  2. SUBTÍTULO: Em serifa itálica delicada e espaçada.
+  3. FLORÃO CENTRAL: Pequeno ornamento floral botânico (— ❦ —).
+  4. ASSINATURA OBRIGATÓRIA: "by VILLA7" com o ícone do livro aberto estilizado no centro inferior.
+
+=======================================================
+🌟 DADOS DO PROJETO PARA ESTA CAPA
+=======================================================
+📌 TÍTULO PRINCIPAL (NOME DA OBRA):
 👉 "${projectName}"
 
-📝 DESCRIÇÃO DO EVENTO & CONTEXTO VISUAL:
-👉 "${resolvedDescription}"
+✨ SUBTÍTULO / FRASE / DATA:
+👉 "${projectSubtitle}"
 
-🎉 OCASIÃO DO EVENTO: ${occasionBadge}
 👤 CLIENTE / HOMENAGEADO(A): "${projectClient}"
-✨ SUBTÍTULO / DATA / ANO: "${projectSubtitle}"
+🎉 OCASIÃO DO EVENTO: ${occasionBadge}
+📝 CONTEXTO & ATMOSFERA: "${resolvedDescription}"
 =======================================================
 
-📸 FOTOGRAFIA DE CAPA:
-(Utilize a fotografia principal selecionada em anexo como o elemento visual central e de maior destaque na composição).
+📸 FOTOGRAFIA PRINCIPAL:
+Utilize a foto selecionada em anexo como protagonista da capa, com iluminação envolvente e cinematográfica.
 
-✍️ TEXTOS A GRAVAR NA CAPA (CONTER ESTRITAMENTE APENAS ESTES ELEMENTOS):
-${isFormatura ? `1. 🎓 TÍTULO PRINCIPAL (NOME DO CURSO): "${projectName}"
-2. 👤 NOME DO ALUNO(A) / FORMANDO(A): "${projectClient}"
-3. ✨ SUBTEXTO (TURMA / ANO / FRASE): "${projectSubtitle}"` : `1. 📖 TÍTULO PRINCIPAL DA CAPA: "${projectName}"
-2. ✨ SUBTÍTULO / DATA / SUBTEXTO: "${projectSubtitle}"
-3. 👤 NOME / IDENTIFICAÇÃO: "${projectClient}"`}
-
-🎨 ESTILO VISUAL SELECIONADO: ${prompt.title} (${prompt.subtitle})
-${prompt.promptText}
+🎨 DIRETIVA DE ESTILO SELECIONADA:
+${customPromptWithTokens}
 
 📐 ESPECIFICAÇÕES TÉCNICAS E DE DESIGN:
 - Orientação: Estritamente Vertical (15x20 cm / Proporção 2:3 ou 3:4)
-- Resolução: Alta definição fotográfica (300 DPI)
-- Hierarquia Visual: O Nome do Projeto "${projectName}" e a atmosfera descrita em "${resolvedDescription}" devem conduzir a composição e o clima da arte.
-- Regra de Arte: Conter apenas a foto selecionada, o título principal e o subtítulo/subtexto informados. NÃO adicionar marcas d'água, logotipos comerciais ou textos institucionais de empresas.
-- Acabamento: Estética editorial de luxo, com enquadramento perfeito e área de respiro harmônica para a encadernação.
+- Resolução: Alta definição fotográfica (300 DPI Fine Art)
+- Hierarquia: Título "${projectName}", Subtítulo "${projectSubtitle}", Florão e assinatura "by VILLA7".
+- Sem elementos de terceiros: Não incluir logomarcas comerciais estranhas, marcas d'água ou textos de empresas terceiras.`;
+}
 
-Por favor, gere a imagem de capa pronta para uso no formato vertical 15x20 cm!`;
+/**
+ * Constrói o Prompt Completo e a Diretiva Oculta do Sistema para o Gemini / GPT Imagens
+ */
+export function buildGptCoverCreationPrompt(params: {
+  promptDef: CoverPromptDef;
+  albumTitle: string;
+  albumSubtitle?: string;
+  clientName?: string;
+  occasion?: string;
+  referenceImagesCount?: number;
+  spineText?: string;
+  foilColor?: string;
+}): { fullPrompt: string; hiddenSystemPrompt: string } {
+  const {
+    promptDef,
+    albumTitle,
+    albumSubtitle,
+    clientName,
+    occasion,
+    referenceImagesCount = 0,
+    spineText,
+    foilColor = 'gold',
+  } = params;
+
+  const resolvedTitle = (albumTitle || '').trim() || promptDef.suggestedTitleExample || 'Nossas Memórias';
+  const resolvedSubtitle = (albumSubtitle || '').trim() || promptDef.suggestedSubtitleExample || 'Momentos Especiais • 2026';
+  const resolvedClient = (clientName || '').trim() || 'Cliente Villa7';
+  const resolvedSpine = (spineText || '').trim() || `${resolvedTitle.toUpperCase()} • 2026`;
+
+  // Hidden System Prompt: Art Direction & Reference Matching Engine
+  const hiddenSystemPrompt = `[DIRETIVA OCULTA DO SISTEMA - DIRETOR DE ARTE VILLA7 FINE ART]
+Você é a IA mestre de design editorial e encadernação artesanal da grife Villa7 Álbuns Fotográficos.
+Sua missão é conceber a arte de capa dura fotográfica vertical 15x20 cm com a assinatura autêntica dos 5 álbuns oficiais da Villa7:
+1. Casamento ("Marcelo e Vitória - Uma história de amor")
+2. Infantil ("Primeiros Momentos")
+3. Ensaio Feminino ("Seu Melhor Momento")
+4. Masculino ("Minha História - Meus caminhos, minhas conquistas")
+5. Formatura ("Formatura - Uma nova jornada")
+
+DIRETRIZES TÉCNICAS OBRIGATÓRIAS:
+1. FORMATO: Capa Dura Vertical 15x20 cm (proporção 2:3 ou 3:4).
+2. HARMONIZAÇÃO COM ARQUÉTIPO E REFERÊNCIAS:
+   - Arquétipo Selecionado: "${promptDef.referenceArchetype || promptDef.title}"
+   ${
+     referenceImagesCount > 0
+       ? `O cliente enviou ${referenceImagesCount} imagem(ns) de referência de capa. Analise a linguagem visual anexada (paleta nobre, iluminação cinematográfica, textura de linho ou couro escuro e gravação a quente) e replique essa atmosfera de luxo com exatidão.`
+       : 'Utilize linguagem visual de alto luxo: textura de linho nobre ou couro preto fosco, fotografia cinematográfica e gravação metálica Hot Stamping.'
+   }
+3. DIAGRAMAÇÃO DO TERÇO INFERIOR:
+   - Título Principal: "${resolvedTitle}" em serifa display refinada com acabamento metálico ${foilColor.toUpperCase()}.
+   - Subtítulo: "${resolvedSubtitle}" em itálico delicado.
+   - Florão botânico centralizado.
+   - Assinatura oficial "by VILLA7" com o logotipo do livro aberto.
+4. LOMBADA VERTICAL (Área útil de 2x6 cm):
+   - Gravação com texto vertical em caixa alta: "${resolvedSpine}".
+5. REGRA DE OURO EDITORIAL:
+   - Preservar integridade de fisionomias das fotos originais (zero distorção fisionômica).
+   - Respiro nobre nas margens (10% de margem de segurança para a vira da encadernação).
+   - Sem logotipos comerciais ou textos de empresas terceiras.`;
+
+  const customPromptSubstituted = promptDef.promptText
+    .replace('{TITLE}', resolvedTitle)
+    .replace('{SUBTITLE}', resolvedSubtitle);
+
+  const fullPrompt = `${hiddenSystemPrompt}
+
+INSTRUÇÃO DE GERAÇÃO PARA O GPT IMAGENS / DALL-E:
+Crie uma imagem de capa dura vertical (15x20 cm) no estilo "${promptDef.title}".
+
+ESTILO & PALETA:
+${promptDef.paletteDescription}
+Tipografia: ${promptDef.suggestedTypography}
+
+ELEMENTOS DA ARTE:
+- FOTOGRAFIA: Integrar a fotografia principal da capa com enquadramento vertical harmonioso e atmosfera cinematográfica.
+- TERÇO INFERIOR:
+  • Título: "${resolvedTitle}"
+  • Subtítulo: "${resolvedSubtitle}"
+  • Florão floral decorativo
+  • Assinatura: "by VILLA7"
+- TEXTURA DE REVESTIMENTO: Couro preto fosco ou linho fino areia.
+- ACABAMENTO: Hot Stamping metálico ${foilColor} de altíssima definição (300 DPI Fine Art).`;
+
+  return { fullPrompt, hiddenSystemPrompt };
 }

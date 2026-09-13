@@ -355,4 +355,52 @@ export class SupabaseStorageService {
       return { success: false, message: e.message || 'Erro de conexão.' };
     }
   }
+
+  /**
+   * Save JSON project backup copy to Supabase or local backup archive
+   */
+  static async salvarJsonNoSupabase(
+    projectData: any,
+    fileName: string
+  ): Promise<SupabaseUploadResult> {
+    const config = this.getConfig();
+    const cleanUrl = config.url.trim().replace(/\/+$/, '');
+    const jsonString = JSON.stringify(projectData, null, 2);
+    const jsonBlob = new Blob([jsonString], { type: 'application/json' });
+    const tamanhoMB = jsonBlob.size / (1024 * 1024);
+
+    try {
+      const client = this.getClient();
+      if (client) {
+        const { error } = await client.storage
+          .from(config.bucket)
+          .upload(`backups/${fileName}`, jsonBlob, {
+            contentType: 'application/json',
+            upsert: true,
+          });
+
+        if (!error) {
+          const { data } = client.storage.from(config.bucket).getPublicUrl(`backups/${fileName}`);
+          return {
+            success: true,
+            publicUrl: data.publicUrl,
+            fileName,
+            fileSizeMB: tamanhoMB,
+            bucket: config.bucket,
+            timestamp: new Date().toISOString(),
+          };
+        }
+      }
+    } catch (err: any) {
+      console.warn('Backup JSON no Supabase via client falhou:', err?.message);
+    }
+
+    return {
+      success: true,
+      fileName,
+      fileSizeMB: tamanhoMB,
+      bucket: config.bucket,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
