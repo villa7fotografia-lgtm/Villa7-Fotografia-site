@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ClientData, PhotoItem, OccasionType, CoverData, PhotoCategory } from '../../types';
 import { MERCADO_LIVRE_PRODUCT_URL } from '../../constants/imageAssets';
+import { StudioHeroShowcase } from '../StudioHeroShowcase';
 
 interface Process1Props {
   clientData: ClientData;
@@ -280,6 +281,11 @@ export const Process1Preparation: React.FC<Process1Props> = ({
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-10">
+      {/* SHOWCASE HERO BANNER */}
+      <StudioHeroShowcase
+        onSelectOccasion={(occ) => onChangeClientData({ occasion: occ })}
+      />
+
       {/* SECTION HEADER */}
       <div className="text-center space-y-2 max-w-2xl mx-auto">
         <span className="text-xs font-bold uppercase tracking-wider text-[#B39770]">

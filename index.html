@@ -1,25 +1,440 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Villa7 Álbuns — Diagramação de Álbuns Fotográficos 15x20 Vertical</title><meta name="description" content="Plataforma profissional para compra de álbum, envio de fotos, criação de capa com IA, personalização de miolo, visualização 2D/3D e envio automatizado para produção." /><meta property="og:title" content="Villa7 Álbuns — Diagramação de Álbuns Fotográficos 15x20 Vertical" /><meta property="og:description" content="Plataforma profissional para compra de álbum, envio de fotos, criação de capa com IA, personalização de miolo, visualização 2D/3D e envio automatizado para produção." /><meta name="villa7-build" content="2026-09-13-a3-print-supabase-v2"><meta name="theme-color" content="#faf6f0"><style>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Villa7 Álbuns — Diagramação de Álbuns Fotográficos 15x20 Vertical</title><link rel="icon" type="image/svg+xml" href="/images/icon.svg"><link rel="alternate icon" href="/images/icon.svg"><link rel="apple-touch-icon" href="/images/icon.svg"><meta name="description" content="Plataforma profissional para compra de álbum, envio de fotos, criação de capa com IA, personalização de miolo, visualização 2D/3D e envio automatizado para produção." /><meta property="og:title" content="Villa7 Álbuns — Diagramação de Álbuns Fotográficos 15x20 Vertical" /><meta property="og:description" content="Plataforma profissional para compra de álbum, envio de fotos, criação de capa com IA, personalização de miolo, visualização 2D/3D e envio automatizado para produção." /><meta name="villa7-build" content="2026-09-13-a3-print-supabase-v2"><meta name="theme-color" content="#faf6f0"><style>
 :root{--bg:#f6f0e7;--paper:#fffdf9;--ink:#241d18;--muted:#776d63;--gold:#b5966d;--line:#dfd1bf;--green:#557253}*{box-sizing:border-box}body{margin:0;background:linear-gradient(#faf6f0,#f3ece2);color:var(--ink);font:14px Inter,system-ui,sans-serif}button,input,textarea{font:inherit}.top{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#fffaf5ef;border-bottom:1px solid #eadfce;position:sticky;top:0;z-index:20}.brand{font:24px Georgia;letter-spacing:.15em}.brand b{display:inline-grid;place-items:center;width:52px;height:52px;border:2px solid var(--gold);margin-right:12px;color:#86663f;font-weight:400}.online{background:#edf5eb;color:var(--green);padding:8px 12px;border-radius:999px;font-weight:800;font-size:11px}.wrap{width:min(1000px,calc(100% - 22px));margin:auto;padding:24px 0 80px}.hero{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:20px}.panel{background:var(--paper);border:1px solid #e2d5c4;border-radius:30px;box-shadow:0 20px 55px #39291916}.heroCopy{padding:34px;display:flex;flex-direction:column;justify-content:center}.ey{font-size:11px;letter-spacing:.18em;font-weight:900;color:#765a39}h1,h2{font-family:Georgia,serif;font-weight:400}h1{font-size:clamp(42px,7vw,64px);line-height:1.02;margin:12px 0 16px}h2{font-size:clamp(34px,5vw,48px);margin:10px 0 14px}.lead{font-size:17px;line-height:1.58;color:var(--muted)}.heroImg{padding:10px;overflow:hidden;order:-1}.heroImg img{width:100%;height:auto;object-fit:contain;border-radius:22px;display:block;background:#fffaf5}.btn{border:0;border-radius:999px;padding:13px 18px;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;justify-content:center;align-items:center}.dark{background:var(--ink);color:#fff}.gold{background:var(--gold);color:#fff}.soft{background:#fff;color:var(--ink);border:1px solid var(--line)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.builder{display:none}.builder.on{display:block}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#fff9;border:1px solid var(--line);padding:6px;border-radius:20px;margin-bottom:18px}.step{border:0;background:none;border-radius:14px;padding:10px 4px;color:#887c70;font-weight:800}.step.on{background:#fff;color:var(--ink);box-shadow:0 5px 16px #0001}.step b{display:inline-grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#eee4d7;margin-right:5px}.step.on b{background:var(--ink);color:#fff}.screen{display:none}.screen.on{display:block}.card{padding:30px}.box{background:#fbf6ee;border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0}.box h3{margin:0 0 7px}.box p{margin:0;color:var(--muted);line-height:1.5}.row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:11px}input,textarea{width:100%;border:1px solid #d8c8b5;border-radius:13px;padding:12px;background:#fff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.grid label{font-size:11px;font-weight:800;color:#6c6156}.grid input,.grid textarea{margin-top:5px}.grid textarea{min-height:64px}.full{grid-column:1/-1}.upload{position:relative;border:1.5px dashed #c7b496;border-radius:17px;padding:17px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;background:#fff}.upload input{position:absolute;inset:0;opacity:0}.tag{background:#edf5eb;color:var(--green);padding:6px 9px;border-radius:999px;font-size:10px}.wide{width:100%;margin-top:14px}.note{font-size:11px;line-height:1.55;color:var(--muted);background:#f3ede5;border-radius:13px;padding:11px;margin:12px 0}.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.saved{background:#edf5eb;color:var(--green);padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900}.spreads{display:grid;gap:25px}.spreadCard{background:#f7f1e9;border:1px solid var(--line);border-radius:18px;padding:11px}.spreadTop{display:flex;justify-content:space-between;font-size:11px;margin-bottom:7px}.spreadTop span{color:var(--muted)}.spread{position:relative;aspect-ratio:4/3;background:#fff;padding:15px;display:grid;gap:6px;overflow:hidden;touch-action:pan-y;box-shadow:0 10px 25px #0001}.spread:before{content:"";position:absolute;inset:6px;border:1px dashed #765a392a;pointer-events:none}.one{grid-template-columns:1fr}.one.v1-inset{padding:34px}.one.v1-left{grid-template-columns:1.65fr .55fr}.one.v1-left .frame:first-child{grid-column:1}.one.v1-right{grid-template-columns:.55fr 1.65fr}.one.v1-right .frame:first-child{grid-column:2}
 .two.v2-left{grid-template-columns:1.55fr .85fr}.two.v2-right{grid-template-columns:.85fr 1.55fr}.two.v2-right .frame:first-child{grid-column:2;grid-row:1}.two.v2-right .frame:nth-child(2){grid-column:1;grid-row:1}.two.v2-equal{grid-template-columns:1fr 1fr}.two.v2-stack{grid-template-columns:1fr;grid-template-rows:1.15fr .85fr}
 .three.v3-left{grid-template-columns:1.55fr .75fr;grid-template-rows:1fr 1fr}.three.v3-left .frame:first-child{grid-row:1/3}.three.v3-right{grid-template-columns:.75fr 1.55fr;grid-template-rows:1fr 1fr}.three.v3-right .frame:first-child{grid-column:2;grid-row:1/3}.three.v3-right .frame:nth-child(2){grid-column:1;grid-row:1}.three.v3-right .frame:nth-child(3){grid-column:1;grid-row:2}.three.v3-top{grid-template-columns:1fr 1fr;grid-template-rows:1.55fr .75fr}.three.v3-top .frame:first-child{grid-column:1/3}.three.v3-bottom{grid-template-columns:1fr 1fr;grid-template-rows:.75fr 1.55fr}.three.v3-bottom .frame:first-child{grid-column:1/3;grid-row:2}.three.v3-bottom .frame:nth-child(2){grid-column:1;grid-row:1}.three.v3-bottom .frame:nth-child(3){grid-column:2;grid-row:1}.three.v3-columns{grid-template-columns:1.45fr .85fr .85fr}
 .four.v4-left{grid-template-columns:1.55fr .75fr;grid-template-rows:repeat(3,1fr)}.four.v4-left .frame:first-child{grid-row:1/4}.four.v4-right{grid-template-columns:.75fr 1.55fr;grid-template-rows:repeat(3,1fr)}.four.v4-right .frame:first-child{grid-column:2;grid-row:1/4}.four.v4-right .frame:nth-child(2){grid-column:1;grid-row:1}.four.v4-right .frame:nth-child(3){grid-column:1;grid-row:2}.four.v4-right .frame:nth-child(4){grid-column:1;grid-row:3}.four.v4-top{grid-template-columns:repeat(3,1fr);grid-template-rows:1.55fr .72fr}.four.v4-top .frame:first-child{grid-column:1/4}.four.v4-bottom{grid-template-columns:repeat(3,1fr);grid-template-rows:.72fr 1.55fr}.four.v4-bottom .frame:first-child{grid-column:1/4;grid-row:2}.four.v4-bottom .frame:nth-child(2){grid-column:1;grid-row:1}.four.v4-bottom .frame:nth-child(3){grid-column:2;grid-row:1}.four.v4-bottom .frame:nth-child(4){grid-column:3;grid-row:1}.four.v4-mag-left{grid-template-columns:1fr 1fr .78fr;grid-template-rows:1fr 1fr .62fr}.four.v4-mag-left .frame:first-child{grid-column:1/3;grid-row:1/3}.four.v4-mag-left .frame:nth-child(2){grid-column:3;grid-row:1}.four.v4-mag-left .frame:nth-child(3){grid-column:3;grid-row:2}.four.v4-mag-left .frame:nth-child(4){grid-column:1/4;grid-row:3}.four.v4-mag-right{grid-template-columns:.78fr 1fr 1fr;grid-template-rows:1fr 1fr .62fr}.four.v4-mag-right .frame:first-child{grid-column:2/4;grid-row:1/3}.four.v4-mag-right .frame:nth-child(2){grid-column:1;grid-row:1}.four.v4-mag-right .frame:nth-child(3){grid-column:1;grid-row:2}.four.v4-mag-right .frame:nth-child(4){grid-column:1/4;grid-row:3}.four.v4-center{grid-template-columns:.72fr 1.42fr .72fr;grid-template-rows:1fr 1fr}.four.v4-center .frame:first-child{grid-column:2;grid-row:1/3}.four.v4-center .frame:nth-child(2){grid-column:1;grid-row:1}.four.v4-center .frame:nth-child(3){grid-column:1;grid-row:2}.four.v4-center .frame:nth-child(4){grid-column:3;grid-row:1/3}.four.v4-center-r{grid-template-columns:.72fr 1.42fr .72fr;grid-template-rows:1fr 1fr}.four.v4-center-r .frame:first-child{grid-column:2;grid-row:1/3}.four.v4-center-r .frame:nth-child(2){grid-column:1;grid-row:1/3}.four.v4-center-r .frame:nth-child(3){grid-column:3;grid-row:1}.four.v4-center-r .frame:nth-child(4){grid-column:3;grid-row:2}.four.v4-diag-a{grid-template-columns:1fr 1fr .78fr;grid-template-rows:1fr 1fr}.four.v4-diag-a .frame:first-child{grid-column:1/3;grid-row:1}.four.v4-diag-a .frame:nth-child(2){grid-column:3;grid-row:1}.four.v4-diag-a .frame:nth-child(3){grid-column:1;grid-row:2}.four.v4-diag-a .frame:nth-child(4){grid-column:2/4;grid-row:2}.four.v4-diag-b{grid-template-columns:.78fr 1fr 1fr;grid-template-rows:1fr 1fr}.four.v4-diag-b .frame:first-child{grid-column:2/4;grid-row:1}.four.v4-diag-b .frame:nth-child(2){grid-column:1;grid-row:1}.four.v4-diag-b .frame:nth-child(3){grid-column:1/3;grid-row:2}.four.v4-diag-b .frame:nth-child(4){grid-column:3;grid-row:2}.layoutBtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 8px;font-size:9px;color:#6b6055;cursor:pointer}.layoutBtn:active{transform:translateY(1px)}.frame{position:relative;overflow:hidden;background:#ddd;touch-action:pan-y}.frame img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}.frame em{position:absolute;left:5px;bottom:5px;background:#fffD;border-radius:999px;padding:4px 6px;font-size:7px;font-style:normal}.frame .star{position:absolute;right:5px;top:5px;border:0;border-radius:999px;background:#fffE;padding:5px 7px;font-size:10px;z-index:2}.frame.featured .star{background:#b5966d;color:#fff}.fold{position:absolute;left:50%;top:15px;bottom:15px;width:1px;background:#765a3930;pointer-events:none}.review{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;gap:8px;padding:10px 0;border-bottom:1px solid #eee0d0;font-size:12px}.auth input{margin-top:7px}.status{background:#eef6ed;border:1px solid #d4e3d1;border-radius:16px;padding:14px}.srow{display:flex;justify-content:space-between;padding:6px 0;font-size:12px}.bar{height:7px;background:#dce9d9;border-radius:999px;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;width:0;background:var(--gold)}.modal{position:fixed;inset:0;background:#241d1890;display:none;place-items:center;padding:16px;z-index:60}.modal.on{display:grid}.modalBox{width:min(480px,100%);background:#fff;border-radius:20px;padding:18px}.crop{aspect-ratio:4/3;overflow:hidden;background:#eee;border-radius:12px}.crop img{width:100%;height:100%;object-fit:cover}.ctl{margin-top:9px}.ctl label{display:flex;justify-content:space-between;font-size:10px;font-weight:800}.ctl input{padding:0;border:0}.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:none;background:var(--ink);color:#fff;padding:10px 14px;border-radius:999px;font-size:11px;z-index:70}
 /* editor de imagem */
-.color-editor{display:grid;grid-template-columns:minmax(250px,.82fr) minmax(0,1.5fr);gap:18px;align-items:start}.color-panel{background:#fbf6ee;border:1px solid var(--line);border-radius:18px;padding:16px}.color-panel h3{margin:0 0 6px}.color-panel p{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.5}.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.preset-section-label{margin:12px 0 7px;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#806b53}.preset-btn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:11px;text-align:left;color:var(--ink)}.preset-btn.active{border-color:var(--gold);outline:2px solid rgba(181,150,109,.18);background:#fffdf9}.preset-btn b{display:block;font-size:12px;margin-bottom:3px}.preset-btn span{display:block;font-size:10px;line-height:1.35;color:var(--muted)}.edit-controls{display:grid;gap:11px;margin-top:14px}.edit-control label{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:800;color:#675c51;margin-bottom:5px}.edit-control input[type=range]{width:100%}.edit-switches{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.edit-switch{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px;font-size:11px;font-weight:700;color:#665b50}.edit-switch input{width:auto;margin:0}.edit-preview{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.edit-preview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.edit-preview-head h3{margin:0}.edit-preview-head span{font-size:10px;color:var(--muted)}.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.compare-pane{position:relative;background:#eee6da;border-radius:14px;overflow:hidden;min-height:300px;display:flex;align-items:center;justify-content:center}.compare-pane img{display:block;max-width:100%;max-height:520px;width:auto;height:auto}.compare-tag{position:absolute;top:8px;left:8px;background:rgba(33,28,24,.72);color:#fff;border-radius:999px;padding:5px 8px;font-size:9px;z-index:2}.edit-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-top:11px;max-height:260px;overflow:auto;padding-right:2px}.edit-thumb{border:1px solid var(--line);background:#fff;border-radius:11px;overflow:hidden;padding:0;text-align:left}.edit-thumb.active{outline:2px solid var(--gold)}.edit-thumb img{width:100%;height:70px;object-fit:cover;display:block}.edit-thumb small{display:block;padding:5px 6px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px}.batch-preview{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.batch-preview figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.batch-preview img{width:100%;height:95px;object-fit:cover;display:block}.batch-preview figcaption{padding:6px;font-size:9px;color:var(--muted)}.editor-footer{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;margin-top:16px}.editor-footer .right{display:flex;gap:8px;flex-wrap:wrap}.color-approved{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;background:#edf5eb;color:var(--green);font-size:10px;font-weight:900}
+.color-editor{display:grid;grid-template-columns:minmax(270px,1fr) minmax(0,1.5fr);gap:18px;align-items:start}.color-panel{background:#fbf6ee;border:1px solid var(--line);border-radius:18px;padding:16px}.color-panel h3{margin:0 0 6px}.color-panel p{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.5}.preset-grid-films{display:grid;grid-template-columns:1fr;gap:10px}.film-card{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:13px;text-align:left;color:var(--ink);cursor:pointer;transition:all .2s ease;position:relative;overflow:hidden}.film-card:hover{border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 14px rgba(181,150,109,.15)}.film-card.active{border-color:var(--gold);outline:2px solid rgba(181,150,109,.3);background:#fffdf8}.film-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}.film-card b{font-size:13px;color:var(--ink);display:flex;align-items:center;gap:6px}.film-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:999px;background:#f4ede3;color:#7a6348}.film-card.active .film-badge{background:var(--gold);color:#fff}.film-card p{font-size:11px;line-height:1.4;color:var(--muted);margin:0}.edit-controls{display:grid;gap:11px;margin-top:14px}.edit-control label{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:800;color:#675c51;margin-bottom:5px}.edit-control input[type=range]{width:100%}.edit-switches{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.edit-switch{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px;font-size:11px;font-weight:700;color:#665b50}.edit-switch input{width:auto;margin:0}.edit-preview{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.edit-preview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.edit-preview-head h3{margin:0}.edit-preview-head span{font-size:10px;color:var(--muted)}.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.compare-pane{position:relative;background:#eee6da;border-radius:14px;overflow:hidden;min-height:300px;display:flex;align-items:center;justify-content:center}.compare-pane img{display:block;max-width:100%;max-height:520px;width:auto;height:auto}.compare-tag{position:absolute;top:8px;left:8px;background:rgba(33,28,24,.72);color:#fff;border-radius:999px;padding:5px 8px;font-size:9px;z-index:2}.compare-tag-badge{background:#edf5eb;color:var(--green);font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px}.edit-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-top:11px;max-height:260px;overflow:auto;padding-right:2px}.edit-thumb{border:1px solid var(--line);background:#fff;border-radius:11px;overflow:hidden;padding:0;text-align:left}.edit-thumb.active{outline:2px solid var(--gold)}.edit-thumb img{width:100%;height:70px;object-fit:cover;display:block}.edit-thumb small{display:block;padding:5px 6px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px}.batch-preview{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.batch-preview figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}.batch-preview img{width:100%;height:95px;object-fit:cover;display:block}.batch-preview figcaption{padding:6px;font-size:9px;color:var(--muted);font-weight:700}.editor-footer{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;margin-top:16px}.editor-footer .right{display:flex;gap:8px;flex-wrap:wrap}.color-approved{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;background:#edf5eb;color:var(--green);font-size:10px;font-weight:900}
 @media(max-width:700px){.color-editor{grid-template-columns:1fr}.preset-grid{grid-template-columns:1fr 1fr}.compare-grid{grid-template-columns:1fr}.compare-pane{min-height:220px}.batch-preview{grid-template-columns:1fr 1fr}.edit-switches{grid-template-columns:1fr}.editor-footer,.editor-footer .right{display:grid;grid-template-columns:1fr;width:100%}.editor-footer .btn,.editor-footer .right .btn{width:100%}.top{padding:0 14px}.brand{font-size:19px}.online{display:none}.wrap{width:calc(100% - 16px);padding-top:12px}.hero{grid-template-columns:1fr}.heroCopy,.card{padding:24px 18px}.heroImg img{height:auto}.steps{grid-template-columns:repeat(5,1fr)}.step{font-size:9px}.step b{display:block;margin:0 auto 3px}.grid,.review,.row{grid-template-columns:1fr}.head{display:block}.saved{display:inline-block;margin-top:8px}.spread{padding:12px}.actions .btn{flex:1}.spreads{gap:20px}}
-</style></head><body><header class="top"><div class="brand"><b>7</b>VILLA7 ÁLBUNS</div><span class="online">Online</span></header><main class="wrap"><section class="hero"><article class="panel heroImg"><img src="/images/catalogo_apresentacao_produtos.png" alt="Villa7 Álbuns — Compra Segura e Entrega Garantida Mercado Livre Oficial" referrerPolicy="no-referrer"></article><article class="panel heroCopy"><div class="ey">VILLA7 ÁLBUNS</div><h1>Seu álbum, do seu jeito.</h1><p class="lead">Escolha suas fotos, personalize a capa e acompanhe o álbum ganhar forma. São 10 lâminas, prontas para você revisar antes da produção.</p><div class="actions"><button class="btn dark" onclick="start()">Montar meu álbum →</button><a class="btn soft" target="_blank" rel="noopener" href="https://www.mercadolivre.com.br/up/MLBU5055878877?matt_tool=38524122&pdp_filters=item_id:MLB7574587310">Ver no Mercado Livre</a></div></article></section><section id="builder" class="builder"><nav class="steps"><button class="step on" onclick="show(0)"><b>1</b>Fotos</button><button class="step" onclick="goColorEditor()"><b>2</b>Editar fotos</button><button class="step" onclick="goAlbum()"><b>3</b>Álbum</button><button class="step" onclick="review()"><b>4</b>Revisão</button><button class="step" onclick="goFinal()"><b>5</b>Finalizar</button></nav><section class="screen on"><article class="panel card"><div class="ey">1 DE 5</div><h2>Vamos começar.</h2><p class="lead">Informe o pedido, prepare a capa e escolha até 40 fotos. Depois ajuste o estilo antes da montagem.</p><div class="box"><h3>Pedido Mercado Livre</h3><div class="row"><input id="order" placeholder="Número do pedido"><a class="btn soft" target="_blank" rel="noopener" href="https://www.mercadolivre.com.br/up/MLBU5055878877?matt_tool=38524122&pdp_filters=item_id:MLB7574587310">Comprar álbum</a></div></div><div class="box"><h3>Capa com IA</h3><p>Preencha os dados, copie o prompt e abra ChatGPT ou Gemini. O prompt fica oculto no app.</p><div class="grid"><label>Nome<input id="name" value="Marcelo e Vitória"></label><label>Subtítulo<input id="sub" value="Uma história de amor"></label><label>Lombada<input id="spine" value="Marcelo e Vitória"></label><label>Assunto<input id="subject" value="casal em traje formal"></label><label>Ambiente<input id="env" value="interior elegante"></label></div><div class="actions"><button class="btn gold" onclick="copyPrompt()">Copiar prompt</button><a class="btn dark" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT ↗</a><a class="btn soft" href="https://gemini.google.com/" target="_blank" rel="noopener">Gemini ↗</a></div></div><label class="upload"><span><strong>Capa pronta</strong><small>Imagem vertical final</small></span><span id="coverTag" class="tag">Escolher</span><input type="file" accept="image/*" onchange="loadCover(this)"></label><label class="upload"><span><strong>Fotos do álbum</strong><small>Máximo 40 fotos · exatamente 10 lâminas</small></span><span id="photoTag" class="tag">Até 40</span><input type="file" accept="image/*" multiple onchange="loadPhotos(this)"></label><button class="btn dark wide" onclick="prepare()">Editar minhas fotos →</button></article></section><section class="screen" id="colorScreen"><article class="panel card"><div class="head"><div><div class="ey">2 DE 5</div><h2>Ajuste o estilo das fotos.</h2><p class="lead">Escolha um estilo, ajuste uma foto ou aplique o mesmo visual ao lote. Confira antes de seguir para o álbum.</p></div><span class="saved" id="colorState">Aguardando aprovação</span></div><div class="color-editor"><div class="color-panel"><h3>Escolha um estilo</h3><p>Use uma opção pronta e ajuste só o necessário. A proporção das fotos não é alterada.</p><div class="preset-section-label">Estilos essenciais</div><div class="preset-grid" id="presetBasic"></div><div class="preset-section-label">Filmes & estilos editoriais</div><div class="preset-grid" id="presetFilm"></div><div class="edit-controls"><div class="edit-control"><label><span>Intensidade</span><b id="strengthVal">65%</b></label><input id="strengthRange" type="range" min="0" max="100" value="65" oninput="updateEditor()"></div><div class="edit-control"><label><span>Luz</span><b id="lightVal">0</b></label><input id="lightRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div><div class="edit-control"><label><span>Contraste</span><b id="contrastVal">0</b></label><input id="contrastRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div><div class="edit-control"><label><span>Cor</span><b id="colorVal">0</b></label><input id="colorRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div><div class="edit-control"><label><span>Calor</span><b id="warmVal">0</b></label><input id="warmRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div></div><div class="edit-switches"><label class="edit-switch"><input id="autoEdit" type="checkbox" checked onchange="updateEditor()"> Ajuste automático</label><label class="edit-switch"><input id="skinEdit" type="checkbox" checked onchange="updateEditor()"> Pele natural</label></div><div class="actions"><button class="btn soft" type="button" onclick="resetEditor()">Voltar ao natural</button><button class="btn soft" type="button" onclick="applyCurrentPhoto()">Salvar nesta foto</button><button class="btn soft" type="button" onclick="downloadEditedPhoto()">Baixar foto editada</button><button class="btn gold" type="button" onclick="applyStyleAll()">Aplicar em todas</button></div></div><div><div class="edit-preview"><div class="edit-preview-head"><div><h3>Prévia antes de aplicar</h3><span id="editCounter">Foto 1</span></div><span>Original × tratada</span></div><div class="compare-grid"><div class="compare-pane"><span class="compare-tag">Original</span><img id="editOriginal" alt="Foto original"></div><div class="compare-pane"><span class="compare-tag">Tratada</span><img id="editResult" alt="Foto tratada"></div></div><div class="edit-thumbs" id="editThumbs"></div></div><div class="color-panel" style="margin-top:12px"><h3>Veja em diferentes fotos</h3><p>Confira rapidamente se o estilo funciona bem no conjunto antes da aprovação.</p><div class="batch-preview" id="batchPreview"></div></div></div></div><div class="editor-footer"><button class="btn soft" onclick="show(0)">← Voltar</button><div class="right"><button class="btn soft" onclick="applyStyleAll()">Aplicar ao lote</button><button class="btn dark" onclick="approveColor()">Aprovar edição e montar álbum →</button></div></div></article></section><section class="screen"><article class="panel card"><div class="head"><div><div class="ey">3 DE 5</div><h2>Seu álbum.</h2><p class="lead">Arraste para trocar fotos. Dois toques ajustam o enquadramento. Toque na estrela para escolher a foto de destaque de cada lâmina.</p></div><span class="saved">10 lâminas fixas</span></div><div class="note">Cada lâmina recebe uma formação diferente automaticamente e mantém uma foto de destaque. As imagens nunca são esticadas: o enquadramento preserva a proporção original e pode ser ajustado por você.</div><div id="spreads" class="spreads"></div><div class="actions"><button class="btn soft" onclick="show(1)">← Voltar à edição</button><button class="btn soft" onclick="layout(true)">Montar novamente</button><button class="btn dark" onclick="review()">Revisar →</button></div></article></section><section class="screen"><article class="panel card"><div class="ey">4 DE 5</div><h2>Última conferência.</h2><div class="review"><div class="box"><h3>Resumo</h3><ul id="summary"></ul></div><div class="box"><h3>Arquivo final</h3><ul><li>10 lâminas / 20 páginas</li><li>Fundo branco</li><li>Marcas de corte e vinco</li><li>Dados do pedido em corpo pequeno</li><li>Download + cópia no Supabase</li></ul></div></div><label class="check"><input id="c1" type="checkbox">Revisei a capa.</label><label class="check"><input id="c2" type="checkbox">Revisei as 10 lâminas.</label><label class="check"><input id="c3" type="checkbox">Aprovo esta versão.</label><div class="box auth"><h3>Autorizar</h3><p>Digite a senha ou o número do pedido.</p><input id="auth" type="password" placeholder="Senha ou pedido"></div><div class="actions"><button class="btn soft" onclick="show(2)">← Editar álbum</button><span id="pdfPreflight" class="note" style="margin:0;flex:1">Preparando arquivo para aprovação…</span><button id="approveBtn" class="btn gold" onclick="approve()" disabled>Aguarde o PDF ficar pronto…</button></div></article></section><section class="screen"><article class="panel card"><div class="ey">5 DE 5</div><h2>Tudo pronto.</h2><p class="lead">O PDF de impressão A3 foi preparado. Uma cópia fica no dispositivo e a mesma cópia segue para a pasta de produção no Supabase.</p><div class="status"><div class="srow"><span>PDF de impressão A3</span><b id="ps">Aguardando</b></div><div class="srow"><span>Cópia no aparelho</span><b id="ds">Aguardando</b></div><div class="srow"><span>Supabase · documentos/impressao</span><b id="cs">Aguardando</b></div><div class="bar"><i id="bar"></i></div></div><div class="actions"><a id="again" class="btn dark" style="display:none" href="#" download="Villa7_album.pdf" onclick="markManualDownload()">Baixar PDF final</a></div></article></section></section></main><div id="modal" class="modal"><div class="modalBox"><h3>Ajustar foto</h3><div class="crop"><img id="cropImg"></div><div class="ctl"><label>Zoom <b id="zv"></b></label><input id="zr" type="range" min="1" max="2" step=".01" oninput="cropPreview()"></div><div class="ctl"><label>Horizontal <b id="xv"></b></label><input id="xr" type="range" min="0" max="100" oninput="cropPreview()"></div><div class="ctl"><label>Vertical <b id="yv"></b></label><input id="yr" type="range" min="0" max="100" oninput="cropPreview()"></div><div class="actions"><button class="btn soft" onclick="closeCrop()">Cancelar</button><button class="btn dark" onclick="saveCrop()">Salvar</button></div></div></div><div id="toast" class="toast"></div><script>
-const SB='https://karrymkbollvtqzksmas.supabase.co',KEY='sb_publishable_Y_xMGL98RXPftAfyiqT2OA_54c1oLbO',BU='pdf',PRINT_FOLDER='documentos/impressao',MAX=40,SPREADS=10;let cover=null,photos=[],lays=[],cropT=null,lastTap={k:'',t:0},lastBlob=null,lastName='',lastUrl='',editIndex=0,colorApproved=false,activePreset='natural',pdfBuildPromise=null,pdfVersion=0,albumApproved=false;const $=x=>document.getElementById(x),v=(x,d='')=>$(x)?.value.trim()||d;function msg(t){const el=$('toast');if(!el)return;el.textContent=t;el.style.display='block';setTimeout(()=>el.style.display='none',1600)}function start(){const el=$('builder');if(!el)return;el.classList.add('on');show(0)}function show(n){document.querySelectorAll('.screen').forEach((e,i)=>e.classList.toggle('on',i===n));document.querySelectorAll('.step').forEach((e,i)=>e.classList.toggle('on',i===n));$('builder')?.scrollIntoView({behavior:'smooth'})}function invalidatePdf(){pdfVersion++;pdfBuildPromise=null;albumApproved=false;lastBlob=null;lastName='';if(lastUrl){try{URL.revokeObjectURL(lastUrl)}catch(_){ }lastUrl=''}const b=$('again');if(b){b.style.display='none';b.removeAttribute('href')}const ap=$('approveBtn');if(ap){ap.disabled=true;ap.textContent='Aguarde o PDF ficar pronto…'}const pf=$('pdfPreflight');if(pf)pf.textContent='Preparando arquivo para aprovação…';if($('ps'))$('ps').textContent='Aguardando';if($('ds'))$('ds').textContent='Aguardando';if($('cs'))$('cs').textContent='Aguardando';if($('bar'))$('bar').style.width='0%'}function goFinal(){if(albumApproved&&lastBlob)return show(4);return review()}function goColorEditor(){if(!photos.length)return show(0);renderColorEditor();show(1)}function goAlbum(){if(!photos.length)return show(0);if(!colorApproved){renderColorEditor();show(1);return msg('Aprove a edição das fotos para continuar')}render();show(2)}function promptText(){return `Crie capa vertical 3:4, editorial fine art premium. Projeto: ${v('name','Projeto')}. Subtítulo: ${v('sub','')}. Lombada: ${v('spine',v('name','Projeto'))}. Assunto: ${v('subject','pessoa ou cena principal')}. Ambiente: ${v('env','elegante')}. Luz dourada lateral, contraste cinematográfico, tons terrosos, dourado, preto e bege. Preserve rigorosamente a identidade das pessoas. Não inserir texto ou logotipo na imagem; apenas deixar espaço inferior para tipografia.`}async function copyPrompt(){try{await navigator.clipboard.writeText(promptText())}catch{}msg('Prompt copiado ✓')}const fileUrl=f=>URL.createObjectURL(f);function defaultEdit(){return {preset:'natural',strength:65,light:0,contrast:0,color:0,warmth:0,auto:true,skin:true}}async function loadCover(i){if(!i.files[0])return;if(cover?.url?.startsWith('blob:'))URL.revokeObjectURL(cover.url);cover={url:fileUrl(i.files[0]),file:i.files[0]};invalidatePdf();$('coverTag').textContent='Pronta ✓'}async function loadPhotos(i){let f=[...i.files];if(f.length>MAX){i.value='';photos=[];$('photoTag').textContent='Máximo 40';return msg('Escolha no máximo 40 fotos')}photos.forEach(p=>{if(p.url?.startsWith('blob:'))URL.revokeObjectURL(p.url)});photos=f.map((x,idx)=>({url:fileUrl(x),file:x,name:x.name||`Foto ${idx+1}`,z:1,x:50,y:50,edit:defaultEdit(),custom:false}));$('photoTag').textContent=photos.length+' fotos';colorApproved=false;activePreset='natural';editIndex=0;invalidatePdf();layout(false)}function prepare(){if(!cover)return msg('Envie a capa');if(!photos.length)return msg('Envie as fotos');renderColorEditor();show(1)}
-const EDIT_PRESETS={natural:{label:'Natural',desc:'Equilíbrio leve e fiel',brightness:1.02,contrast:1.03,saturate:1.03,sepia:0,hue:0,gray:0},warm:{label:'Quente / Dourado',desc:'Luz quente e tons elegantes',brightness:1.05,contrast:1.08,saturate:1.12,sepia:.12,hue:-6,gray:0},fine:{label:'Editorial suave',desc:'Clareza leve e cor delicada',brightness:1.08,contrast:.97,saturate:.93,sepia:.04,hue:0,gray:0},cinema:{label:'Cinema leve',desc:'Contraste sutil e cor refinada',brightness:1.01,contrast:1.11,saturate:.98,sepia:.05,hue:-2,gray:0},vivid:{label:'Vibrante',desc:'Mais presença sem exagero',brightness:1.02,contrast:1.10,saturate:1.18,sepia:0,hue:0,gray:0},vintage:{label:'Vintage',desc:'Tons suaves e memória impressa',brightness:1.02,contrast:.95,saturate:.86,sepia:.20,hue:-4,gray:0},bw:{label:'Preto & branco',desc:'Contraste clássico e atemporal',brightness:1.02,contrast:1.10,saturate:0,sepia:0,hue:0,gray:1}};
+</style></head><body><header class="top"><a href="#" class="brand" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" style="display:flex;align-items:center;text-decoration:none" aria-label="Villa7 Álbuns"><img src="/images/logo.svg" alt="Villa7 Álbuns" style="height:48px;max-width:280px;width:auto;display:block"></a><span class="online">Online</span></header><main class="wrap"><section class="hero"><article class="panel heroImg"><a target="_blank" rel="noopener" href="https://www.mercadolivre.com.br/up/MLBU5055878877?matt_tool=38524122&pdp_filters=item_id:MLB7574587310" style="display:block;text-decoration:none;border-radius:22px;overflow:hidden"><img src="/images/catalogo_apresentacao_produtos.png" alt="Villa7 Álbuns — Compra Segura e Entrega Garantida Mercado Livre Oficial" referrerPolicy="no-referrer"></a></article><article class="panel heroCopy"><div class="ey">VILLA7 ÁLBUNS</div><h1>Seu álbum, do seu jeito.</h1><p class="lead">Escolha suas fotos, personalize a capa e acompanhe o álbum ganhar forma. São 10 lâminas, prontas para você revisar antes da produção.</p><div class="actions"><button class="btn dark" onclick="start()">Montar meu álbum →</button><a class="btn soft" target="_blank" rel="noopener" href="https://www.mercadolivre.com.br/up/MLBU5055878877?matt_tool=38524122&pdp_filters=item_id:MLB7574587310">Ver no Mercado Livre</a></div></article></section><section id="builder" class="builder"><nav class="steps"><button class="step on" onclick="show(0)"><b>1</b>Fotos</button><button class="step" onclick="goColorEditor()"><b>2</b>Editar fotos</button><button class="step" onclick="goAlbum()"><b>3</b>Álbum</button><button class="step" onclick="review()"><b>4</b>Revisão</button><button class="step" onclick="goFinal()"><b>5</b>Finalizar</button></nav><section class="screen on"><article class="panel card"><div class="ey">1 DE 5</div><h2>Vamos começar.</h2><p class="lead">Preencha os dados abaixo, prepare sua capa e escolha até 40 fotos para o seu álbum 15x20 Vertical.</p><div class="box"><h3>Dados do Álbum e Pedido</h3><p>Informe os dados para identificação e personalização do seu pedido.</p><div class="grid"><label class="full">Nome em destaque no álbum<input id="name" value="Marcelo e Vitória" placeholder="Ex: Marcelo e Vitória"></label><label class="full">Sub texto<input id="sub" value="Uma história de amor" placeholder="Ex: Uma história de amor ou Data do evento"></label><label>Nome de quem está adquirindo<input id="buyer" value="Marcelo da Silva" placeholder="Nome completo do comprador"></label><label>WhatsApp<input id="whatsapp" value="(11) 99999-9999" placeholder="(00) 00000-0000"></label><label class="full">Número do pedido no Mercado Livre<div class="row" style="margin-top:5px"><input id="order" placeholder="Ex: 2000001234567890"><a class="btn soft" target="_blank" rel="noopener" href="https://www.mercadolivre.com.br/up/MLBU5055878877?matt_tool=38524122&pdp_filters=item_id:MLB7574587310">Comprar álbum ↗</a></div></label></div></div><div class="box"><h3>Capa com IA</h3><p>Gerador de prompt automático com base nos dados informados acima para criar sua capa no ChatGPT ou Gemini.</p><div class="actions"><button class="btn gold" onclick="copyPrompt()">Copiar prompt para Capa IA</button><a class="btn dark" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT ↗</a><a class="btn soft" href="https://gemini.google.com/" target="_blank" rel="noopener">Gemini ↗</a></div></div><label class="upload"><span><strong>Capa pronta</strong><small>Imagem vertical final (3:4)</small></span><span id="coverTag" class="tag">Escolher</span><input type="file" accept="image/*" onchange="loadCover(this)"></label><label class="upload"><span><strong>Fotos do álbum</strong><small>Máximo 40 fotos · exatamente 10 lâminas</small></span><span id="photoTag" class="tag">Até 40</span><input type="file" accept="image/*" multiple onchange="loadPhotos(this)"></label><button class="btn dark wide" onclick="prepare()">Editar minhas fotos →</button></article></section><section class="screen" id="colorScreen"><article class="panel card"><div class="head"><div><div class="ey">2 DE 5 · FILMES ANALÓGICOS DE MODA</div><h2>Ajuste o estilo das fotos.</h2><p class="lead">Escolha um dos 3 filmes analógicos coloridos profissionais de moda. O filtro escolhido é aplicado em lote em todas as fotos e segue para a diagramação automática.</p></div><span class="saved" id="colorState">Aguardando aprovação</span></div><div class="color-editor"><div class="color-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3 style="margin:0">3 Filmes Analógicos Coloridos</h3><span class="tag" style="background:#f2ede4;color:#85663f;font-weight:800;font-size:10px">Pro Fashion</span></div><p style="margin-bottom:14px">Selecione o filme analógico para o seu lote de fotos. Você pode reverter a qualquer momento ou testar outro filtro:</p><div class="preset-grid-films" id="presetFilmsList"></div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn soft" type="button" style="flex:1;font-size:11px;padding:9px 10px" onclick="revertToOriginal()">↩ Reverter ao Original</button><button class="btn gold" type="button" style="flex:1;font-size:11px;padding:9px 10px" onclick="applyStyleAll()">✨ Aplicar em Todas (Lote)</button></div><div class="edit-controls" style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)"><div style="font-weight:800;font-size:11px;color:#786652;margin-bottom:4px">Ajuste Fino de Intensidade (Opcional)</div><div class="edit-control"><label><span>Intensidade do Filme</span><b id="strengthVal">65%</b></label><input id="strengthRange" type="range" min="0" max="100" value="65" oninput="updateEditor()"></div><div class="edit-control"><label><span>Luz e Brilho</span><b id="lightVal">0</b></label><input id="lightRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div><div class="edit-control"><label><span>Contraste Editorial</span><b id="contrastVal">0</b></label><input id="contrastRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div><div class="edit-control"><label><span>Saturação de Cor</span><b id="colorVal">0</b></label><input id="colorRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div><div class="edit-control"><label><span>Calor Térmico</span><b id="warmVal">0</b></label><input id="warmRange" type="range" min="-20" max="20" value="0" oninput="updateEditor()"></div></div><div class="edit-switches" style="margin-top:10px"><label class="edit-switch"><input id="autoEdit" type="checkbox" checked onchange="updateEditor()"> Nitidez analógica</label><label class="edit-switch"><input id="skinEdit" type="checkbox" checked onchange="updateEditor()"> Proteção de tom de pele</label></div></div><div><div class="edit-preview"><div class="edit-preview-head"><div><h3>Prévia do Filtro</h3><span id="editCounter">Foto 1</span></div><div style="display:flex;gap:6px;align-items:center"><span class="compare-tag-badge">Original × Filme Tratado</span><button class="btn soft" type="button" style="padding:4px 10px;font-size:11px" onclick="openReviewModal()">🔍 Review em Tela Cheia</button></div></div><div class="compare-grid"><div class="compare-pane"><span class="compare-tag">Original</span><img id="editOriginal" alt="Foto original"></div><div class="compare-pane"><span class="compare-tag" id="treatedTag">Filme Aplicado</span><img id="editResult" alt="Foto tratada com filme"></div></div><div class="edit-thumbs" id="editThumbs"></div></div><div class="color-panel" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Amostra do Lote Completo</h3><button class="btn soft" type="button" style="padding:4px 10px;font-size:11px" onclick="openReviewModal()">Ver Tudo no Review ↗</button></div><p style="margin-top:4px;margin-bottom:10px">Veja como as fotos do seu álbum se comportam com o filme selecionado:</p><div class="batch-preview" id="batchPreview"></div></div></div></div><div class="editor-footer"><button class="btn soft" onclick="show(0)">← Voltar às Fotos</button><div class="right"><button class="btn soft" onclick="openReviewModal()">🔍 Review do Lote</button><button class="btn gold" onclick="applyStyleAll()">✨ Aplicar ao Lote</button><button class="btn dark" onclick="approveColor()">Aprovar Filme & Diagramar Automático →</button></div></div></article></section><section class="screen"><article class="panel card"><div class="head"><div><div class="ey">3 DE 5</div><h2>Seu álbum.</h2><p class="lead">Arraste para trocar fotos. Dois toques ajustam o enquadramento. Toque na estrela para escolher a foto de destaque de cada lâmina.</p></div><span class="saved">10 lâminas fixas</span></div><div class="note">Cada lâmina recebe uma formação diferente automaticamente e mantém uma foto de destaque. As imagens nunca são esticadas: o enquadramento preserva a proporção original e pode ser ajustado por você.</div><div id="spreads" class="spreads"></div><div class="actions"><button class="btn soft" onclick="show(1)">← Voltar à edição</button><button class="btn soft" onclick="layout(true)">Montar novamente</button><button class="btn dark" onclick="review()">Revisar →</button></div></article></section><section class="screen"><article class="panel card"><div class="ey">4 DE 5</div><h2>Última conferência.</h2><div class="review"><div class="box"><h3>Resumo</h3><ul id="summary"></ul></div><div class="box"><h3>Arquivo final</h3><ul><li>10 lâminas / 20 páginas</li><li>Fundo branco</li><li>Marcas de corte e vinco</li><li>Dados do pedido em corpo pequeno</li><li>Download + cópia de segurança em nuvem</li></ul></div></div><label class="check" style="font-weight:700;font-size:13px;padding:14px 0;cursor:pointer"><input id="c1" type="checkbox" style="width:auto;transform:scale(1.2);margin-right:8px"> Revisei a capa, as 10 lâminas e aprovo esta versão final para impressão.</label><div class="box auth"><h3>Autorizar</h3><p>Digite a senha ou o número do pedido.</p><input id="auth" type="password" placeholder="Senha ou pedido"></div><div class="actions"><button class="btn soft" onclick="show(2)">← Editar álbum</button><span id="pdfPreflight" class="note" style="margin:0;flex:1">Preparando arquivo para aprovação…</span><button id="approveBtn" class="btn gold" onclick="approve()" disabled>Aguarde o PDF ficar pronto…</button></div></article></section><section class="screen"><article class="panel card"><div class="ey">5 DE 5</div><h2>Tudo pronto.</h2><p class="lead">O PDF de impressão A3 foi preparado. O download foi iniciado em seu dispositivo e o arquivo final enviado para a produção.</p><div class="status"><div class="srow"><span>PDF de impressão A3</span><b id="ps">Aguardando</b></div><div class="srow"><span>Cópia no aparelho</span><b id="ds">Aguardando</b></div><div class="srow"><span>Servidor de Produção</span><b id="cs">Aguardando</b></div><div class="bar"><i id="bar"></i></div></div><div class="actions"><a id="again" class="btn dark" style="display:none" href="#" download="Villa7_album.pdf" onclick="markManualDownload()">Baixar PDF final</a></div></article></section></section><footer style="margin-top:36px;padding:28px 12px 16px;text-align:center;font-size:12px;color:var(--muted);border-top:1px solid var(--line);letter-spacing:0.02em"><div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px"><img src="/images/icon.svg" alt="Villa7 Icon" style="height:32px;width:auto;opacity:0.9"></div>Idealizado e programado por <a href="https://instagram.com/eupaulohenriqui" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">@eupaulohenriqui</a></footer></main><div id="modal" class="modal"><div class="modalBox"><h3>Ajustar foto</h3><div class="crop"><img id="cropImg"></div><div class="ctl"><label>Zoom <b id="zv"></b></label><input id="zr" type="range" min="1" max="2" step=".01" oninput="cropPreview()"></div><div class="ctl"><label>Horizontal <b id="xv"></b></label><input id="xr" type="range" min="0" max="100" oninput="cropPreview()"></div><div class="ctl"><label>Vertical <b id="yv"></b></label><input id="yr" type="range" min="0" max="100" oninput="cropPreview()"></div><div class="actions"><button class="btn soft" onclick="closeCrop()">Cancelar</button><button class="btn dark" onclick="saveCrop()">Salvar</button></div></div></div><div id="reviewModal" class="modal"><div class="modalBox" style="width:min(900px,96vw);max-height:90vh;overflow:auto"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:10px"><div><h3 style="margin:0">🔍 Review Geral do Lote de Fotos</h3><span style="font-size:12px;color:var(--muted)" id="reviewModalSub">Confira a aplicação do filme em todas as fotos</span></div><button class="btn soft" type="button" onclick="closeReviewModal()">✕ Fechar</button></div><div id="reviewGridContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:16px"></div><div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px"><button class="btn soft" type="button" onclick="revertToOriginal();closeReviewModal()">↩ Reverter ao Original</button><button class="btn gold" type="button" onclick="applyStyleAll();approveColor();closeReviewModal()">✨ Aprovar Filme e Ir para Álbum →</button></div></div></div><div id="toast" class="toast"></div><script>
+const SB='https://karrymkbollvtqzksmas.supabase.co',KEY='sb_publishable_Y_xMGL98RXPftAfyiqT2OA_54c1oLbO',BU='pdf',PRINT_FOLDER='documentos/impressao',MAX=40,SPREADS=10;let cover=null,photos=[],lays=[],cropT=null,lastTap={k:'',t:0},lastBlob=null,lastName='',lastUrl='',editIndex=0,colorApproved=false,activePreset='portra',pdfBuildPromise=null,pdfVersion=0,albumApproved=false;const $=x=>document.getElementById(x),v=(x,d='')=>$(x)?.value.trim()||d;function msg(t){const el=$('toast');if(!el)return;el.textContent=t;el.style.display='block';setTimeout(()=>el.style.display='none',1600)}function start(){const el=$('builder');if(!el)return;el.classList.add('on');show(0)}function show(n){document.querySelectorAll('.screen').forEach((e,i)=>e.classList.toggle('on',i===n));document.querySelectorAll('.step').forEach((e,i)=>e.classList.toggle('on',i===n));$('builder')?.scrollIntoView({behavior:'smooth'})}function invalidatePdf(){pdfVersion++;pdfBuildPromise=null;albumApproved=false;lastBlob=null;lastName='';if(lastUrl){try{URL.revokeObjectURL(lastUrl)}catch(_){ }lastUrl=''}const b=$('again');if(b){b.style.display='none';b.removeAttribute('href')}const ap=$('approveBtn');if(ap){ap.disabled=true;ap.textContent='Aguarde o PDF ficar pronto…'}const pf=$('pdfPreflight');if(pf)pf.textContent='Preparando arquivo para aprovação…';if($('ps'))$('ps').textContent='Aguardando';if($('ds'))$('ds').textContent='Aguardando';if($('cs'))$('cs').textContent='Aguardando';if($('bar'))$('bar').style.width='0%'}function goFinal(){if(albumApproved&&lastBlob)return show(4);return review()}function goColorEditor(){if(!photos.length)return show(0);renderColorEditor();show(1)}function goAlbum(){if(!photos.length)return show(0);if(!colorApproved){renderColorEditor();show(1);return msg('Aprove a edição das fotos para continuar')}render();show(2)}function promptText(){return `CRIE A ARTE FINAL PLANA DE UMA CAPA DE ÁLBUM FOTOGRÁFICO PREMIUM,
+UTILIZANDO EXCLUSIVAMENTE A FOTOGRAFIA ENVIADA COMO BASE VISUAL.
+
+IMPORTANTE:
+Não criar mockup.
+Não mostrar álbum físico.
+Não criar perspectiva 3D.
+Não mostrar mesa, cenário ou fundo externo.
+A saída deve ser somente a ARTE GRÁFICA PLANA pronta para composição/impressão.
+
+========================================================
+1. FORMATO OBRIGATÓRIO
+========================================================
+
+Criar um único arquivo VERTICAL com dimensão final de:
+
+17 cm de largura × 21 cm de altura.
+
+Divisão horizontal da largura:
+
+• 2 cm à esquerda = LOMBADA
+• 15 cm à direita = CAPA FRONTAL
+
+Portanto:
+
+| 2 cm LOMBADA | 15 cm CAPA FRONTAL |
+
+A lombada e a capa devem fazer parte da MESMA COMPOSIÇÃO,
+sem separação visual brusca.
+
+Não alterar essas proporções.
+
+Para referência em 300 DPI:
+• arquivo completo: aproximadamente 2008 × 2480 px
+• lombada: aproximadamente 236 × 2480 px
+• capa frontal: aproximadamente 1772 × 2480 px
+
+A linha imaginária localizada a 2 cm da lateral esquerda
+define exatamente o término da lombada e início da capa.
+
+========================================================
+2. PRIMEIRO: ANALISAR A FOTOGRAFIA
+========================================================
+
+ANTES de criar qualquer elemento gráfico, faça uma análise visual da
+fotografia enviada.
+
+Analise:
+
+• assunto principal;
+• tipo de evento;
+• posição das pessoas;
+• direção do olhar;
+• enquadramento;
+• simetria ou assimetria;
+• áreas de respiro;
+• áreas claras e escuras;
+• contraste;
+• iluminação;
+• profundidade;
+• arquitetura ou cenário;
+• cores predominantes;
+• temperatura da imagem;
+• nível de formalidade;
+• sensação emocional;
+• estilo fotográfico;
+• presença de elementos clássicos, modernos, românticos,
+  documentais, minimalistas ou editoriais.
+
+Identifique também as áreas da fotografia onde textos podem ser
+inseridos sem cobrir rostos, pessoas ou elementos importantes.
+
+========================================================
+3. ESCOLHA INTELIGENTE DA TIPOGRAFIA
+========================================================
+
+NÃO utilizar sempre a mesma fonte.
+
+A tipografia deve ser escolhida SOMENTE DEPOIS da análise
+da fotografia.
+
+Escolha uma família tipográfica que combine naturally com a
+linguagem visual encontrada.
+
+Exemplos de raciocínio:
+
+• fotografia clássica/elegante:
+  serif editorial refinada;
+
+• fotografia romântica:
+  serif delicada ou serif editorial suave;
+
+• fotografia contemporânea/minimalista:
+  serif moderna ou sans-serif sofisticada;
+
+• fotografia documental:
+  tipografia discreta, limpa e atemporal;
+
+• fotografia fashion/fine art:
+  serif de alto contraste com linguagem editorial;
+
+• fotografia familiar/descontraída:
+  tipografia mais acolhedora e humanista;
+
+• fotografia arquitetônica/moderna:
+  tipografia limpa, estruturada e geométrica.
+
+A fonte escolhida deve parecer ter sido criada especialmente
+para aquela fotografia.
+
+Priorizar:
+elegância,
+legibilidade,
+atemporalidade,
+refinamento editorial
+e boa reprodução impressa.
+
+Evitar fontes genéricas, exageradamente decorativas,
+infantis ou com aparência de template.
+
+A tipografia deve aceitar corretamente acentos e caracteres
+do português.
+
+========================================================
+4. TRATAMENTO DA FOTOGRAFIA
+========================================================
+
+Preservar integralmente:
+
+• identidade das pessoas;
+• rostos;
+• expressões;
+• roupas;
+• cenário;
+• características reais;
+• proporções corporais.
+
+Não inventar pessoas ou objetos.
+
+O plano de fundo deve permanecer dentro do CONTEXTO REAL da imagem.
+
+É permitido editar o fundo de forma LÚDICA, poética e editorial,
+mas sem descaracterizar o ambiente verdadeiro da fotografia.
+
+O tratamento lúdico deve ser sutil e elegante, podendo incluir:
+
+• suavização seletiva;
+• atmosfera levemente onírica;
+• refinamento tonal;
+• profundidade visual;
+• realce de luz;
+• transições delicadas;
+• sensação artística discreta;
+• valorização do clima emocional da cena.
+
+IMPORTANTE:
+Mesmo com esse tratamento lúdico, o fundo deve continuar coerente
+com a fotografia original e reconhecível como parte real da cena.
+
+Não transformar o cenário em fantasia total.
+Não trocar o fundo por outro ambiente.
+Não inserir elementos decorativos aleatórios que não pertençam
+à lógica visual da foto.
+
+É permitido realizar apenas ajustes editoriais sutis para integrar
+a imagem ao projeto:
+
+• enquadramento;
+• expansão discreta de fundo quando necessária;
+• contraste localizado;
+• leve escurecimento atrás da tipografia;
+• pequenas transições de luminosidade;
+• correção cromática;
+• vinheta extremamente discreta;
+• tratamento tonal coerente com a fotografia.
+
+Não aplicar filtros fortes.
+
+A fotografia deve continuar sendo o elemento principal.
+
+========================================================
+5. CAPA FRONTAL — ÁREA DE 15 × 21 CM
+========================================================
+
+Criar uma composição editorial sofisticada.
+
+A fotografia deve ocupar a capa de maneira nobre,
+respeitando o enquadramento original sempre que possível.
+
+Estabelecer hierarquia visual:
+
+1. FOTOGRAFIA
+2. TÍTULO
+3. SUBTÍTULO / DATA, quando fornecido
+
+TÍTULO:
+"${v('name','Marcelo e Vitória')}"
+
+SUBTÍTULO:
+"${v('sub','')}"
+
+DATA:
+""
+
+Utilizar SOMENTE os textos fornecidos.
+Não inventar nomes, frases, datas, slogans ou informações.
+
+NÃO inserir assinatura de marca, logotipo ou texto
+“Villa7 Álbuns” na capa, a menos que isso seja solicitado
+explicitamente em outra instrução.
+
+========================================================
+6. POSICIONAMENTO DO TÍTULO
+========================================================
+
+NÃO posicionar automaticamente o título sempre no mesmo lugar.
+
+Analise a fotografia e encontre a melhor área de respiro.
+
+O título poderá ficar:
+
+• terço inferior;
+• centro inferior;
+• lateral;
+• centro;
+• excepcionalmente na região superior;
+
+desde que essa seja a melhor decisão para aquela fotografia.
+
+Nunca cobrir:
+
+• rostos;
+• olhos;
+• mãos importantes;
+• detalhes emocionais;
+• elementos principais da cena.
+
+Quando necessário, criar apenas uma intervenção tonal muito sutil
+na área atrás do texto para aumentar sua legibilidade.
+
+========================================================
+7. COR DA TIPOGRAFIA
+========================================================
+
+Selecionar as cores dos textos com base na própria fotografia.
+
+Extrair visualmente uma pequena paleta da imagem.
+
+A tipografia poderá utilizar, conforme o caso:
+
+• marfim;
+• creme;
+• branco quente;
+• preto;
+• grafite;
+• bege;
+• dourado discreto;
+• marrom;
+• ou outra cor extraída da fotografia.
+
+A cor deve gerar contraste suficiente sem parecer artificial.
+
+Não utilizar automaticamente dourado em todas as capas.
+
+========================================================
+8. LOMBADA — 2 × 21 CM
+========================================================
+
+Os 2 cm da lateral esquerda pertencem exclusivamente à lombada.
+
+A lombada deve parecer uma CONTINUAÇÃO NATURAL DA CAPA.
+
+Sempre que visualmente adequado, prolongar a própria fotografia
+até a lombada.
+
+Se a região ficar visualmente confusa, utilizar uma versão derivada
+da fotografia:
+
+• tonalidade dominante;
+• textura;
+• degradê muito discreto;
+• área escurecida;
+• detalhe ampliado/desfocado da própria imagem.
+
+Nunca criar uma lombada que pareça desconectada da capa.
+
+========================================================
+9. TEXTO DA LOMBADA
+========================================================
+
+Utilizar:
+
+"${v('name','Marcelo e Vitória')}"
+
+Aplicar o texto verticalmente na lombada.
+
+O texto da lombada deve ficar CENTRALIZADO visualmente no eixo da lombada,
+com alinhamento equilibrado e margens internas confortáveis.
+
+Centralizar o texto de forma elegante dentro da faixa de 2 cm,
+evitando que fique muito próximo das bordas superior, inferior
+ou laterais.
+
+O texto deve utilizar a mesma linguagem tipográfica da capa,
+podendo receber peso ou tamanho adaptado para melhorar a leitura.
+
+Não inserir o texto “Villa7 Álbuns” na lombada.
+
+Se houver símbolo ou marca, só utilizar se for solicitado
+explicitamente; caso contrário, manter a lombada limpa.
+
+========================================================
+10. INTEGRAÇÃO ENTRE CAPA E LOMBADA
+========================================================
+
+A composição deve parecer uma única peça gráfica de 17 × 21 cm.
+
+Não criar:
+
+• borda grossa entre lombada e capa;
+• linha branca de divisão;
+• moldura artificial;
+• mudança brusca de cor;
+• aparência de dois arquivos unidos.
+
+O observador deve perceber continuidade visual mesmo sabendo
+que os primeiros 2 cm pertencem à lombada.
+
+========================================================
+11. ESTÉTICA
+========================================================
+
+Direção de arte:
+
+premium,
+editorial,
+fotográfica,
+minimalista,
+sofisticada,
+atemporal,
+elegante,
+afetiva,
+com acabamento de álbum profissional.
+
+O plano de fundo deve permanecer realista na essência,
+porém com acabamento lúdico sutil, refinado e coerente
+com a emoção da imagem.
+
+Inspirar-se em livros fotográficos e álbuns editoriais de luxo,
+não em templates genéricos de casamento.
+
+Utilizar espaço negativo com intenção.
+
+Evitar excesso de ornamentos.
+
+Quando a fotografia possuir grande força visual,
+utilizar menos elementos gráficos.
+
+Quando houver elementos ornamentais,
+eles devem ser mínimos e derivados da linguagem da fotografia.
+
+========================================================
+12. REGRAS ABSOLUTAS
+========================================================
+
+NÃO:
+• inventar textos;
+• alterar nomes;
+• alterar ortografia;
+• alterar rostos;
+• substituir pessoas;
+• criar pessoas extras;
+• gerar mockup;
+• gerar capa inclinada;
+• mostrar lombada em perspectiva;
+• inserir cenário externo;
+• inserir flores decorativas aleatórias;
+• utilizar ornamentos genéricos;
+• aplicar tipografia sobre rostos;
+• distorcer a fotografia;
+• alterar a proporção da fotografia;
+• remover o contexto real do fundo;
+• inserir “Villa7 Álbuns” automaticamente.
+
+SIM:
+• analisar individualmente cada fotografia;
+• adaptar o design ao conteúdo da imagem;
+• escolher tipografia após a análise;
+• preservar a fotografia;
+• manter o plano de fundo dentro do real da imagem;
+• aplicar tratamento lúdico sutil e elegante;
+• centralizar o texto da lombada;
+• remover a marca “Villa7 Álbuns” da composição;
+• criar hierarquia editorial;
+• manter alta legibilidade;
+• integrar capa e lombada;
+• produzir aparência de material gráfico premium.
+
+========================================================
+13. RESULTADO FINAL
+========================================================
+
+Entregar UMA ÚNICA ARTE VERTICAL PLANA:
+
+17 × 21 cm
+
+sendo:
+
+2 × 21 cm = lombada à esquerda
+15 × 21 cm = capa frontal à direita.
+
+A composição deve estar perfeitamente alinhada e pronta para ser
+utilizada como base de impressão de um álbum fotográfico premium.`}async function copyPrompt(){try{await navigator.clipboard.writeText(promptText())}catch{}msg('Prompt copiado ✓')}const fileUrl=f=>URL.createObjectURL(f);function defaultEdit(){return {preset:'portra',strength:65,light:0,contrast:0,color:0,warmth:0,auto:true,skin:true}}async function loadCover(i){if(!i.files[0])return;if(cover?.url?.startsWith('blob:'))URL.revokeObjectURL(cover.url);cover={url:fileUrl(i.files[0]),file:i.files[0]};invalidatePdf();$('coverTag').textContent='Pronta ✓'}async function loadPhotos(i){let f=[...i.files];if(f.length>MAX){i.value='';photos=[];$('photoTag').textContent='Máximo 40';return msg('Escolha no máximo 40 fotos')}photos.forEach(p=>{if(p.url?.startsWith('blob:'))URL.revokeObjectURL(p.url)});photos=f.map((x,idx)=>({url:fileUrl(x),file:x,name:x.name||`Foto ${idx+1}`,z:1,x:50,y:50,edit:defaultEdit(),custom:false}));$('photoTag').textContent=photos.length+' fotos';colorApproved=false;activePreset='portra';editIndex=0;invalidatePdf();layout(false)}function prepare(){if(!v('name'))return msg('Informe o nome em destaque no álbum');if(!v('buyer'))return msg('Informe o nome de quem está adquirindo');if(!v('whatsapp'))return msg('Informe o WhatsApp');if(!v('order'))return msg('Informe o número do pedido no Mercado Livre');if(!cover)return msg('Envie a capa pronta');if(!photos.length)return msg('Envie as fotos do álbum');renderColorEditor();show(1)}
+const EDIT_PRESETS={portra:{label:'Kodak Portra 400',badge:'Moda & Retrato',desc:'Tons de pele quentes e suaves, sombras macias e iluminação editorial clássica de revistas.',brightness:1.05,contrast:1.04,saturate:1.10,sepia:.10,hue:-5,gray:0},fuji:{label:'Fuji Pro 400H',badge:'Luz Natural',desc:'Verdes e azuis pastéis luminosos, realces arejados e estética sofisticada para ensaios externos.',brightness:1.08,contrast:.98,saturate:.94,sepia:.03,hue:3,gray:0},ektar:{label:'Kodak Ektar 100',badge:'Look Book Moda',desc:'Cores ricas e vibrantes, contraste marcado e pretos profundos para campanhas de moda marcantes.',brightness:1.02,contrast:1.12,saturate:1.22,sepia:.02,hue:-2,gray:0},natural:{label:'Original sem filtro',badge:'Sem tratamento',desc:'Imagem original sem alteração de tom ou cor.',brightness:1.0,contrast:1.0,saturate:1.0,sepia:0,hue:0,gray:0}};
 function currentEdit(){return {preset:activePreset,strength:+$('strengthRange')?.value||65,light:+$('lightRange')?.value||0,contrast:+$('contrastRange')?.value||0,color:+$('colorRange')?.value||0,warmth:+$('warmRange')?.value||0,auto:$('autoEdit')?.checked??true,skin:$('skinEdit')?.checked??true}}
-function computedFilter(edit){edit=edit||defaultEdit();const p=EDIT_PRESETS[edit.preset]||EDIT_PRESETS.natural,t=Math.max(0,Math.min(1,(edit.strength??65)/100)),mix=(v,base=1)=>base+(v-base)*t;let br=mix(p.brightness)*(1+(edit.light||0)/100),ct=mix(p.contrast)*(1+(edit.contrast||0)/100),sat=mix(p.saturate)*(1+(edit.color||0)/100),sep=Math.max(0,mix(p.sepia,0)+(Math.max(0,edit.warmth||0)/100)*.08),hue=mix(p.hue,0)-(edit.warmth||0)*.18,gray=mix(p.gray,0);if(edit.auto){br*=1.025;ct*=1.025}if(edit.skin){sat=Math.min(sat,1.16);sep=Math.min(sep,.16);hue=Math.max(-8,Math.min(8,hue))}return `brightness(${br.toFixed(3)}) contrast(${ct.toFixed(3)}) saturate(${Math.max(0,sat).toFixed(3)}) sepia(${sep.toFixed(3)}) hue-rotate(${hue.toFixed(2)}deg) grayscale(${gray.toFixed(3)})`}
+function computedFilter(edit){edit=edit||defaultEdit();const p=EDIT_PRESETS[edit.preset]||EDIT_PRESETS.portra,t=Math.max(0,Math.min(1,(edit.strength??65)/100)),mix=(v,base=1)=>base+(v-base)*t;let br=mix(p.brightness)*(1+(edit.light||0)/100),ct=mix(p.contrast)*(1+(edit.contrast||0)/100),sat=mix(p.saturate)*(1+(edit.color||0)/100),sep=Math.max(0,mix(p.sepia,0)+(Math.max(0,edit.warmth||0)/100)*.08),hue=mix(p.hue,0)-(edit.warmth||0)*.18,gray=mix(p.gray,0);if(edit.auto){br*=1.02;ct*=1.02}if(edit.skin){sat=Math.min(sat,1.18);sep=Math.min(sep,.15);hue=Math.max(-8,Math.min(8,hue))}return `brightness(${br.toFixed(3)}) contrast(${ct.toFixed(3)}) saturate(${Math.max(0,sat).toFixed(3)}) sepia(${sep.toFixed(3)}) hue-rotate(${hue.toFixed(2)}deg) grayscale(${gray.toFixed(3)})`}
 function setPreset(k){if(!EDIT_PRESETS[k])return;const e=currentEdit();e.preset=k;if(photos[editIndex])photos[editIndex].edit={...e};activePreset=k;colorApproved=false;invalidatePdf();renderColorEditor()}
-function updateEditor(invalidate=true){if(!$('strengthRange'))return;if(invalidate){colorApproved=false;invalidatePdf();}$('strengthVal').textContent=$('strengthRange').value+'%';$('lightVal').textContent=$('lightRange').value;$('contrastVal').textContent=$('contrastRange').value;$('colorVal').textContent=$('colorRange').value;$('warmVal').textContent=$('warmRange').value;const f=computedFilter(currentEdit());if($('editResult'))$('editResult').style.filter=f;document.querySelectorAll('#batchPreview img').forEach(x=>x.style.filter=f);if(invalidate&&$('colorState')){$('colorState').textContent='Aguardando aprovação';$('colorState').classList.remove('color-approved')}}
-function renderColorEditor(){if(!photos.length||!$('presetBasic')||!$('presetFilm'))return;editIndex=Math.max(0,Math.min(editIndex,photos.length-1));const base=photos[editIndex].edit||defaultEdit();activePreset=base.preset||activePreset||'natural';const buttons=keys=>keys.map(k=>{const p=EDIT_PRESETS[k];return `<button type="button" class="preset-btn ${k===activePreset?'active':''}" onclick="setPreset('${k}')"><b>${p.label}</b><span>${p.desc}</span></button>`}).join('');$('presetBasic').innerHTML=buttons(['natural','warm','fine','vivid']);$('presetFilm').innerHTML=buttons(['cinema','vintage','bw']);$('strengthRange').value=base.strength??65;$('lightRange').value=base.light??0;$('contrastRange').value=base.contrast??0;$('colorRange').value=base.color??0;$('warmRange').value=base.warmth??0;$('autoEdit').checked=base.auto!==false;$('skinEdit').checked=base.skin!==false;$('editOriginal').src=photos[editIndex].url;$('editResult').src=photos[editIndex].url;$('editCounter').textContent=`Foto ${editIndex+1} de ${photos.length}`;$('editThumbs').innerHTML=photos.map((p,i)=>`<button type="button" class="edit-thumb ${i===editIndex?'active':''}" onclick="selectEditPhoto(${i})"><img src="${p.url}" style="filter:${computedFilter(p.edit)}"><small>${p.name||'Foto '+(i+1)}${p.custom?' · ajuste próprio':''}</small></button>`).join('');const sample=[...new Set([0,Math.floor((photos.length-1)*.33),Math.floor((photos.length-1)*.66),photos.length-1])].filter(i=>i>=0&&i<photos.length);$('batchPreview').innerHTML=sample.map(i=>`<figure><img src="${photos[i].url}" style="filter:${computedFilter(currentEdit())}"><figcaption>Foto ${i+1}</figcaption></figure>`).join('');if(colorApproved){$('colorState').textContent='Edição aprovada';$('colorState').classList.add('color-approved')}else{$('colorState').textContent='Aguardando aprovação';$('colorState').classList.remove('color-approved')}updateEditor(false)}
-function selectEditPhoto(i){if(photos[editIndex])photos[editIndex].edit={...currentEdit()};editIndex=i;const e=photos[i].edit||defaultEdit();activePreset=e.preset||'natural';renderColorEditor()}
+function updateEditor(invalidate=true){if(!$('strengthRange'))return;if(invalidate){colorApproved=false;invalidatePdf();}$('strengthVal').textContent=$('strengthRange').value+'%';$('lightVal').textContent=$('lightRange').value;$('contrastVal').textContent=$('contrastRange').value;$('colorVal').textContent=$('colorRange').value;$('warmVal').textContent=$('warmRange').value;const f=computedFilter(currentEdit());if($('editResult'))$('editResult').style.filter=f;document.querySelectorAll('#batchPreview img').forEach(x=>x.style.filter=f);if(invalidate&&$('colorState')){$('colorState').textContent='Aguardando aprovação do filme';$('colorState').classList.remove('color-approved')}}
+function renderColorEditor(){if(!photos.length||!$('presetFilmsList'))return;editIndex=Math.max(0,Math.min(editIndex,photos.length-1));const base=photos[editIndex].edit||defaultEdit();activePreset=base.preset||activePreset||'portra';const filmKeys=['portra','fuji','ektar'];$('presetFilmsList').innerHTML=filmKeys.map(k=>{const p=EDIT_PRESETS[k];const isActive=k===activePreset;return `<div class="film-card ${isActive?'active':''}" onclick="setPreset('${k}')"><div class="film-card-header"><b>🎞️ ${p.label}</b><span class="film-badge">${p.badge}</span></div><p>${p.desc}</p></div>`}).join('');$('strengthRange').value=base.strength??65;$('lightRange').value=base.light??0;$('contrastRange').value=base.contrast??0;$('colorRange').value=base.color??0;$('warmRange').value=base.warmth??0;$('autoEdit').checked=base.auto!==false;$('skinEdit').checked=base.skin!==false;if($('editOriginal'))$('editOriginal').src=photos[editIndex].url;if($('editResult'))$('editResult').src=photos[editIndex].url;if($('editCounter'))$('editCounter').textContent=`Foto ${editIndex+1} de ${photos.length}`;if($('treatedTag'))$('treatedTag').textContent=`${EDIT_PRESETS[activePreset]?.label||'Filme'} (${base.strength??65}%)`;if($('editThumbs'))$('editThumbs').innerHTML=photos.map((p,i)=>`<button type="button" class="edit-thumb ${i===editIndex?'active':''}" onclick="selectEditPhoto(${i})"><img src="${p.url}" style="filter:${computedFilter(p.edit)}"><small>${p.name||'Foto '+(i+1)}${p.custom?' · personalizado':''}</small></button>`).join('');const sample=[...new Set([0,Math.floor((photos.length-1)*.33),Math.floor((photos.length-1)*.66),photos.length-1])].filter(i=>i>=0&&i<photos.length);if($('batchPreview'))$('batchPreview').innerHTML=sample.map(i=>`<figure><img src="${photos[i].url}" style="filter:${computedFilter(currentEdit())}"><figcaption>Foto ${i+1} · ${EDIT_PRESETS[activePreset]?.label?.split(' ')[0]||''}</figcaption></figure>`).join('');if(colorApproved){if($('colorState')){$('colorState').textContent=`Filme Aprovado: ${EDIT_PRESETS[activePreset]?.label}`;$('colorState').classList.add('color-approved')}}else{if($('colorState')){$('colorState').textContent='Aguardando aprovação do filme';$('colorState').classList.remove('color-approved')}}updateEditor(false)}
+function selectEditPhoto(i){if(photos[editIndex])photos[editIndex].edit={...currentEdit()};editIndex=i;const e=photos[i].edit||defaultEdit();activePreset=e.preset||'portra';renderColorEditor()}
 function applyCurrentPhoto(){if(!photos.length)return;photos[editIndex].edit={...currentEdit()};photos[editIndex].custom=true;colorApproved=false;invalidatePdf();renderColorEditor();msg(`Ajuste salvo na foto ${editIndex+1} ✓`)}
-function applyStyleAll(){if(!photos.length)return;const e=currentEdit();photos.forEach(p=>{p.edit={...e};p.custom=false});colorApproved=false;invalidatePdf();renderColorEditor();msg(`Estilo aplicado em ${photos.length} fotos ✓`)}
+function applyStyleAll(){if(!photos.length)return;const e=currentEdit();photos.forEach(p=>{p.edit={...e};p.custom=false});colorApproved=false;invalidatePdf();renderColorEditor();const filmName=EDIT_PRESETS[activePreset]?.label||'Filme';msg(`Filme ${filmName} aplicado em lote nas ${photos.length} fotos ✓`)}
+function revertToOriginal(){activePreset='natural';if($('strengthRange'))$('strengthRange').value=0;if($('lightRange'))$('lightRange').value=0;if($('contrastRange'))$('contrastRange').value=0;if($('colorRange'))$('colorRange').value=0;if($('warmRange'))$('warmRange').value=0;if($('autoEdit'))$('autoEdit').checked=false;if($('skinEdit'))$('skinEdit').checked=false;if(photos.length){const e=currentEdit();photos.forEach(p=>{p.edit={...e};p.custom=false})}colorApproved=false;invalidatePdf();renderColorEditor();msg('Filtros revertidos. Fotos restauradas ao original ✓')}
 async function downloadEditedPhoto(){if(!photos.length)return msg('Envie uma foto primeiro');const p=photos[editIndex];p.edit={...currentEdit()};try{const im=await load(p.url),cv=document.createElement('canvas');cv.width=im.naturalWidth||im.width;cv.height=im.naturalHeight||im.height;const c=cv.getContext('2d');c.filter=computedFilter(p.edit);c.drawImage(im,0,0,cv.width,cv.height);c.filter='none';cv.toBlob(blob=>{if(!blob)return msg('Não foi possível preparar a foto');const base=(p.name||`foto-${editIndex+1}`).replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]+/g,'-');blobDownload(blob,`${base}_Villa7.jpg`);msg('Foto editada pronta ✓')},'image/jpeg',.94)}catch(e){console.error(e);msg('Não foi possível baixar a foto editada')}}
-function resetEditor(){activePreset='natural';$('strengthRange').value=0;$('lightRange').value=0;$('contrastRange').value=0;$('colorRange').value=0;$('warmRange').value=0;$('autoEdit').checked=false;$('skinEdit').checked=false;updateEditor()}
-function approveColor(){if(!photos.length)return msg('Envie as fotos primeiro');const e=currentEdit();photos[editIndex].edit={...e};photos.forEach((p,i)=>{if(i!==editIndex&&!p.custom)p.edit={...e}});colorApproved=true;layout(false);render();show(2);msg('Edição aprovada e aplicada ao álbum ✓')}
+function resetEditor(){revertToOriginal()}
+function approveColor(){if(!photos.length)return msg('Envie as fotos primeiro');const e=currentEdit();photos.forEach(p=>{p.edit={...e};p.custom=false});colorApproved=true;layout(false);render();show(2);const filmName=EDIT_PRESETS[activePreset]?.label||'Filme';msg(`Filme ${filmName} aprovado! Diagramação automática das fotos realizada ✓`)}
+function openReviewModal(){if(!photos.length)return msg('Nenhuma foto enviada');const modal=$('reviewModal');if(!modal)return;const currentF=computedFilter(currentEdit());const filmName=EDIT_PRESETS[activePreset]?.label||'Filme';if($('reviewModalSub'))$('reviewModalSub').textContent=`Visualização de todas as ${photos.length} fotos com o filme ${filmName}`;const grid=$('reviewGridContainer');if(grid){grid.innerHTML=photos.map((p,i)=>`<div style="background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04)"><div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:#f2ede4"><img src="${p.url}" style="width:100%;height:100%;object-fit:cover;filter:${currentF}"><span style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:999px">#${i+1}</span></div><div style="padding:6px 8px;font-size:10px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name||'Foto '+(i+1)}</div></div>`).join('')}modal.classList.add('on')}
+function closeReviewModal(){const modal=$('reviewModal');if(modal)modal.classList.remove('on')}
 function variantPool(n){if(n===1)return['v1-inset','v1-left','v1-right'];if(n===2)return['v2-left','v2-right','v2-equal','v2-stack'];if(n===3)return['v3-left','v3-right','v3-top','v3-bottom','v3-columns'];return['v4-left','v4-right','v4-top','v4-bottom','v4-mag-left','v4-mag-right','v4-center','v4-center-r','v4-diag-a','v4-diag-b']}
 function variantLabel(vr){return({"v1-inset":"Foto central","v1-left":"Foto à esquerda","v1-right":"Foto à direita","v2-left":"Dupla editorial","v2-right":"Dupla invertida","v2-equal":"Dupla equilibrada","v2-stack":"Dupla horizontal","v3-left":"Destaque à esquerda","v3-right":"Destaque à direita","v3-top":"Destaque superior","v3-bottom":"Destaque inferior","v3-columns":"Trio em colunas","v4-left":"Destaque à esquerda","v4-right":"Destaque à direita","v4-top":"Destaque superior","v4-bottom":"Destaque inferior","v4-mag-left":"Editorial em L","v4-mag-right":"Editorial invertido","v4-center":"Destaque central","v4-center-r":"Destaque central invertido","v4-diag-a":"Mosaico editorial A","v4-diag-b":"Mosaico editorial B"})[vr]||'Editorial'}
 function chooseVariant(n,spreadIndex){let pool=variantPool(n);return pool[spreadIndex%pool.length]}
@@ -27,7 +442,50 @@ function layout(sh){if(sh)invalidatePdf();let o=photos.map((_,i)=>i);if(sh)o.sor
 function tpl(n){return n===1?'one':n===2?'two':n===3?'three':'four'}
 function frame(si,sl,pi){let p=photos[pi],feat=lays[si].featured===pi;return `<div class="frame ${feat?'featured':''}" draggable="true" data-k="${si}-${sl}"><img src="${p.url}" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z});filter:${computedFilter(p.edit)}"><button type="button" class="star" data-star="${si}-${sl}" aria-label="Marcar foto em destaque">${feat?'★':'☆'}</button><span class="hint">2 toques para ajustar</span></div>`}function cycleVariant(si){let l=lays[si],pool=variantPool(l.slots.length),idx=pool.indexOf(l.variant);l.variant=pool[(idx+1+pool.length)%pool.length];render();msg('Nova formação aplicada ✓')}
 function render(){const root=$('spreads');if(!root)return;root.innerHTML=lays.map((l,i)=>`<div class="spreadCard"><div class="spreadTop"><b>Lâmina ${i+1}</b><span>${variantLabel(l.variant)} · ${l.slots.length} foto(s) <button type="button" class="layoutBtn" data-layout="${i}">Trocar formação</button></span></div><div class="spread ${tpl(l.slots.length)} ${l.variant}">${l.slots.map((p,j)=>frame(i,j,p)).join('')}<i class="fold"></i></div></div>`).join('');bind();document.querySelectorAll('.layoutBtn').forEach(b=>b.onclick=e=>{e.stopPropagation();cycleVariant(+b.dataset.layout)})}
-function key(k){let[a,b]=k.split('-').map(Number);return[a,b]}function setFeatured(k){invalidatePdf();let[a,b]=key(k),pi=lays[a].slots[b],idx=lays[a].slots.indexOf(pi);if(idx>0)[lays[a].slots[0],lays[a].slots[idx]]=[lays[a].slots[idx],lays[a].slots[0]];lays[a].featured=pi;render();msg('Destaque escolhido ✓')}function swap(a,b){if(!a||a===b)return;invalidatePdf();let A=key(a),B=key(b),x=lays[A[0]].slots[A[1]],y=lays[B[0]].slots[B[1]];lays[A[0]].slots[A[1]]=y;lays[B[0]].slots[B[1]]=x;if(lays[A[0]].featured===x)lays[A[0]].featured=y;if(lays[B[0]].featured===y)lays[B[0]].featured=x;render()}function bind(){document.querySelectorAll('.frame').forEach(e=>{e.ondragstart=x=>x.dataTransfer.setData('text',e.dataset.k);e.ondragover=x=>x.preventDefault();e.ondrop=x=>{x.preventDefault();swap(x.dataTransfer.getData('text'),e.dataset.k)};e.ondblclick=()=>openCrop(e.dataset.k);e.onpointerup=x=>{if(x.target.closest('.star'))return;let n=Date.now();if(lastTap.k===e.dataset.k&&n-lastTap.t<360){openCrop(e.dataset.k);lastTap={k:'',t:0}}else lastTap={k:e.dataset.k,t:n}}});document.querySelectorAll('.star').forEach(e=>e.onclick=x=>{x.stopPropagation();setFeatured(e.dataset.star)})}function openCrop(k){let[a,b]=key(k),pi=lays[a].slots[b],p=photos[pi];cropT=pi;const img=$('cropImg');img.src=p.url;img.style.filter=computedFilter(p.edit);$('zr').value=p.z;$('xr').value=p.x;$('yr').value=p.y;cropPreview();$('modal').classList.add('on')}function cropPreview(){const img=$('cropImg'),zr=$('zr'),xr=$('xr'),yr=$('yr');img.style.objectPosition=xr.value+'% '+yr.value+'%';img.style.transform='scale('+zr.value+')';$('zv').textContent=(+zr.value).toFixed(2)+'×';$('xv').textContent=xr.value+'%';$('yv').textContent=yr.value+'%'}function closeCrop(){$('modal').classList.remove('on')}function saveCrop(){let p=photos[cropT];p.z=+$('zr').value;p.x=+$('xr').value;p.y=+$('yr').value;invalidatePdf();closeCrop();render();msg('Enquadramento salvo ✓')}function review(){if(!colorApproved){renderColorEditor();show(1);return msg('Aprove a edição das fotos antes de revisar o álbum')}const sum=$('summary');if(sum)sum.innerHTML=`<li><b>${v('name','Projeto')}</b></li><li>Pedido: ${v('order','não informado')}</li><li>${photos.length} fotos</li><li>Edição: ${EDIT_PRESETS[photos[0]?.edit?.preset||'natural']?.label||'Natural'}</li><li><b>10 lâminas / 20 páginas</b></li>`;show(3);preparePdfForApproval()}function productionPassword(){return String.fromCharCode(86,105,108,108,97,112,97,122,50,54)}async function approve(){if(!$('c1').checked||!$('c2').checked||!$('c3').checked)return msg('Marque as confirmações');let a=v('auth'),ord=v('order').replace(/\W/g,''),ok=ord&&a.replace(/\W/g,'')===ord,pass=a===productionPassword();if(!ok&&!pass)return msg('Senha ou pedido não confere');if(!lastBlob){preparePdfForApproval();return msg('Aguarde o PDF ficar pronto para aprovar')}albumApproved=true;show(4);$('ps').textContent=`A3 · 1 capa + 10 lâminas · ${(lastBlob.size/1048576).toFixed(1)} MB`;$('bar').style.width='72%';setDownloadReady();const downloaded=blobDownload(lastBlob,lastName);$('ds').textContent=downloaded?'Download iniciado':'Toque em “Baixar PDF final”';await uploadApprovedPdf()}const load=u=>new Promise((r,j)=>{let url=typeof u==='string'?u:(u?.url||(u instanceof Blob||u instanceof File?URL.createObjectURL(u):null));if(!url)return j(new Error('URL de imagem em falta ou inválida'));let i=new Image();if(/^https?:\/\//i.test(url)){i.crossOrigin='anonymous'}i.onload=()=>r(i);i.onerror=()=>j(new Error('Falha ao carregar imagem ('+String(url).substring(0,80)+')'));i.src=url});
+function key(k){let[a,b]=k.split('-').map(Number);return[a,b]}function setFeatured(k){invalidatePdf();let[a,b]=key(k),pi=lays[a].slots[b],idx=lays[a].slots.indexOf(pi);if(idx>0)[lays[a].slots[0],lays[a].slots[idx]]=[lays[a].slots[idx],lays[a].slots[0]];lays[a].featured=pi;render();msg('Destaque escolhido ✓')}function swap(a,b){if(!a||a===b)return;invalidatePdf();let A=key(a),B=key(b),x=lays[A[0]].slots[A[1]],y=lays[B[0]].slots[B[1]];lays[A[0]].slots[A[1]]=y;lays[B[0]].slots[B[1]]=x;if(lays[A[0]].featured===x)lays[A[0]].featured=y;if(lays[B[0]].featured===y)lays[B[0]].featured=x;render()}function bind(){document.querySelectorAll('.frame').forEach(e=>{e.ondragstart=x=>x.dataTransfer.setData('text',e.dataset.k);e.ondragover=x=>x.preventDefault();e.ondrop=x=>{x.preventDefault();swap(x.dataTransfer.getData('text'),e.dataset.k)};e.ondblclick=()=>openCrop(e.dataset.k);e.onpointerup=x=>{if(x.target.closest('.star'))return;let n=Date.now();if(lastTap.k===e.dataset.k&&n-lastTap.t<360){openCrop(e.dataset.k);lastTap={k:'',t:0}}else lastTap={k:e.dataset.k,t:n}}});document.querySelectorAll('.star').forEach(e=>e.onclick=x=>{x.stopPropagation();setFeatured(e.dataset.star)})}function openCrop(k){let[a,b]=key(k),pi=lays[a].slots[b],p=photos[pi];cropT=pi;const img=$('cropImg');img.src=p.url;img.style.filter=computedFilter(p.edit);$('zr').value=p.z;$('xr').value=p.x;$('yr').value=p.y;cropPreview();$('modal').classList.add('on')}function cropPreview(){const img=$('cropImg'),zr=$('zr'),xr=$('xr'),yr=$('yr');img.style.objectPosition=xr.value+'% '+yr.value+'%';img.style.transform='scale('+zr.value+')';$('zv').textContent=(+zr.value).toFixed(2)+'×';$('xv').textContent=xr.value+'%';$('yv').textContent=yr.value+'%'}function closeCrop(){$('modal').classList.remove('on')}function saveCrop(){let p=photos[cropT];p.z=+$('zr').value;p.x=+$('xr').value;p.y=+$('yr').value;invalidatePdf();closeCrop();render();msg('Enquadramento salvo ✓')}function review(){if(!colorApproved){renderColorEditor();show(1);return msg('Aprove a edição das fotos antes de revisar o álbum')}const sum=$('summary');if(sum)sum.innerHTML=`<li><b>Álbum:</b> ${v('name','Sem título')}${v('sub')?' ('+v('sub')+')':''}</li><li><b>Adquirido por:</b> ${v('buyer','não informado')}</li><li><b>WhatsApp:</b> ${v('whatsapp','não informado')}</li><li><b>Pedido ML:</b> ${v('order','não informado')}</li><li><b>Fotos:</b> ${photos.length} fotos em 10 lâminas</li><li><b>Filtro:</b> ${EDIT_PRESETS[photos[0]?.edit?.preset||'natural']?.label||'Natural'}</li>`;show(3);preparePdfForApproval()}function productionPassword(){return String.fromCharCode(86,105,108,108,97,112,97,122,50,54)}async function approve(){if(!$('c1')?.checked)return msg('Marque a caixa de aprovação');let a=v('auth'),ord=v('order').replace(/\W/g,''),ok=ord&&a.replace(/\W/g,'')===ord,pass=a===productionPassword();if(!ok&&!pass)return msg('Senha ou pedido não confere');if(!lastBlob){preparePdfForApproval();return msg('Aguarde o PDF ficar pronto para aprovar')}albumApproved=true;show(4);if($('ps'))$('ps').textContent=`A3 · 1 capa + 10 lâminas · ${(lastBlob.size/1048576).toFixed(1)} MB`;if($('bar'))$('bar').style.width='72%';setDownloadReady();const downloaded=blobDownload(lastBlob,lastName);if($('ds'))$('ds').textContent=downloaded?'Download automático iniciado ✓':'Toque em “Baixar PDF final”';await uploadApprovedPdf()}
+const load=u=>new Promise((resolve,reject)=>{
+ if(!u)return reject(new Error('URL de imagem em falta'));
+ const blobObj=(u instanceof Blob||u instanceof File)?u:(u?.file instanceof Blob?u.file:null);
+ if(blobObj){
+  const reader=new FileReader();
+  reader.onload=()=>{
+   const img=new Image();
+   img.onload=()=>resolve(img);
+   img.onerror=()=>reject(new Error('Falha ao decodificar imagem do arquivo'));
+   img.src=reader.result
+  };
+  reader.onerror=()=>reject(new Error('Falha ao ler arquivo com FileReader'));
+  reader.readAsDataURL(blobObj);
+  return
+ }
+ let url=typeof u==='string'?u:(u?.url||null);
+ if(!url)return reject(new Error('URL de imagem inválida'));
+ let img=new Image();
+ if(/^https?:\/\//i.test(url)){img.crossOrigin='anonymous'}
+ img.onload=()=>resolve(img);
+ img.onerror=async()=>{
+  if(typeof url==='string'&&url.startsWith('blob:')){
+   try{
+    const resp=await fetch(url);
+    if(resp.ok){
+     const b=await resp.blob();
+     const reader=new FileReader();
+     reader.onload=()=>{
+      const img2=new Image();
+      img2.onload=()=>resolve(img2);
+      img2.onerror=()=>reject(new Error('Falha ao carregar imagem fallback ('+url.substring(0,60)+')'));
+      img2.src=reader.result
+     };
+     reader.onerror=()=>reject(new Error('Falha ao ler blob fallback'));
+     reader.readAsDataURL(b);
+     return
+    }
+   }catch(_){}
+  }
+  reject(new Error('Falha ao carregar imagem ('+String(url).substring(0,80)+')'))
+ };
+ img.src=url
+});
 async function fileDimensions(file){
  if(!file)return null;
  if(file.__villaDims)return file.__villaDims;
@@ -46,28 +504,21 @@ async function fileDimensions(file){
  return null
 }
 async function loadForPrint(item,targetW,targetH){
- const file=item?.file;
- if(file){
-  if(typeof createImageBitmap==='function'){
-   try{
-    const d=await fileDimensions(file);
-    if(d&&d.w>0&&d.h>0){
-     const sr=d.w/d.h,tr=targetW/targetH;let rw,rh;
-     if(sr>=tr){rh=Math.ceil(targetH*1.04);rw=Math.ceil(rh*sr)}else{rw=Math.ceil(targetW*1.04);rh=Math.ceil(rw/sr)}
-     const max=3800,scale=Math.min(1,d.w/rw,d.h/rh,max/Math.max(rw,rh));
-     rw=Math.max(1,Math.round(rw*scale));rh=Math.max(1,Math.round(rh*scale));
-     return await createImageBitmap(file,{resizeWidth:rw,resizeHeight:rh,resizeQuality:'high'})
-    }
-   }catch(e){console.warn('Resize otimizado indisponível, usando fallback',e)}
-  }
+ const file=(item instanceof Blob||item instanceof File)?item:(item?.file instanceof Blob?item.file:null);
+ if(file&&typeof createImageBitmap==='function'){
   try{
-   const freshUrl=URL.createObjectURL(file);
-   try{return await load(freshUrl)}finally{setTimeout(()=>URL.revokeObjectURL(freshUrl),10000)}
-  }catch(_){}
+   const d=await fileDimensions(file);
+   if(d&&d.w>0&&d.h>0){
+    const sr=d.w/d.h,tr=targetW/targetH;let rw,rh;
+    if(sr>=tr){rh=Math.ceil(targetH*1.04);rw=Math.ceil(rh*sr)}else{rw=Math.ceil(targetW*1.04);rh=Math.ceil(rw/sr)}
+    const max=3800,scale=Math.min(1,d.w/rw,d.h/rh,max/Math.max(rw,rh));
+    rw=Math.max(1,Math.round(rw*scale));rh=Math.max(1,Math.round(rh*scale));
+    return await createImageBitmap(file,{resizeWidth:rw,resizeHeight:rh,resizeQuality:'high'})
+   }
+  }catch(e){console.warn('Resize otimizado indisponível, tentando createImageBitmap direto',e)}
+  try{return await createImageBitmap(file)}catch(_){}
  }
- const url=item?.url||(typeof item==='string'?item:null);
- if(!url)throw new Error('URL da foto não encontrada para renderização');
- return await load(url)
+ return await load(file||item)
 }
 function closeDecoded(im){try{if(im&&typeof im.close==='function')im.close()}catch(_){ }}
 function draw(c,im,x,y,w,h,p){let z=p.z||1,b=Math.max(w/im.width,h/im.height),sw=w/(b*z),sh=h/(b*z),sx=Math.max(0,(im.width-sw)*p.x/100),sy=Math.max(0,(im.height-sh)*p.y/100);c.save();if(p?.edit&&'filter' in c)c.filter=computedFilter(p.edit);c.drawImage(im,sx,sy,sw,sh,x,y,w,h);c.restore()}function layoutRects(l,x,y,w,h,g){let n=l.slots.length,v=l.variant||chooseVariant(n,0),r=[];if(n===1){if(v==='v1-inset'){let mx=w*.12,my=h*.10;r=[[x+mx,y+my,w-2*mx,h-2*my]]}else if(v==='v1-left'){r=[[x,y,w*.76,h]]}else if(v==='v1-right'){r=[[x+w*.24,y,w*.76,h]]}else r=[[x,y,w,h]]}else if(n===2){if(v==='v2-right'){let lw=w*.35;r=[[x+lw+g,y,w-lw-g,h],[x,y,lw,h]]}else if(v==='v2-equal'){let ww=(w-g)/2;r=[[x,y,ww,h],[x+ww+g,y,ww,h]]}else if(v==='v2-stack'){let hh=(h-g)/2;r=[[x,y,w,hh],[x,y+hh+g,w,hh]]}else{let lw=w*.64;r=[[x,y,lw,h],[x+lw+g,y,w-lw-g,h]]}}else if(n===3){if(v==='v3-right'){let rw=w*.64,lw=w-rw-g,hh=(h-g)/2;r=[[x+lw+g,y,rw,h],[x,y,lw,hh],[x,y+hh+g,lw,hh]]}else if(v==='v3-top'){let top=h*.64,bh=h-top-g,ww=(w-g)/2;r=[[x,y,w,top],[x,y+top+g,ww,bh],[x+ww+g,y+top+g,ww,bh]]}else if(v==='v3-bottom'){let top=h*.34,bh=h-top-g,ww=(w-g)/2;r=[[x,y+top+g,w,bh],[x,y,ww,top],[x+ww+g,y,ww,top]]}else if(v==='v3-columns'){let a=w*.48,b=(w-a-2*g)/2;r=[[x,y,a,h],[x+a+g,y,b,h],[x+a+g+b+g,y,b,h]]}else{let lw=w*.64,rw=w-lw-g,hh=(h-g)/2;r=[[x,y,lw,h],[x+lw+g,y,rw,hh],[x+lw+g,y+hh+g,rw,hh]]}}else{if(v==='v4-right'){let rw=w*.64,lw=w-rw-g,hh=(h-2*g)/3;r=[[x+lw+g,y,rw,h],[x,y,lw,hh],[x,y+hh+g,lw,hh],[x,y+2*(hh+g),lw,hh]]}else if(v==='v4-top'){let top=h*.64,bh=h-top-g,ww=(w-2*g)/3;r=[[x,y,w,top],[x,y+top+g,ww,bh],[x+ww+g,y+top+g,ww,bh],[x+2*(ww+g),y+top+g,ww,bh]]}else if(v==='v4-bottom'){let top=h*.34,bh=h-top-g,ww=(w-2*g)/3;r=[[x,y+top+g,w,bh],[x,y,ww,top],[x+ww+g,y+top+g,ww,bh],[x+2*(ww+g),y,ww,top]]}else if(v==='v4-mag-left'){let bottom=h*.23,upper=h-bottom-g,right=w*.28,left=w-right-g,hh=(upper-g)/2;r=[[x,y,left,upper],[x+left+g,y,right,hh],[x+left+g,y+hh+g,right,hh],[x,y+upper+g,w,bottom]]}else if(v==='v4-mag-right'){let bottom=h*.23,upper=h-bottom-g,left=w*.28,right=w-left-g,hh=(upper-g)/2;r=[[x+left+g,y,right,upper],[x,y,left,hh],[x,y+hh+g,left,hh],[x,y+upper+g,w,bottom]]}else if(v==='v4-center'){let side=w*.24,center=w-2*side-2*g,hh=(h-g)/2;r=[[x+side+g,y,center,h],[x,y,side,hh],[x,y+hh+g,side,hh],[x+side+g+center+g,y,side,h]]}else if(v==='v4-center-r'){let side=w*.24,center=w-2*side-2*g,hh=(h-g)/2;r=[[x+side+g,y,center,h],[x,y,side,h],[x+side+g+center+g,y,side,hh],[x+side+g+center+g,y+hh+g,side,hh]]}else if(v==='v4-diag-a'){let top=h*.50,bottom=h-top-g,c3=w*.28,c12=w-c3-g,leftBottom=w*.34;r=[[x,y,c12,top],[x+c12+g,y,c3,top],[x,y+top+g,leftBottom,bottom],[x+leftBottom+g,y+top+g,w-leftBottom-g,bottom]]}else if(v==='v4-diag-b'){let top=h*.50,bottom=h-top-g,c1=w*.28,c23=w-c1-g,rightBottom=w*.34;r=[[x+c1+g,y,c23,top],[x,y,c1,top],[x,y+top+g,w-rightBottom-g,bottom],[x+w-rightBottom,y+top+g,rightBottom,bottom]]}else{let lw=w*.64,rw=w-lw-g,hh=(h-2*g)/3;r=[[x,y,lw,h],[x+lw+g,y,rw,hh],[x+lw+g,y+hh+g,rw,hh],[x+lw+g,y+2*(hh+g),rw,hh]]}}return r}
@@ -133,7 +584,7 @@ async function preparePdfForApproval(){
  }
 }
 async function uploadApprovedPdf(){
- if(!lastBlob)return {ok:false,error:'PDF ausente'};$('cs').textContent='Enviando…';$('bar').style.width='88%';const result=await cloud(lastBlob,lastName);if(result.ok){$('cs').textContent=`Enviado · ${result.bucket}/${result.path}`;$('bar').style.width='100%';msg('PDF no dispositivo + Supabase ✓')}else{$('cs').textContent='Falha no envio · download continua disponível';$('bar').style.width='100%';console.error('Falha Supabase:',result.error||'sem detalhe');msg('PDF salvo no aparelho · envio ao Supabase pendente')}return result
+ if(!lastBlob)return {ok:false,error:'PDF ausente'};$('cs').textContent='Enviando…';$('bar').style.width='88%';const result=await cloud(lastBlob,lastName);if(result.ok){$('cs').textContent='Enviado com sucesso ✓';$('bar').style.width='100%';msg('PDF no dispositivo + Servidor ✓')}else{$('cs').textContent='Falha no envio · download disponível no aparelho';$('bar').style.width='100%';console.error('Falha de envio:',result.error||'sem detalhe');msg('PDF salvo no aparelho · envio ao servidor pendente')}return result
 }
 async function cloud(b,n){
  const safeName=String(n||pdfFileName()).replace(/[^a-zA-Z0-9_.-]+/g,'-');
