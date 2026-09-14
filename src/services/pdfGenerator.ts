@@ -309,61 +309,6 @@ export async function renderCoverToCanvas(
   ctx.stroke();
   ctx.setLineDash([]); // Reset dash
 
-  // Delicate spine background tone
-  ctx.fillStyle = isDarkBg ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)';
-  ctx.fillRect(1200, 0, spineWidth, canvasHeight);
-
-  // ÁREA DE TEXTO DA LOMBADA PRÉ-DEFINIDO EM 2x6 CM (160 px de largura x 480 px de altura)
-  const spineBoxW = spineWidth; // 2 cm = 160 px
-  const spineBoxH = 480; // 6 cm = 480 px (6 * 80)
-  const spineBoxX = 1200;
-  const spineBoxY = (canvasHeight - spineBoxH) / 2; // 560 px (centered vertically)
-
-  // Technical guide box indicating the exact 2x6 cm hot-stamping zone
-  ctx.strokeStyle = isDarkBg ? 'rgba(179,151,112,0.3)' : 'rgba(179,151,112,0.4)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(spineBoxX + 8, spineBoxY, spineBoxW - 16, spineBoxH);
-
-  // Corner marks on 2x6 cm area
-  ctx.fillStyle = foilHex;
-  ctx.fillRect(spineBoxX + 6, spineBoxY - 1, 6, 2);
-  ctx.fillRect(spineBoxX + spineBoxW - 12, spineBoxY - 1, 6, 2);
-  ctx.fillRect(spineBoxX + 6, spineBoxY + spineBoxH - 1, 6, 2);
-  ctx.fillRect(spineBoxX + spineBoxW - 12, spineBoxY + spineBoxH - 1, 6, 2);
-
-  // Technical indicator for print shop
-  ctx.save();
-  ctx.font = '8px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = isDarkBg ? '#7A685B' : '#B0A294';
-  ctx.textAlign = 'center';
-  ctx.fillText('LOMBADA 2x6 CM', spineCenterX, spineBoxY - 10);
-  ctx.fillText('ÁREA DE GRAVAÇÃO', spineCenterX, spineBoxY + spineBoxH + 18);
-  ctx.restore();
-
-  // Texto da Lombada alinhado verticalmente dentro da área 2x6 cm
-  const spineText = (
-    project.cover.spineText ||
-    `${project.cover.title || project.clientData.albumTitle || 'ÁLBUM FOTOGRÁFICO'} • ${project.cover.yearOrDate || '2026'}`
-  ).toUpperCase();
-
-  ctx.save();
-  ctx.translate(spineCenterX, canvasHeight / 2);
-  // Orient from top to bottom (rotate 90 degrees)
-  ctx.rotate(Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = 'bold 21px "Cinzel", "Playfair Display", serif';
-  ctx.fillStyle = foilHex;
-
-  // Subtle hot-stamping emboss shadow
-  ctx.shadowColor = isDarkBg ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.7)';
-  ctx.shadowOffsetX = 0.5;
-  ctx.shadowOffsetY = 0.5;
-  ctx.shadowBlur = 1;
-
-  ctx.fillText(spineText, 0, 0);
-  ctx.restore();
-
   // =========================================================================
   // 3. CAPA FRONTAL (Front Cover - Right side: 1360 to 2560 px, center at 1960 px)
   // =========================================================================
@@ -401,69 +346,23 @@ export async function renderCoverToCanvas(
     coverImg = await loadImage(project.cover.imageUrl);
     loadedImages.set('cover-image', coverImg);
   }
-  if (!coverImg && project.photos && project.photos.length > 0 && project.photos[0].url) {
-    coverImg = loadedImages.get(project.photos[0].id) || (await loadImage(project.photos[0].url));
+  if (!coverImg && project.cover.coverPhotos && project.cover.coverPhotos.length > 0) {
+    const mainPhoto = project.cover.coverPhotos.find(p => p.isCoverMain) || project.cover.coverPhotos[0];
+    if (mainPhoto?.url) {
+      coverImg = loadedImages.get(mainPhoto.id) || (await loadImage(mainPhoto.url));
+    }
   }
-
-  // Cover photo dimensions (proporção 15x20 vertical)
-  const photoW = 860;
-  const photoH = 1050;
-  const photoX = frontCenterX - photoW / 2; // 1530 px
-  const photoY = 175;
 
   if (coverImg) {
     ctx.save();
-    // Zero Distorção: aspect ratio math
-    const imgNatW = coverImg.naturalWidth || coverImg.width || 1200;
-    const imgNatH = coverImg.naturalHeight || coverImg.height || 800;
-    const imgAspect = imgNatW / imgNatH;
-    const targetAspect = photoW / photoH;
-
-    let drawW = photoW;
-    let drawH = photoH;
-    let drawX = photoX;
-    let drawY = photoY;
-
-    if (imgAspect > targetAspect) {
-      drawH = photoH;
-      drawW = photoH * imgAspect;
-      drawX = photoX + (photoW - drawW) / 2;
-      drawY = photoY;
-    } else {
-      drawW = photoW;
-      drawH = photoW / imgAspect;
-      drawX = photoX;
-      drawY = photoY + (photoH - drawH) / 2;
-    }
-
-    // Clip rect
-    ctx.beginPath();
-    ctx.rect(photoX, photoY, photoW, photoH);
-    ctx.clip();
-    ctx.drawImage(coverImg, drawX, drawY, drawW, drawH);
+    const scale = Math.max(canvasWidth / coverImg.width, canvasHeight / coverImg.height);
+    const sw = canvasWidth / scale;
+    const sh = canvasHeight / scale;
+    const sx = (coverImg.width - sw) / 2;
+    const sy = (coverImg.height - sh) / 2;
+    ctx.drawImage(coverImg, sx, sy, sw, sh, 0, 0, canvasWidth, canvasHeight);
     ctx.restore();
-
-    // Fine frame around cover photo
-    ctx.strokeStyle = borderMuted;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(photoX, photoY, photoW, photoH);
-
-    // Subtle inner foil accent on photo border
-    ctx.strokeStyle = foilHex;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(photoX + 6, photoY + 6, photoW - 12, photoH - 12);
-  } else {
-    // Elegant typographic placeholder if no photo
-    ctx.save();
-    ctx.strokeStyle = borderMuted;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(photoX, photoY, photoW, photoH);
-
-    ctx.textAlign = 'center';
-    ctx.font = 'italic 22px "Cormorant Garamond", serif';
-    ctx.fillStyle = subtextColor;
-    ctx.fillText('Fotografia de Capa 15x20 cm', frontCenterX, photoY + photoH / 2);
-    ctx.restore();
+    return canvas;
   }
 
   // Front Cover Typography (Below photo: y = 1260 to 1480) - Matching official Villa7 reference
@@ -856,6 +755,21 @@ export async function generateAlbumPDF(
         loadedImages.set('cover-image', img);
       })
     );
+  }
+
+  if (project.cover.coverPhotos && project.cover.coverPhotos.length > 0) {
+    project.cover.coverPhotos.forEach((p) => {
+      if (p.url) {
+        loadPromises.push(
+          loadImage(p.url).then((img) => {
+            loadedImages.set(p.id, img);
+            if (p.isCoverMain || !loadedImages.has('cover-image')) {
+              loadedImages.set('cover-image', img);
+            }
+          })
+        );
+      }
+    });
   }
 
   await Promise.all(loadPromises);
