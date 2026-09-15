@@ -355,12 +355,29 @@ export async function renderCoverToCanvas(
 
   if (coverImg) {
     ctx.save();
-    const scale = Math.max(canvasWidth / coverImg.width, canvasHeight / coverImg.height);
-    const sw = canvasWidth / scale;
-    const sh = canvasHeight / scale;
-    const sx = (coverImg.width - sw) / 2;
-    const sy = (coverImg.height - sh) / 2;
-    ctx.drawImage(coverImg, sx, sy, sw, sh, 0, 0, canvasWidth, canvasHeight);
+    const naturalW = coverImg.naturalWidth || coverImg.width;
+    const naturalH = coverImg.naturalHeight || coverImg.height;
+    const imgAspect = naturalW / naturalH;
+    const canvasAspect = canvasWidth / canvasHeight;
+
+    let drawW = canvasWidth;
+    let drawH = canvasHeight;
+    let drawX = 0;
+    let drawY = 0;
+
+    if (imgAspect > canvasAspect) {
+      drawW = canvasWidth;
+      drawH = canvasWidth / imgAspect;
+      drawY = (canvasHeight - drawH) / 2;
+    } else {
+      drawH = canvasHeight;
+      drawW = canvasHeight * imgAspect;
+      drawX = (canvasWidth - drawW) / 2;
+    }
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.drawImage(coverImg, drawX, drawY, drawW, drawH);
     ctx.restore();
     return canvas;
   }

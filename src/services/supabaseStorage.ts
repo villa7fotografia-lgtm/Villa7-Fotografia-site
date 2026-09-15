@@ -18,8 +18,8 @@ export interface SupabaseUploadResult {
 
 export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
   url: 'https://twfhqhkzabvlzkgofjyj.supabase.co',
-  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g',
-  bucket: 'pdfs',
+  key: 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem',
+  bucket: 'pdf',
 };
 
 const STORAGE_KEY = 'villa7_supabase_config';
@@ -55,8 +55,8 @@ export class SupabaseStorageService {
         if (parsed.url === 'https://supabase.co' || parsed.url === 'http://supabase.co' || !parsed.url || parsed.url.includes('uwzfwfdonvvbdthyzcah')) {
           parsed.url = envUrl || DEFAULT_SUPABASE_CONFIG.url;
         }
-        if (!parsed.key || parsed.key.includes('uwzfwfdonvvbdthyzcah') || parsed.key.includes('zlMDQVPdvxqQ8ppHrw') || parsed.key.startsWith('sb_publishable_')) {
-          parsed.key = envKey && !envKey.startsWith('sb_publishable_') ? envKey : DEFAULT_SUPABASE_CONFIG.key;
+        if (!parsed.key || parsed.key.includes('uwzfwfdonvvbdthyzcah') || parsed.key.includes('zlMDQVPdvxqQ8ppHrw')) {
+          parsed.key = envKey || DEFAULT_SUPABASE_CONFIG.key;
         }
         if (!parsed.bucket || parsed.bucket === 'Villa7 Fotografia' || parsed.bucket.includes('@') || parsed.bucket.includes("'") || parsed.bucket.length < 2) {
           parsed.bucket = envBucket || DEFAULT_SUPABASE_CONFIG.bucket;
