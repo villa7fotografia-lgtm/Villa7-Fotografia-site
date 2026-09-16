@@ -317,9 +317,10 @@ app.post('/api/supabase-upload', async (req, res) => {
     }
 
     const cleanFileName = fileName
-      .replace(/^\/+/, '')
+      .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, '_');
+      .replace(/^\/+/, '')
+      .replace(/[^a-zA-Z0-9_.\/-]+/g, '_');
 
     const cleanPath = cleanFileName.split('/').map(encodeURIComponent).join('/');
     const buffer = Buffer.from(pdfBase64, 'base64');
@@ -333,9 +334,10 @@ app.post('/api/supabase-upload', async (req, res) => {
     // Try with each candidate key until success (preferring Service Role JWT)
     for (const key of candidateKeys) {
       try {
+        const pubApiKey = 'sb_publishable_1-hLKTMZRnRLNo4kQavIAg_WtVRWpem';
         const headers = {
           'Authorization': `Bearer ${key}`,
-          'apikey': key,
+          'apikey': key.startsWith('sb_publishable_') ? key : pubApiKey,
         };
 
         // 1. Check or create bucket if needed
