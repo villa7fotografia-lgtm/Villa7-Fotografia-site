@@ -114,8 +114,14 @@ export const Process1Preparation: React.FC<Process1Props> = ({
       setIsSearchingCep(true);
       try {
         const res = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
-        const data = await res.json();
-        if (!data.erro) {
+        let data: any = null;
+        try {
+          const text = await res.text();
+          if (text && text.startsWith('{')) {
+            data = JSON.parse(text);
+          }
+        } catch (_) {}
+        if (data && !data.erro) {
           onChangeClientData({
             address: {
               ...address,

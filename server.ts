@@ -110,9 +110,10 @@ function saveLocalClients(clients: any[]) {
   }
 }
 
-// GET /api/clients - List all registered clients
+// GET /api/clients - List all registered clients or get single by ?token=
 app.get('/api/clients', async (req, res) => {
   try {
+    const queryToken = (req.query.token || req.query.id || '') as string;
     let localClients = getLocalClients();
 
     // Sync with Supabase Storage database
@@ -134,9 +135,40 @@ app.get('/api/clients', async (req, res) => {
       console.warn('[Supabase Storage Sync Notice]:', sbErr);
     }
 
+    if (queryToken) {
+      const single = localClients.find(c => c.token === queryToken);
+      if (!single) {
+        return res.status(404).json({ success: false, error: 'Cliente não encontrado.' });
+      }
+      return res.json({ success: true, client: single });
+    }
+
     return res.json({ success: true, clients: localClients });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Erro ao carregar clientes.' });
+  }
+});
+
+// DELETE /api/clients - Delete client via query param ?token=
+app.delete('/api/clients', async (req, res) => {
+  try {
+    const token = (req.query.token || req.body?.token) as string;
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token não fornecido.' });
+    }
+    let clients = getLocalClients();
+    clients = clients.filter(c => c.token !== token);
+    saveLocalClients(clients);
+
+    try {
+      await saveClientsToSupabase(clients);
+    } catch (sbErr) {
+      console.warn('[Supabase Client Delete Notice]:', sbErr);
+    }
+
+    return res.json({ success: true, message: 'Cliente removido com sucesso.' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao remover cliente.' });
   }
 });
 

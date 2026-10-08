@@ -1,5 +1,27 @@
 [
   {
+    "id": "c_test_1791460239345",
+    "token": "teste-automatizado-1791460239345",
+    "nome": "Cliente Teste Automatizado",
+    "email": "cliente.teste@villa7.com",
+    "link_pasta": "https://drive.google.com/drive/folders/test123",
+    "status": "pendente",
+    "fotos_selecionadas": [],
+    "created_at": "2026-10-08T11:50:39.345Z"
+  },
+  {
+    "id": "29a152c5-9535-4d1c-a601-76c6ae0c7e06",
+    "nome": "Paulo Santana",
+    "email": "villa7fotografia@gmail.com",
+    "link_pasta": "https://mega.nz/folder/b2AB0ZxQ#sjT5RvbGygp5Xz6wbtqfRQ",
+    "token": "paulo-santana-muzgrv6g-0cd23e",
+    "status": "pendente",
+    "fotos_selecionadas": [],
+    "created_at": "2026-10-08T11:39:30.329Z",
+    "notes": "",
+    "html_url": "https://twfhqhkzabvlzkgofjyj.supabase.co/storage/v1/object/public/selecao-de-fotos/clientes/selecao_paulo-santana-muzgrv6g-0cd23e.html"
+  },
+  {
     "id": "51909386-47da-4ab1-9e2c-98eb8c26a436",
     "nome": "Studio Ensaio Gestante",
     "email": "gestante@villa7.com",

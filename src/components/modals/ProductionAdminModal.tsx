@@ -78,8 +78,15 @@ export const ProductionAdminModal: React.FC<ProductionAdminModalProps> = ({
         body: JSON.stringify({ password }),
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
+      let data: any = null;
+      try {
+        const text = await res.text();
+        if (text && (text.startsWith('{') || text.startsWith('['))) {
+          data = JSON.parse(text);
+        }
+      } catch (_) {}
+
+      if (res.ok && data?.success) {
         setIsAuthorized(true);
         onUpdateProject({
           clientData: {
@@ -94,7 +101,7 @@ export const ProductionAdminModal: React.FC<ProductionAdminModalProps> = ({
           },
         });
       } else {
-        setErrorMsg(data.error || 'Senha incorreta.');
+        setErrorMsg(data?.error || 'Senha incorreta.');
       }
     } catch (err: any) {
       setErrorMsg('Erro de conexão ao validar senha administrativa.');

@@ -1,11 +1,100 @@
-import {
-  ClientData,
-  getClientsFromSupabase,
-  saveClientsToSupabase,
-  saveSingleClientToSupabase,
-  uploadClientHtmlToSupabase,
-  generateClientStandaloneHtml,
-} from '../src/services/clientStorage';
+import { Buffer } from 'buffer';
+
+export const SUPABASE_URL = 'https://twfhqhkzabvlzkgofjyj.supabase.co';
+export const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g';
+export const SELECTION_BUCKET = 'selecao-de-fotos';
+
+export interface ClientData {
+  id?: string;
+  token: string;
+  nome: string;
+  email: string;
+  link_pasta: string;
+  status: 'pendente' | 'aprovado';
+  created_at: string;
+  approved_at?: string;
+  fotos_selecionadas?: string[];
+  pdf_url?: string;
+  notes?: string;
+  html_url?: string;
+}
+
+export async function getClientsFromSupabase(): Promise<ClientData[]> {
+  try {
+    const url = `${SUPABASE_URL}/storage/v1/object/public/${SELECTION_BUCKET}/database/clients.json?t=${Date.now()}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const text = await res.text();
+      if (text && (text.startsWith('[') || text.startsWith('{'))) {
+        const data = JSON.parse(text);
+        if (Array.isArray(data)) return data;
+      }
+    }
+  } catch (err) {
+    console.warn('[Vercel API getClientsFromSupabase]:', err);
+  }
+  return [];
+}
+
+export async function saveClientsToSupabase(clients: ClientData[]): Promise<boolean> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${SELECTION_BUCKET}/database/clients.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': 'application/json',
+        'x-upsert': 'true',
+      },
+      body: JSON.stringify(clients, null, 2),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('[Vercel API saveClientsToSupabase]:', err);
+    return false;
+  }
+}
+
+export async function saveSingleClientToSupabase(client: ClientData): Promise<boolean> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${SELECTION_BUCKET}/database/clients/${client.token}.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': 'application/json',
+        'x-upsert': 'true',
+      },
+      body: JSON.stringify(client, null, 2),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('[Vercel API saveSingleClientToSupabase]:', err);
+    return false;
+  }
+}
+
+export async function uploadClientHtmlToSupabase(client: ClientData, htmlContent: string): Promise<string | null> {
+  try {
+    const path = `clientes/selecao_${client.token}.html`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${SELECTION_BUCKET}/${path}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': 'text/html; charset=utf-8',
+        'x-upsert': 'true',
+      },
+      body: htmlContent,
+    });
+    if (res.ok) {
+      return `${SUPABASE_URL}/storage/v1/object/public/${SELECTION_BUCKET}/${path}`;
+    }
+  } catch (err) {
+    console.warn('[Vercel API uploadClientHtmlToSupabase]:', err);
+  }
+  return null;
+}
 
 export default async function handler(req: any, res: any) {
   const method = req.method;
@@ -112,11 +201,6 @@ export default async function handler(req: any, res: any) {
         fotos_selecionadas: [],
       };
 
-      // Generate standalone HTML and save to Supabase
-      const htmlContent = generateClientStandaloneHtml(newClient);
-      const htmlUrl = await uploadClientHtmlToSupabase(newClient, htmlContent);
-      if (htmlUrl) newClient.html_url = htmlUrl;
-
       // Save client in database
       await saveSingleClientToSupabase(newClient);
       const clients = await getClientsFromSupabase();
@@ -126,7 +210,7 @@ export default async function handler(req: any, res: any) {
       return res.json({
         success: true,
         client: newClient,
-        message: 'Cliente cadastrado e HTML gerado no Supabase com sucesso!',
+        message: 'Cliente cadastrado no Supabase com sucesso!',
       });
     }
 

@@ -1,5 +1,8 @@
 import { Buffer } from 'buffer';
-import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SELECTION_BUCKET } from '../src/services/clientStorage';
+
+export const SUPABASE_URL = 'https://twfhqhkzabvlzkgofjyj.supabase.co';
+export const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g';
+export const SELECTION_BUCKET = 'selecao-de-fotos';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');

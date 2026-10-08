@@ -1589,6 +1589,31 @@ const V7_SB_URL = 'https://twfhqhkzabvlzkgofjyj.supabase.co';
 const V7_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g';
 const V7_SB_BUCKET = 'selecao-de-fotos';
 
+/**
+ * Robust JSON fetcher that will NEVER crash on non-JSON / HTML / 500 error pages
+ */
+async function safeFetchJson(url, options) {
+  try {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    if (!text || !text.trim()) {
+      return { ok: res.ok, status: res.status, data: null };
+    }
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        const data = JSON.parse(trimmed);
+        return { ok: res.ok, status: res.status, data };
+      } catch (e) {
+        return { ok: false, status: res.status, error: 'JSON malformado', raw: trimmed };
+      }
+    }
+    return { ok: false, status: res.status, error: trimmed.slice(0, 160), raw: trimmed };
+  } catch (err) {
+    return { ok: false, status: 0, error: err?.message || 'Falha de rede' };
+  }
+}
+
 let currentAppTab = 'album';
 let adminClientsList = [];
 let activeClientData = null;
@@ -1659,29 +1684,18 @@ async function refreshAdminClients() {
 
   try {
     let clients = [];
-    // 1. Try server route
-    try {
-      const res = await fetch('/api/clients');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.clients) && data.clients.length > 0) {
-          clients = data.clients;
-        }
-      }
-    } catch (_) {}
 
-    // 2. Direct Supabase Storage database fallback (100% online accessible)
+    // 1. First Priority: Direct Supabase Storage Database (100% reliable online on any device/host)
+    const sbResult = await safeFetchJson(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients.json?t=${Date.now()}`);
+    if (sbResult.ok && Array.isArray(sbResult.data) && sbResult.data.length > 0) {
+      clients = sbResult.data;
+    }
+
+    // 2. Second Priority: Server route if available
     if (!clients.length) {
-      try {
-        const sbRes = await fetch(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients.json?t=${Date.now()}`);
-        if (sbRes.ok) {
-          const sbData = await sbRes.json();
-          if (Array.isArray(sbData)) {
-            clients = sbData;
-          }
-        }
-      } catch (sbErr) {
-        console.warn('Consulta direta ao Supabase Storage:', sbErr);
+      const srvResult = await safeFetchJson('/api/clients');
+      if (srvResult.ok && srvResult.data && Array.isArray(srvResult.data.clients)) {
+        clients = srvResult.data.clients;
       }
     }
 
@@ -2013,84 +2027,75 @@ async function handleRegisterClientSubmit(e) {
     let newClient = null;
     let htmlUrl = null;
 
-    // 1. Try server endpoint
+    // 1. Direct Supabase Storage database registration (100% reliable online without server dependencies)
+    const cleanSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const token = `${cleanSlug || 'cliente'}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+    newClient = {
+      id: 'c_' + Date.now(),
+      token,
+      nome: name,
+      email,
+      link_pasta: folder,
+      status: 'pendente',
+      fotos_selecionadas: [],
+      created_at: new Date().toISOString()
+    };
+
+    // Generate HTML string and upload to Supabase Storage
+    const htmlContent = buildStandaloneClientHtmlString(newClient);
+    const htmlBlob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     try {
-      const res = await fetch('/api/clients', {
+      const upRes = await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/clientes/selecao_${token}.html`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${V7_SB_KEY}`,
+          'apikey': V7_SB_KEY,
+          'Content-Type': 'text/html;charset=utf-8',
+          'x-upsert': 'true'
+        },
+        body: htmlBlob
+      });
+      if (upRes.ok) {
+        htmlUrl = `${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/clientes/selecao_${token}.html`;
+        newClient.html_url = htmlUrl;
+      }
+    } catch (_) {}
+
+    // Save client JSON in Supabase Storage database
+    try {
+      await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients/${token}.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${V7_SB_KEY}`,
+          'apikey': V7_SB_KEY,
+          'Content-Type': 'application/json',
+          'x-upsert': 'true'
+        },
+        body: JSON.stringify(newClient)
+      });
+      
+      const existingClients = adminClientsList.slice();
+      existingClients.unshift(newClient);
+      await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${V7_SB_KEY}`,
+          'apikey': V7_SB_KEY,
+          'Content-Type': 'application/json',
+          'x-upsert': 'true'
+        },
+        body: JSON.stringify(existingClients)
+      });
+    } catch (_) {}
+
+    // Optional server sync with safeFetchJson (fails gracefully if running statically)
+    try {
+      await safeFetchJson('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: name, email, link_pasta: folder })
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.client) {
-          newClient = data.client;
-          htmlUrl = data.html_url;
-        }
-      }
     } catch (_) {}
-
-    // 2. Direct Supabase Storage fallback if server was unavailable
-    if (!newClient) {
-      const cleanSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const token = `${cleanSlug || 'cliente'}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
-      newClient = {
-        id: 'c_' + Date.now(),
-        token,
-        nome: name,
-        email,
-        link_pasta: folder,
-        status: 'pendente',
-        fotos_selecionadas: [],
-        created_at: new Date().toISOString()
-      };
-
-      // Generate HTML string and upload to Supabase Storage
-      const htmlContent = buildStandaloneClientHtmlString(newClient);
-      const htmlBlob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-      try {
-        const upRes = await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/clientes/selecao_${token}.html`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${V7_SB_KEY}`,
-            'apikey': V7_SB_KEY,
-            'Content-Type': 'text/html;charset=utf-8',
-            'x-upsert': 'true'
-          },
-          body: htmlBlob
-        });
-        if (upRes.ok) {
-          htmlUrl = `${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/clientes/selecao_${token}.html`;
-          newClient.html_url = htmlUrl;
-        }
-      } catch (_) {}
-
-      // Save client JSON in Supabase Storage database
-      try {
-        await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients/${token}.json`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${V7_SB_KEY}`,
-            'apikey': V7_SB_KEY,
-            'Content-Type': 'application/json',
-            'x-upsert': 'true'
-          },
-          body: JSON.stringify(newClient)
-        });
-        
-        const existingClients = adminClientsList.slice();
-        existingClients.unshift(newClient);
-        await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients.json`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${V7_SB_KEY}`,
-            'apikey': V7_SB_KEY,
-            'Content-Type': 'application/json',
-            'x-upsert': 'true'
-          },
-          body: JSON.stringify(existingClients)
-        });
-      } catch (_) {}
-    }
 
     if (!newClient) {
       throw new Error('Não foi possível gerar os dados do cliente.');
@@ -2104,11 +2109,11 @@ async function handleRegisterClientSubmit(e) {
     const linkBox = $('adminNewClientLinkBox');
     const htmlBox = $('adminNewClientHtmlStorageBox');
     const htmlLink = $('adminNewClientHtmlLink');
-    const token = newClient.token;
+    const clientToken = newClient.token;
     // Universal link using ?token= that works on any host online
-    const clientUrl = `${window.location.origin}/?token=${token}`;
+    const clientUrl = `${window.location.origin}/?token=${clientToken}`;
 
-    window.__lastCreatedToken = token;
+    window.__lastCreatedToken = clientToken;
 
     if (desc) desc.textContent = `Link exclusivo gerado para ${name} (${email}):`;
     if (linkBox) linkBox.textContent = clientUrl;
@@ -2179,9 +2184,7 @@ async function deleteClient(token, name) {
     return;
   }
   try {
-    await fetch(`/api/clients/${token}`, { method: 'DELETE' }).catch(() => {});
-    
-    // Also remove from Supabase Storage database
+    // 1. Remove from Supabase Storage database directly
     try {
       const remaining = adminClientsList.filter(c => c.token !== token);
       await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients.json`, {
@@ -2195,6 +2198,9 @@ async function deleteClient(token, name) {
         body: JSON.stringify(remaining)
       });
     } catch (_) {}
+
+    // 2. Remove from server if running full-stack
+    await safeFetchJson(`/api/clients?token=${token}`, { method: 'DELETE' });
 
     msg('Cliente removido com sucesso.');
     refreshAdminClients();
@@ -2229,40 +2235,28 @@ async function openClientSelectionForToken(token) {
   // 1. Try currently loaded adminClientsList
   clientData = adminClientsList.find(c => c.token === token);
 
-  // 2. Try fetching from server route
+  // 2. Direct Supabase Storage database fetch (100% online, works across all domains)
   if (!clientData) {
-    try {
-      const res = await fetch(`/api/clients/${token}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.client) {
-          clientData = data.client;
-        }
-      }
-    } catch (_) {}
+    const singleSb = await safeFetchJson(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients/${token}.json?t=${Date.now()}`);
+    if (singleSb.ok && singleSb.data && singleSb.data.token) {
+      clientData = singleSb.data;
+    }
   }
 
-  // 3. Direct Supabase Storage database fetch (100% online fallback)
+  // 3. Check global clients.json on Supabase Storage
   if (!clientData) {
-    try {
-      const sbRes = await fetch(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients/${token}.json?t=${Date.now()}`);
-      if (sbRes.ok) {
-        clientData = await sbRes.json();
-      }
-    } catch (_) {}
+    const allSb = await safeFetchJson(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients.json?t=${Date.now()}`);
+    if (allSb.ok && Array.isArray(allSb.data)) {
+      clientData = allSb.data.find(c => c.token === token);
+    }
   }
 
-  // 4. Check global clients.json on Supabase Storage
+  // 4. Try server query with safeFetchJson if still not found
   if (!clientData) {
-    try {
-      const sbAllRes = await fetch(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients.json?t=${Date.now()}`);
-      if (sbAllRes.ok) {
-        const all = await sbAllRes.json();
-        if (Array.isArray(all)) {
-          clientData = all.find(c => c.token === token);
-        }
-      }
-    } catch (_) {}
+    const srvRes = await safeFetchJson(`/api/clients?token=${token}`);
+    if (srvRes.ok && srvRes.data && srvRes.data.client) {
+      clientData = srvRes.data.client;
+    }
   }
 
   if (clientData) {
@@ -2818,28 +2812,9 @@ async function executeSelectionApproval() {
 
     // 2. Upload copy to Supabase Storage bucket 'selecao-de-fotos'
     let publicPdfUrl = null;
-    try {
-      const uploadRes = await fetch('/api/selection-pdf-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: client.token,
-          nome: client.nome,
-          email: client.email,
-          fileName,
-          pdfBase64
-        })
-      });
-      const uploadData = await uploadRes.json();
-      if (uploadData.success && uploadData.publicUrl) {
-        publicPdfUrl = uploadData.publicUrl;
-      }
-    } catch (upErr) {
-      console.warn('Upload do PDF via servidor pendente, tentando Supabase direto:', upErr);
-    }
 
-    // Direct Supabase Storage upload fallback if server upload failed
-    if (!publicPdfUrl && pdfBase64) {
+    // Direct Supabase Storage upload first (100% reliable, zero server dependency)
+    if (pdfBase64) {
       try {
         const cleanPath = `selecoes/${client.token}/${fileName}`;
         const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
@@ -2861,6 +2836,26 @@ async function executeSelectionApproval() {
       }
     }
 
+    // Optional server upload backup using safeFetchJson
+    if (!publicPdfUrl) {
+      try {
+        const uploadResult = await safeFetchJson('/api/selection-pdf-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: client.token,
+            nome: client.nome,
+            email: client.email,
+            fileName,
+            pdfBase64
+          })
+        });
+        if (uploadResult.ok && uploadResult.data && uploadResult.data.publicUrl) {
+          publicPdfUrl = uploadResult.data.publicUrl;
+        }
+      } catch (upErr) {}
+    }
+
     // 3. Update client record status to 'aprovado' in backend and Supabase
     const approvedPayload = {
       fotos_selecionadas: selected.map(p => p.name),
@@ -2868,15 +2863,18 @@ async function executeSelectionApproval() {
       notes
     };
 
+    // Optional server update with safeFetchJson
     try {
-      await fetch(`/api/clients/${client.token}/approve`, {
+      await safeFetchJson('/api/clients?action=approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(approvedPayload)
+        body: JSON.stringify({
+          token: client.token,
+          action: 'approve',
+          ...approvedPayload
+        })
       });
-    } catch (appErr) {
-      console.warn('Aprovação local pendente:', appErr);
-    }
+    } catch (_) {}
 
     // Direct Supabase Storage database update fallback
     try {
