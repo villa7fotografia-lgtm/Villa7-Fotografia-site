@@ -21,6 +21,8 @@ export interface ClientData {
   pdf_url?: string;
   notes?: string;
   html_url?: string;
+  fotos?: Array<{ id: number | string; name: string; url: string; thumbnailUrl?: string }>;
+  photos?: Array<{ id: number | string; name: string; url: string; thumbnailUrl?: string }>;
 }
 
 export const SAMPLE_PHOTOS = [
@@ -494,12 +496,51 @@ export function generateClientStandaloneHtml(client: ClientData): string {
     const SUPABASE_KEY = "${SUPABASE_SERVICE_ROLE_KEY}";
     const BUCKET = "${SELECTION_BUCKET}";
 
-    const photos = ${JSON.stringify(SAMPLE_PHOTOS)}.map((p, i) => ({
-      id: i + 1,
-      name: p.name,
+    const rawInitialPhotos = ${JSON.stringify(
+      (Array.isArray(client.fotos) && client.fotos.length > 0)
+        ? client.fotos
+        : (Array.isArray(client.photos) && client.photos.length > 0)
+          ? client.photos
+          : []
+    )};
+
+    let photos = rawInitialPhotos.map((p, i) => ({
+      id: p.id || i + 1,
+      name: p.name || ('Foto_' + (i + 1)),
       url: p.url,
+      thumbnailUrl: p.thumbnailUrl || p.url,
       selected: ${JSON.stringify(client.fotos_selecionadas || [])}.includes(p.name)
     }));
+
+    // Auto-fetch from folder if empty on page load
+    if (!photos.length && "${safeFolder}" !== "#") {
+      setTimeout(() => {
+        autoFetchFolderPhotos();
+      }, 500);
+    }
+
+    async function autoFetchFolderPhotos() {
+      const folderUrl = "${safeFolder}";
+      if (!folderUrl || folderUrl === '#') return;
+      try {
+        const res = await fetch('/api/folder/fetch-photos?url=' + encodeURIComponent(folderUrl));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
+            photos = data.photos.map((p, i) => ({
+              id: p.id || i + 1,
+              name: p.name,
+              url: p.url,
+              thumbnailUrl: p.thumbnailUrl || p.url,
+              selected: ${JSON.stringify(client.fotos_selecionadas || [])}.includes(p.name)
+            }));
+            updateCounters();
+            renderGrid();
+            showToast('✓ ' + photos.length + ' fotos carregadas do repositório!');
+          }
+        }
+      } catch (_) {}
+    }
 
     let currentFilter = 'all';
     let searchQuery = '';
@@ -538,6 +579,24 @@ export function generateClientStandaloneHtml(client: ClientData): string {
         filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery));
       }
 
+      if (!photos.length) {
+        grid.innerHTML = \`
+          <div style="grid-column:1/-1;text-align:center;padding:48px 20px;background:#161922;border:1.5px dashed var(--card-border);border-radius:18px">
+            <div style="font-size:40px;margin-bottom:12px">📂</div>
+            <h3 style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold-light);margin-bottom:6px">Repositório de Fotografias Conectado</h3>
+            <p style="color:var(--muted);font-size:13px;max-width:540px;margin:0 auto 16px">As fotos desta sessão estão vinculadas à pasta oficial do cliente no repositório. Você pode abrir a pasta original ou carregar as fotos baixadas para visualização e aprovação.</p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+              <a href="${safeFolder}" target="_blank" rel="noopener" class="folder-btn" style="text-decoration:none">📂 Acessar Pasta Original de Fotos ↗</a>
+              <label class="folder-btn" style="cursor:pointer;background:rgba(212,175,55,0.25)">
+                <span>📸 + Selecionar Fotos da Pasta</span>
+                <input type="file" accept="image/*" multiple style="display:none" onchange="handleUserFolderFiles(this)">
+              </label>
+            </div>
+          </div>
+        \`;
+        return;
+      }
+
       if (!filtered.length) {
         grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--muted)">Nenhuma fotografia encontrada com esse filtro.</div>';
         return;
@@ -570,6 +629,26 @@ export function generateClientStandaloneHtml(client: ClientData): string {
         updateCounters();
         renderGrid();
       }
+    }
+
+    function handleUserFolderFiles(input) {
+      if (!input.files || !input.files.length) return;
+      const added = [];
+      Array.from(input.files).forEach((file, idx) => {
+        const url = URL.createObjectURL(file);
+        added.push({
+          id: photos.length + idx + 1,
+          name: file.name,
+          url,
+          thumbnailUrl: url,
+          selected: false
+        });
+      });
+      photos = photos.concat(added);
+      updateCounters();
+      renderGrid();
+      showToast('✓ ' + added.length + ' foto(s) da pasta adicionadas para seleção!');
+      input.value = '';
     }
 
     function setFilter(f) {

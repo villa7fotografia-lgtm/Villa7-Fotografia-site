@@ -13,6 +13,7 @@ import {
   saveSingleClientToSupabase,
   SELECTION_BUCKET,
 } from './src/services/clientStorage';
+import { resolveFolderPhotos } from './src/services/folderResolver';
 
 const app = express();
 const PORT = 3000;
@@ -172,10 +173,25 @@ app.delete('/api/clients', async (req, res) => {
   }
 });
 
+// GET & POST /api/folder/fetch-photos - Extract photos from repository link (Google Drive, Google Photos, Dropbox, etc.)
+app.all('/api/folder/fetch-photos', async (req, res) => {
+  try {
+    const folderUrl = (req.query.url || req.body?.url || '') as string;
+    const token = (req.query.token || req.body?.token || '') as string;
+    if (!folderUrl) {
+      return res.status(400).json({ success: false, error: 'URL do repositório não informada.' });
+    }
+    const result = await resolveFolderPhotos(folderUrl, token);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao sincronizar repositório.' });
+  }
+});
+
 // POST /api/clients - Register a new client, generate exclusive link & standalone HTML
 app.post('/api/clients', async (req, res) => {
   try {
-    const { nome, email, link_pasta, pasta_drive } = req.body || {};
+    const { nome, email, link_pasta, pasta_drive, fotos, photos } = req.body || {};
     const effectiveLink = link_pasta || pasta_drive;
     if (!nome || !String(nome).trim()) {
       return res.status(400).json({ success: false, error: 'O Nome do Cliente é obrigatório.' });
@@ -193,6 +209,24 @@ app.post('/api/clients', async (req, res) => {
     const cleanSlug = cleanNome.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const token = `${cleanSlug || 'cliente'}-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
 
+    // Resolve or extract photos from repository
+    let clientPhotos: any[] = [];
+    if (Array.isArray(fotos) && fotos.length > 0) {
+      clientPhotos = fotos;
+    } else if (Array.isArray(photos) && photos.length > 0) {
+      clientPhotos = photos;
+    } else {
+      try {
+        const resolved = await resolveFolderPhotos(cleanLinkPasta, token);
+        if (resolved && Array.isArray(resolved.photos) && resolved.photos.length > 0) {
+          clientPhotos = resolved.photos;
+          console.log(`[Repository Sync]: ${clientPhotos.length} fotos detectadas na pasta do cliente "${cleanNome}".`);
+        }
+      } catch (fErr) {
+        console.warn('[Auto resolve folder warning]:', fErr);
+      }
+    }
+
     const newClient: ClientData = {
       id: crypto.randomUUID(),
       nome: cleanNome,
@@ -201,6 +235,8 @@ app.post('/api/clients', async (req, res) => {
       token,
       status: 'pendente',
       fotos_selecionadas: [],
+      fotos: clientPhotos,
+      photos: clientPhotos,
       pdf_url: undefined,
       created_at: new Date().toISOString(),
       notes: '',
@@ -246,11 +282,54 @@ app.post('/api/clients', async (req, res) => {
       success: true,
       client: newClient,
       html_url: htmlPublicUrl,
+      photos_count: clientPhotos.length,
       message: 'Cliente cadastrado e página HTML gerada com sucesso!',
     });
   } catch (err: any) {
     console.error('[Create Client Error]:', err);
     return res.status(500).json({ success: false, error: err?.message || 'Erro ao cadastrar cliente.' });
+  }
+});
+
+// POST /api/clients/:token/photos - Update client repository photos
+app.post('/api/clients/:token/photos', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { fotos, photos } = req.body || {};
+    const newPhotos = fotos || photos;
+    if (!Array.isArray(newPhotos)) {
+      return res.status(400).json({ success: false, error: 'Lista de fotos inválida.' });
+    }
+
+    let clients = getLocalClients();
+    let client = clients.find(c => c.token === token);
+    if (!client) {
+      const sbClients = await getClientsFromSupabase();
+      client = sbClients.find(c => c.token === token);
+      if (client) clients.unshift(client);
+    }
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'Cliente não encontrado.' });
+    }
+
+    client.fotos = newPhotos;
+    client.photos = newPhotos;
+    saveLocalClients(clients);
+
+    // Regenerate and upload standalone HTML
+    const htmlContent = generateClientStandaloneHtml(client as ClientData);
+    let htmlPublicUrl: string | null = null;
+    try {
+      htmlPublicUrl = await uploadClientHtmlToSupabase(client as ClientData, htmlContent);
+      if (htmlPublicUrl) client.html_url = htmlPublicUrl;
+    } catch (_) {}
+
+    await saveSingleClientToSupabase(client as ClientData);
+    await saveClientsToSupabase(clients);
+
+    return res.json({ success: true, count: newPhotos.length, client, html_url: htmlPublicUrl });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao atualizar fotos do cliente.' });
   }
 });
 

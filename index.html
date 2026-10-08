@@ -114,9 +114,41 @@
           </label>
           <label>
             Link da Pasta de Fotos (Repositório) *
-            <input id="adminClientFolder" type="url" placeholder="https://drive.google.com/drive/folders/..." required style="margin-top:4px">
+            <input id="adminClientFolder" type="url" placeholder="https://drive.google.com/drive/folders/..." required style="margin-top:4px" oninput="onAdminClientFolderInput(this.value)">
           </label>
         </div>
+
+        <!-- Repository Photo Sync & Import Card -->
+        <div class="box" id="adminFolderSyncBox" style="margin-top:14px;background:#f9f7f4;border:1.5px solid var(--line);border-radius:14px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div>
+              <b style="font-size:13px;color:var(--ink);display:flex;align-items:center;gap:6px">
+                <span>📸 Sincronização de Fotos do Repositório:</span>
+                <span id="adminFolderStatusBadge" class="admin-badge pending" style="font-size:11px">Aguardando link...</span>
+              </b>
+              <p id="adminFolderStatusDesc" style="font-size:12px;color:var(--muted);margin-top:2px">
+                As fotos detectadas na pasta do repositório (Google Drive, Nuvem ou pasta local) serão carregadas na área do cliente.
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button type="button" class="btn soft" id="btnDetectFolderPhotos" onclick="scanFolderPhotosForRegistration()" style="font-size:12px;padding:8px 14px">
+                🔍 Sincronizar Fotos do Repositório
+              </button>
+              <label class="btn soft" style="font-size:12px;padding:8px 14px;cursor:pointer">
+                <span>📁 + Importar Pasta Local / Lightroom</span>
+                <input type="file" accept="image/*" multiple style="display:none" onchange="handleAdminFolderFilesSelect(this)">
+              </label>
+            </div>
+          </div>
+          <div id="adminFolderPreviewStrip" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.08)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span id="adminFolderPhotosCountText" style="font-size:12px;font-weight:600;color:var(--gold-dark)">0 fotos prontas para a seleção do cliente</span>
+              <button type="button" onclick="clearPendingFolderPhotos()" style="background:none;border:none;color:#c0392b;font-size:11px;font-weight:600;cursor:pointer">✕ Limpar Fotos</button>
+            </div>
+            <div id="adminFolderThumbnails" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px"></div>
+          </div>
+        </div>
+
         <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
           <span style="font-size:12px;color:var(--muted)">* Todos os campos são salvos no banco de dados Supabase e geram token criptográfico único.</span>
           <button id="btnSubmitClient" type="submit" class="btn gold" style="font-size:13px;padding:12px 24px;box-shadow:0 4px 14px rgba(181,150,109,0.3)">
@@ -1746,6 +1778,11 @@ function renderAdminClientsTable(list) {
       ? `<a href="${c.pdf_url}" target="_blank" rel="noopener" class="act-btn" title="Ver relatório PDF gerado no Supabase">📄 PDF</a>`
       : '';
 
+    const photosCount = (c.fotos?.length || c.photos?.length || 0);
+    const photosBadge = photosCount > 0
+      ? `<span class="admin-badge" style="background:#e8f4fd;color:#2980b9;border:1px solid #bce8f1;margin-top:4px;display:inline-block" title="${photosCount} fotos vinculadas">📸 ${photosCount} fotos</span>`
+      : `<button type="button" class="act-btn" onclick="syncExistingClientFolder('${c.token}')" title="Sincronizar fotos do repositório" style="font-size:10px;margin-top:4px">🔄 Buscar Fotos</button>`;
+
     return `
       <tr>
         <td>
@@ -1759,6 +1796,7 @@ function renderAdminClientsTable(list) {
           <a href="${c.link_pasta}" target="_blank" rel="noopener" class="act-btn" style="font-size:11px" title="Abrir pasta original de fotos">
             📂 Pasta Original ↗
           </a>
+          <br>${photosBadge}
         </td>
         <td>${statusHtml}</td>
         <td style="color:var(--muted);font-size:12px">${dateFormatted}</td>
@@ -1766,6 +1804,9 @@ function renderAdminClientsTable(list) {
           <div style="display:inline-flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
             <button type="button" class="act-btn primary" onclick="openClientSelectionForToken('${c.token}')" title="Ver área de seleção do cliente">
               👁️ Ver Área
+            </button>
+            <button type="button" class="act-btn" onclick="syncExistingClientFolder('${c.token}')" title="Sincronizar fotos da pasta do cliente">
+              🔄 Fotos
             </button>
             <button type="button" class="act-btn" onclick="copyClientLink('${c.token}')" title="Copiar link online exclusivo (?token=)">
               📋 Copiar Link
@@ -1804,6 +1845,11 @@ function buildStandaloneClientHtmlString(client) {
   const safeEmail = (client.email || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeFolder = (client.link_pasta || '#').replace(/"/g, '&quot;');
   const token = client.token || 'cliente';
+  const clientInitialPhotos = (Array.isArray(client.fotos) && client.fotos.length > 0)
+    ? client.fotos
+    : (Array.isArray(client.photos) && client.photos.length > 0)
+      ? client.photos
+      : [];
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -1885,8 +1931,39 @@ function buildStandaloneClientHtmlString(client) {
     const SB = "${V7_SB_URL}";
     const KEY = "${V7_SB_KEY}";
     const BU = "${V7_SB_BUCKET}";
-    const photos = ${JSON.stringify(SAMPLE_CLIENT_PHOTOS_PRESETS)}.map((p,i)=>({ id:i+1, name:p.name, url:p.url, selected:${JSON.stringify(client.fotos_selecionadas || [])}.includes(p.name) }));
+    const rawPhotos = ${JSON.stringify(clientInitialPhotos)};
+    let photos = rawPhotos.map((p,i)=>({
+      id: p.id || i+1,
+      name: p.name || ('Foto_' + (i+1)),
+      url: p.url,
+      thumbnailUrl: p.thumbnailUrl || p.url,
+      selected: ${JSON.stringify(client.fotos_selecionadas || [])}.includes(p.name)
+    }));
     let curLbIdx = 0;
+
+    if (!photos.length && "${safeFolder}" !== "#") {
+      setTimeout(fetchFolderPhotosAsync, 400);
+    }
+
+    async function fetchFolderPhotosAsync() {
+      try {
+        const res = await fetch('/api/folder/fetch-photos?url=' + encodeURIComponent("${safeFolder}") + '&token=' + encodeURIComponent(TOKEN));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.photos) && data.photos.length > 0) {
+            photos = data.photos.map((p,i)=>({
+              id: p.id || i+1,
+              name: p.name || ('Foto_' + (i+1)),
+              url: p.url,
+              thumbnailUrl: p.thumbnailUrl || p.url,
+              selected: ${JSON.stringify(client.fotos_selecionadas || [])}.includes(p.name)
+            }));
+            update();
+            render();
+          }
+        }
+      } catch (_) {}
+    }
 
     function update() {
       const sel = photos.filter(p=>p.selected).length;
@@ -1896,15 +1973,51 @@ function buildStandaloneClientHtmlString(client) {
 
     function render() {
       const g = document.getElementById('grid');
+      if (!photos.length) {
+        g.innerHTML = \`
+          <div style="grid-column:1/-1;text-align:center;padding:48px 20px;background:#1b1e26;border:1.5px dashed rgba(212,175,55,0.3);border-radius:18px">
+            <div style="font-size:40px;margin-bottom:10px">📂</div>
+            <h3 style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold-light);margin-bottom:6px">Repositório de Fotos Conectado</h3>
+            <p style="color:var(--muted);font-size:13px;max-width:520px;margin:0 auto 16px">As fotos desta sessão estão vinculadas à pasta oficial do cliente. Acesse o repositório original para visualizar ou selecione as fotografias baixadas:</p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+              <a href="${safeFolder}" target="_blank" rel="noopener" class="folder-btn">📂 Acessar Pasta Original de Fotos ↗</a>
+              <label class="folder-btn" style="cursor:pointer;background:rgba(212,175,55,0.25)">
+                <span>📸 + Carregar Fotos Desta Pasta</span>
+                <input type="file" accept="image/*" multiple style="display:none" onchange="handleStandaloneUserFiles(this)">
+              </label>
+            </div>
+          </div>
+        \`;
+        return;
+      }
       g.innerHTML = photos.map((p,i)=>\`
         <div class="card \${p.selected?'selected':''}" onclick="openLb(\${i})">
-          <img class="card-img" src="\${p.url}" alt="\${p.name}">
+          <img class="card-img" src="\${p.url}" alt="\${p.name}" loading="lazy">
           <div class="check" onclick="event.stopPropagation();photos[\${i}].selected=!photos[\${i}].selected;update();render();">\${p.selected?'✓':''}</div>
           <div style="padding:10px 14px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
             <strong>\${p.name}</strong><span>\${p.selected?'Aprovada':''}</span>
           </div>
         </div>
       \`).join('');
+    }
+
+    function handleStandaloneUserFiles(input) {
+      if (!input.files || !input.files.length) return;
+      const added = [];
+      Array.from(input.files).forEach((file, idx) => {
+        const url = URL.createObjectURL(file);
+        added.push({
+          id: photos.length + idx + 1,
+          name: file.name,
+          url,
+          thumbnailUrl: url,
+          selected: false
+        });
+      });
+      photos = photos.concat(added);
+      update();
+      render();
+      input.value = '';
     }
 
     function openLb(idx) {
@@ -2007,6 +2120,176 @@ function downloadNewGeneratedHtml() {
   downloadClientStandaloneHtml(window.__lastCreatedToken);
 }
 
+window.__pendingClientPhotos = [];
+
+function onAdminClientFolderInput(val) {
+  const badge = $('adminFolderStatusBadge');
+  const clean = (val || '').trim();
+  if (!clean) {
+    if (badge) {
+      badge.className = 'admin-badge pending';
+      badge.textContent = 'Aguardando link...';
+    }
+    return;
+  }
+  if (badge) {
+    if (clean.includes('drive.google.com')) {
+      badge.className = 'admin-badge';
+      badge.style.background = '#e8f4fd';
+      badge.style.color = '#2980b9';
+      badge.textContent = 'Google Drive Detectado';
+    } else if (clean.includes('dropbox.com')) {
+      badge.className = 'admin-badge';
+      badge.style.background = '#e8f4fd';
+      badge.style.color = '#0061ff';
+      badge.textContent = 'Dropbox Detectado';
+    } else if (clean.includes('photos.app.goo.gl') || clean.includes('photos.google.com')) {
+      badge.className = 'admin-badge';
+      badge.style.background = '#fef9e7';
+      badge.style.color = '#f39c12';
+      badge.textContent = 'Google Fotos Detectado';
+    } else {
+      badge.className = 'admin-badge';
+      badge.textContent = 'Link de Repositório Conectado';
+    }
+  }
+}
+
+async function scanFolderPhotosForRegistration() {
+  const folder = $('adminClientFolder')?.value?.trim();
+  const badge = $('adminFolderStatusBadge');
+  const btn = $('btnDetectFolderPhotos');
+  if (!folder) {
+    return alert('Por favor, cole o Link da Pasta de Fotos (Repositório) antes de sincronizar.');
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '🔄 Sincronizando...'; }
+  if (badge) { badge.textContent = 'Verificando fotos...'; }
+
+  try {
+    const res = await safeFetchJson('/api/folder/fetch-photos?url=' + encodeURIComponent(folder));
+    if (res.ok && res.data && res.data.success && Array.isArray(res.data.photos) && res.data.photos.length > 0) {
+      window.__pendingClientPhotos = res.data.photos;
+      renderPendingFolderThumbnails();
+      if (badge) {
+        badge.className = 'admin-badge approved';
+        badge.textContent = `✓ ${res.data.photos.length} fotos sincronizadas!`;
+      }
+      msg(`✓ ${res.data.photos.length} fotos encontradas e sincronizadas do repositório!`);
+    } else {
+      const msgText = res.data?.message || 'Nenhuma foto pública encontrada automaticamente.';
+      if (badge) {
+        badge.className = 'admin-badge pending';
+        badge.textContent = 'Pasta vinculada (use + Importar Pasta Local)';
+      }
+      alert(msgText + '\n\nDica: Se a pasta for privada no Google Drive, use a opção "+ Importar Pasta Local / Lightroom" ao lado para carregar as fotos instantaneamente.');
+    }
+  } catch (err) {
+    alert('Erro ao conectar ao repositório: ' + (err.message || 'Falha de rede'));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 Sincronizar Fotos do Repositório'; }
+  }
+}
+
+function handleAdminFolderFilesSelect(input) {
+  if (!input.files || !input.files.length) return;
+  const added = [];
+  Array.from(input.files).forEach((file, idx) => {
+    const url = URL.createObjectURL(file);
+    added.push({
+      id: (window.__pendingClientPhotos?.length || 0) + idx + 1,
+      name: file.name,
+      url,
+      thumbnailUrl: url,
+      size: file.size
+    });
+  });
+  window.__pendingClientPhotos = (window.__pendingClientPhotos || []).concat(added);
+  renderPendingFolderThumbnails();
+  const badge = $('adminFolderStatusBadge');
+  if (badge) {
+    badge.className = 'admin-badge approved';
+    badge.textContent = `✓ ${window.__pendingClientPhotos.length} fotos locais prontas!`;
+  }
+  msg(`✓ ${added.length} foto(s) da pasta carregadas para a seleção deste cliente!`);
+  input.value = '';
+}
+
+function renderPendingFolderThumbnails() {
+  const strip = $('adminFolderPreviewStrip');
+  const text = $('adminFolderPhotosCountText');
+  const thumbs = $('adminFolderThumbnails');
+  if (!strip || !thumbs) return;
+
+  const photos = window.__pendingClientPhotos || [];
+  if (!photos.length) {
+    strip.style.display = 'none';
+    return;
+  }
+
+  strip.style.display = 'block';
+  if (text) text.textContent = `${photos.length} foto(s) prontas para a área de seleção`;
+
+  thumbs.innerHTML = photos.slice(0, 30).map(p => `
+    <div style="flex-shrink:0;width:54px;height:54px;border-radius:8px;overflow:hidden;border:1px solid var(--line);position:relative;background:#000" title="${p.name}">
+      <img src="${p.thumbnailUrl || p.url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;display:block">
+    </div>
+  `).join('') + (photos.length > 30 ? `<div style="flex-shrink:0;width:54px;height:54px;border-radius:8px;background:var(--cream);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted)">+${photos.length - 30}</div>` : '');
+}
+
+function clearPendingFolderPhotos() {
+  window.__pendingClientPhotos = [];
+  renderPendingFolderThumbnails();
+  const badge = $('adminFolderStatusBadge');
+  if (badge) {
+    badge.className = 'admin-badge pending';
+    badge.textContent = 'Aguardando fotos...';
+  }
+}
+
+async function syncExistingClientFolder(token) {
+  const client = adminClientsList.find(c => c.token === token);
+  if (!client || !client.link_pasta) {
+    return alert('Link da pasta do cliente não encontrado.');
+  }
+
+  msg(`🔍 Sincronizando fotos do repositório para ${client.nome}...`);
+  try {
+    const res = await safeFetchJson('/api/folder/fetch-photos?url=' + encodeURIComponent(client.link_pasta) + '&token=' + encodeURIComponent(token));
+    if (res.ok && res.data && res.data.success && Array.isArray(res.data.photos) && res.data.photos.length > 0) {
+      client.fotos = res.data.photos;
+      client.photos = res.data.photos;
+
+      // Save to server
+      await safeFetchJson(`/api/clients/${token}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fotos: res.data.photos })
+      });
+
+      // Update Supabase Storage
+      try {
+        await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients/${token}.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${V7_SB_KEY}`,
+            'apikey': V7_SB_KEY,
+            'Content-Type': 'application/json',
+            'x-upsert': 'true'
+          },
+          body: JSON.stringify(client)
+        });
+      } catch (_) {}
+
+      renderAdminClientsTable(adminClientsList);
+      alert(`✓ Sucesso! ${res.data.photos.length} fotos sincronizadas da pasta de ${client.nome}.`);
+    } else {
+      alert((res.data?.message || 'Nenhuma foto extraída automaticamente.') + '\n\nCaso o link seja restrito, você pode abrir a Área do Cliente e selecionar as fotos baixadas.');
+    }
+  } catch (err) {
+    alert('Erro ao sincronizar repositório: ' + (err.message || 'Falha de conexão'));
+  }
+}
+
 async function handleRegisterClientSubmit(e) {
   e.preventDefault();
   const btn = $('btnSubmitClient');
@@ -2027,6 +2310,20 @@ async function handleRegisterClientSubmit(e) {
     let newClient = null;
     let htmlUrl = null;
 
+    let finalPhotos = (Array.isArray(window.__pendingClientPhotos) && window.__pendingClientPhotos.length > 0)
+      ? window.__pendingClientPhotos
+      : [];
+
+    // If no photos pre-scanned yet, attempt resolving from the repository link
+    if (!finalPhotos.length && folder && folder !== '#') {
+      try {
+        const fetchRes = await safeFetchJson('/api/folder/fetch-photos?url=' + encodeURIComponent(folder));
+        if (fetchRes.ok && fetchRes.data && fetchRes.data.success && Array.isArray(fetchRes.data.photos) && fetchRes.data.photos.length > 0) {
+          finalPhotos = fetchRes.data.photos;
+        }
+      } catch (_) {}
+    }
+
     // 1. Direct Supabase Storage database registration (100% reliable online without server dependencies)
     const cleanSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const token = `${cleanSlug || 'cliente'}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
@@ -2038,6 +2335,8 @@ async function handleRegisterClientSubmit(e) {
       link_pasta: folder,
       status: 'pendente',
       fotos_selecionadas: [],
+      fotos: finalPhotos,
+      photos: finalPhotos,
       created_at: new Date().toISOString()
     };
 
@@ -2093,9 +2392,11 @@ async function handleRegisterClientSubmit(e) {
       await safeFetchJson('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: name, email, link_pasta: folder })
+        body: JSON.stringify({ nome: name, email, link_pasta: folder, fotos: finalPhotos })
       });
     } catch (_) {}
+
+    clearPendingFolderPhotos();
 
     if (!newClient) {
       throw new Error('Não foi possível gerar os dados do cliente.');
@@ -2303,20 +2604,73 @@ function setupClientViewWithData(client) {
     }
   }
 
-  // Prepopulate sample photos if none loaded yet
-  if (!clientPhotos.length) {
-    loadClientSamplePhotos();
-  } else {
-    // If client had previously approved photos, mark them
-    if (isApproved && Array.isArray(client.fotos_selecionadas)) {
-      clientPhotos.forEach(p => {
-        if (client.fotos_selecionadas.includes(p.name)) {
-          p.selected = true;
-        }
-      });
-    }
+  // Load client repository photos
+  const repositoryPhotos = (Array.isArray(client.fotos) && client.fotos.length > 0)
+    ? client.fotos
+    : (Array.isArray(client.photos) && client.photos.length > 0)
+      ? client.photos
+      : [];
+
+  if (repositoryPhotos.length > 0) {
+    clientPhotos = repositoryPhotos.map((item, idx) => ({
+      id: item.id || idx + 1,
+      name: item.name || ('Foto_' + (idx + 1)),
+      url: item.url,
+      thumbnailUrl: item.thumbnailUrl || item.url,
+      selected: (isApproved && Array.isArray(client.fotos_selecionadas))
+        ? client.fotos_selecionadas.includes(item.name)
+        : false,
+      file: null
+    }));
     renderClientPhotoGrid();
     updateClientSelectionCounters();
+    msg(`✓ ${clientPhotos.length} fotos do repositório carregadas!`);
+  } else if (client.link_pasta && client.link_pasta !== '#') {
+    clientPhotos = [];
+    renderClientPhotoGrid();
+    updateClientSelectionCounters();
+    syncPhotosFromClientFolder(client);
+  } else {
+    clientPhotos = [];
+    renderClientPhotoGrid();
+    updateClientSelectionCounters();
+  }
+}
+
+async function syncPhotosFromClientFolder(client) {
+  if (!client || !client.link_pasta || client.link_pasta === '#') return;
+  msg('🔍 Buscando fotos da pasta do repositório...');
+  try {
+    const res = await safeFetchJson('/api/folder/fetch-photos?url=' + encodeURIComponent(client.link_pasta) + '&token=' + encodeURIComponent(client.token || ''));
+    if (res.ok && res.data && res.data.success && Array.isArray(res.data.photos) && res.data.photos.length > 0) {
+      const isApproved = client.status === 'aprovado';
+      clientPhotos = res.data.photos.map((item, idx) => ({
+        id: item.id || idx + 1,
+        name: item.name || ('Foto_' + (idx + 1)),
+        url: item.url,
+        thumbnailUrl: item.thumbnailUrl || item.url,
+        selected: (isApproved && Array.isArray(client.fotos_selecionadas))
+          ? client.fotos_selecionadas.includes(item.name)
+          : false,
+        file: null
+      }));
+      client.fotos = res.data.photos;
+      client.photos = res.data.photos;
+
+      safeFetchJson(`/api/clients/${client.token}/photos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fotos: res.data.photos })
+      }).catch(() => {});
+
+      renderClientPhotoGrid();
+      updateClientSelectionCounters();
+      msg(`✓ ${clientPhotos.length} fotos sincronizadas do repositório!`);
+    } else {
+      renderClientPhotoGrid();
+    }
+  } catch (_) {
+    renderClientPhotoGrid();
   }
 }
 
@@ -2358,19 +2712,28 @@ function renderClientPhotoGrid() {
   if (!grid) return;
 
   if (!clientPhotos.length) {
+    const hasFolder = activeClientData?.link_pasta && activeClientData.link_pasta !== '#';
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:48px 16px;background:#fdfaf5;border-radius:18px;border:1.5px dashed var(--line)">
-        <div style="font-size:36px;margin-bottom:8px">📸</div>
-        <b style="font-size:16px;color:var(--ink);display:block;margin-bottom:4px">Nenhuma fotografia carregada na tela</b>
-        <p style="color:var(--muted);font-size:13px;max-width:440px;margin:0 auto 16px">Clique no botão abaixo para carregar as fotos de demonstração da sessão ou selecione fotos baixadas do seu dispositivo.</p>
+        <div style="font-size:36px;margin-bottom:8px">📂</div>
+        <b style="font-size:16px;color:var(--ink);display:block;margin-bottom:4px">Repositório de Fotografias Conectado</b>
+        <p style="color:var(--muted);font-size:13px;max-width:520px;margin:0 auto 16px">Esta sessão está vinculada à pasta oficial de fotos do cliente. Acesse o repositório original para visualizar ou carregue as fotos baixadas para seleção e aprovação imediata.</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button type="button" class="btn gold" onclick="loadClientSamplePhotos()" style="font-size:13px;padding:10px 20px">
-            📸 Carregar Fotos de Demonstração (24 fotos)
-          </button>
+          ${hasFolder ? `
+            <a href="${activeClientData.link_pasta}" target="_blank" rel="noopener" class="btn dark" style="font-size:13px;padding:10px 18px;text-decoration:none">
+              📂 Abrir Pasta Original de Fotos ↗
+            </a>
+            <button type="button" class="btn gold" onclick="syncPhotosFromClientFolder(activeClientData)" style="font-size:13px;padding:10px 18px">
+              🔄 Sincronizar Fotos do Repositório
+            </button>
+          ` : ''}
           <label class="btn soft" style="font-size:13px;padding:10px 18px;cursor:pointer">
-            <span>📱 + Selecionar do Dispositivo</span>
+            <span>📱 + Selecionar Fotos da Pasta (Dispositivo)</span>
             <input type="file" accept="image/*" multiple style="display:none" onchange="handleClientUserFiles(this)">
           </label>
+          <button type="button" class="btn soft" onclick="loadClientSamplePhotos()" style="font-size:12px;padding:10px 16px;opacity:0.85">
+            📸 Ver Fotos Amostrais (Modo Teste)
+          </button>
         </div>
       </div>
     `;
