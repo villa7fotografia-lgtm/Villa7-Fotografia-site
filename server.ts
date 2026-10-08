@@ -4,6 +4,15 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import {
+  ClientData,
+  generateClientStandaloneHtml,
+  uploadClientHtmlToSupabase,
+  getClientsFromSupabase,
+  saveClientsToSupabase,
+  saveSingleClientToSupabase,
+  SELECTION_BUCKET,
+} from './src/services/clientStorage';
 
 const app = express();
 const PORT = 3000;
@@ -104,39 +113,34 @@ function saveLocalClients(clients: any[]) {
 // GET /api/clients - List all registered clients
 app.get('/api/clients', async (req, res) => {
   try {
-    let clients = getLocalClients();
-    // Try syncing with Supabase table if available
+    let localClients = getLocalClients();
+
+    // Sync with Supabase Storage database
     try {
-      const sbRes = await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?select=*&order=created_at.desc`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
-          'apikey': JWT_SERVICE_ROLE_KEY,
-        },
-      });
-      if (sbRes.ok) {
-        const sbClients = await sbRes.json();
-        if (Array.isArray(sbClients) && sbClients.length > 0) {
-          // Merge Supabase clients with local clients
-          const map = new Map<string, any>();
-          clients.forEach(c => map.set(c.token, c));
-          sbClients.forEach(c => map.set(c.token, { ...map.get(c.token), ...c }));
-          clients = Array.from(map.values()).sort(
-            (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-          );
-          saveLocalClients(clients);
-        }
+      const sbClients = await getClientsFromSupabase();
+      if (Array.isArray(sbClients) && sbClients.length > 0) {
+        const map = new Map<string, any>();
+        localClients.forEach(c => map.set(c.token, c));
+        sbClients.forEach(c => map.set(c.token, { ...map.get(c.token), ...c }));
+        localClients = Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+        saveLocalClients(localClients);
+      } else if (localClients.length > 0) {
+        // Seed Supabase with local clients if Supabase was empty
+        await saveClientsToSupabase(localClients);
       }
     } catch (sbErr) {
-      console.warn('[Supabase Clients Query Notice]:', sbErr);
+      console.warn('[Supabase Storage Sync Notice]:', sbErr);
     }
-    return res.json({ success: true, clients });
+
+    return res.json({ success: true, clients: localClients });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Erro ao carregar clientes.' });
   }
 });
 
-// POST /api/clients - Register a new client and generate exclusive link
+// POST /api/clients - Register a new client, generate exclusive link & standalone HTML
 app.post('/api/clients', async (req, res) => {
   try {
     const { nome, email, link_pasta, pasta_drive } = req.body || {};
@@ -154,51 +158,63 @@ app.post('/api/clients', async (req, res) => {
     const cleanNome = String(nome).trim();
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanLinkPasta = String(effectiveLink).trim();
-    const token = 'v7_' + crypto.randomBytes(6).toString('hex');
-    const newClient = {
+    const cleanSlug = cleanNome.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const token = `${cleanSlug || 'cliente'}-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
+
+    const newClient: ClientData = {
       id: crypto.randomUUID(),
       nome: cleanNome,
       email: cleanEmail,
       link_pasta: cleanLinkPasta,
       token,
-      status: 'pendente', // 'pendente' | 'aprovado'
+      status: 'pendente',
       fotos_selecionadas: [],
-      pdf_url: null,
+      pdf_url: undefined,
       created_at: new Date().toISOString(),
-      approved_at: null,
       notes: '',
     };
 
-    // Save locally
+    // 1. Generate standalone HTML page
+    const htmlContent = generateClientStandaloneHtml(newClient);
+
+    // 2. Save HTML locally
+    try {
+      const htmlDir = path.join(process.cwd(), 'data', 'clients_html');
+      fs.mkdirSync(htmlDir, { recursive: true });
+      fs.writeFileSync(path.join(htmlDir, `selecao_${token}.html`), htmlContent, 'utf-8');
+    } catch (fsErr) {
+      console.warn('[Local HTML Save Notice]:', fsErr);
+    }
+
+    // 3. Upload HTML directly to Supabase Storage
+    let htmlPublicUrl: string | null = null;
+    try {
+      htmlPublicUrl = await uploadClientHtmlToSupabase(newClient, htmlContent);
+      if (htmlPublicUrl) {
+        newClient.html_url = htmlPublicUrl;
+      }
+    } catch (uploadErr) {
+      console.warn('[Supabase HTML Upload Notice]:', uploadErr);
+    }
+
+    // 4. Save locally
     const clients = getLocalClients();
     clients.unshift(newClient);
     saveLocalClients(clients);
 
-    // Attempt to persist to Supabase table
-    let savedToSupabase = false;
+    // 5. Save to Supabase Storage database
     try {
-      const sbRes = await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
-          'apikey': JWT_SERVICE_ROLE_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation',
-        },
-        body: JSON.stringify(newClient),
-      });
-      if (sbRes.ok) {
-        savedToSupabase = true;
-      }
+      await saveSingleClientToSupabase(newClient);
+      await saveClientsToSupabase(clients);
     } catch (sbErr) {
-      console.warn('[Supabase Insert Notice]:', sbErr);
+      console.warn('[Supabase Database Save Notice]:', sbErr);
     }
 
     return res.json({
       success: true,
       client: newClient,
-      savedToSupabase,
-      message: 'Cliente cadastrado com sucesso!',
+      html_url: htmlPublicUrl,
+      message: 'Cliente cadastrado e página HTML gerada com sucesso!',
     });
   } catch (err: any) {
     console.error('[Create Client Error]:', err);
@@ -206,7 +222,7 @@ app.post('/api/clients', async (req, res) => {
   }
 });
 
-// GET /api/clients/:token - Fetch client by exclusive token for the selection area
+// GET /api/clients/:token - Fetch client by token
 app.get('/api/clients/:token', async (req, res) => {
   try {
     const { token } = req.params;
@@ -217,23 +233,19 @@ app.get('/api/clients/:token', async (req, res) => {
     let clients = getLocalClients();
     let client = clients.find(c => c.token === token);
 
-    // Try finding in Supabase
-    try {
-      const sbRes = await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?token=eq.${encodeURIComponent(token)}&select=*`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
-          'apikey': JWT_SERVICE_ROLE_KEY,
-        },
-      });
-      if (sbRes.ok) {
-        const sbClients = await sbRes.json();
-        if (Array.isArray(sbClients) && sbClients.length > 0) {
-          client = { ...client, ...sbClients[0] };
+    // Try finding in Supabase Storage database
+    if (!client) {
+      try {
+        const sbClients = await getClientsFromSupabase();
+        const found = sbClients.find(c => c.token === token);
+        if (found) {
+          client = found;
+          clients.unshift(found);
+          saveLocalClients(clients);
         }
+      } catch (sbErr) {
+        console.warn('[Supabase Client Find Notice]:', sbErr);
       }
-    } catch (sbErr) {
-      console.warn('[Supabase Client Find Notice]:', sbErr);
     }
 
     if (!client) {
@@ -243,6 +255,54 @@ app.get('/api/clients/:token', async (req, res) => {
     return res.json({ success: true, client });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Erro ao buscar cliente.' });
+  }
+});
+
+// GET /api/clients/:token/html and /selecao/:token/html - Serve standalone HTML directly
+app.get(['/api/clients/:token/html', '/selecao/:token/html'], async (req, res) => {
+  try {
+    const { token } = req.params;
+    let clients = getLocalClients();
+    let client = clients.find(c => c.token === token);
+    if (!client) {
+      const sbClients = await getClientsFromSupabase();
+      client = sbClients.find(c => c.token === token);
+    }
+
+    if (!client) {
+      return res.status(404).send('<h1>Página do cliente não encontrada.</h1>');
+    }
+
+    const htmlContent = generateClientStandaloneHtml(client as ClientData);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(htmlContent);
+  } catch (err: any) {
+    return res.status(500).send('Erro ao renderizar página do cliente.');
+  }
+});
+
+// GET /api/clients/:token/download-html - Download standalone HTML file
+app.get('/api/clients/:token/download-html', async (req, res) => {
+  try {
+    const { token } = req.params;
+    let clients = getLocalClients();
+    let client = clients.find(c => c.token === token);
+    if (!client) {
+      const sbClients = await getClientsFromSupabase();
+      client = sbClients.find(c => c.token === token);
+    }
+
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'Cliente não encontrado.' });
+    }
+
+    const htmlContent = generateClientStandaloneHtml(client as ClientData);
+    const safeName = (client.nome || 'Cliente').replace(/[^a-zA-Z0-9_-]/g, '_');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="Villa7_Selecao_${safeName}.html"`);
+    return res.send(htmlContent);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao baixar arquivo HTML.' });
   }
 });
 
@@ -265,25 +325,27 @@ app.post('/api/clients/:token/approve', async (req, res) => {
       if (notes !== undefined) client.notes = notes;
       clients[index] = client;
       saveLocalClients(clients);
+    } else {
+      client = {
+        token,
+        nome: req.body?.nome || 'Cliente',
+        email: req.body?.email || '',
+        link_pasta: req.body?.link_pasta || '#',
+        status: 'aprovado',
+        created_at: approved_at,
+        approved_at,
+        fotos_selecionadas: Array.isArray(fotos_selecionadas) ? fotos_selecionadas : [],
+        pdf_url,
+        notes,
+      };
+      clients.unshift(client);
+      saveLocalClients(clients);
     }
 
-    // Update in Supabase
+    // Update in Supabase Storage database
     try {
-      await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?token=eq.${encodeURIComponent(token)}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
-          'apikey': JWT_SERVICE_ROLE_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'aprovado',
-          fotos_selecionadas: Array.isArray(fotos_selecionadas) ? fotos_selecionadas : [],
-          approved_at,
-          pdf_url: pdf_url || client?.pdf_url || null,
-          notes: notes || client?.notes || '',
-        }),
-      });
+      await saveSingleClientToSupabase(client);
+      await saveClientsToSupabase(clients);
     } catch (sbErr) {
       console.warn('[Supabase Client Update Notice]:', sbErr);
     }
@@ -307,13 +369,7 @@ app.delete('/api/clients/:token', async (req, res) => {
     saveLocalClients(clients);
 
     try {
-      await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?token=eq.${encodeURIComponent(token)}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
-          'apikey': JWT_SERVICE_ROLE_KEY,
-        },
-      });
+      await saveClientsToSupabase(clients);
     } catch (sbErr) {
       console.warn('[Supabase Client Delete Notice]:', sbErr);
     }

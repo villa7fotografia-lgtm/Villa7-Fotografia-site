@@ -1,5 +1,38 @@
 [
   {
+    "id": "51909386-47da-4ab1-9e2c-98eb8c26a436",
+    "nome": "Studio Ensaio Gestante",
+    "email": "gestante@villa7.com",
+    "link_pasta": "https://drive.google.com/drive/folders/gestante-villa7",
+    "token": "studio-ensaio-gestante-muzgfzj5-f3c5c8",
+    "status": "aprovado",
+    "fotos_selecionadas": [
+      "DSC_1024.JPG",
+      "DSC_1039.JPG"
+    ],
+    "created_at": "2026-10-08T11:30:16.097Z",
+    "notes": "Aprovado com urgência",
+    "html_url": "https://twfhqhkzabvlzkgofjyj.supabase.co/storage/v1/object/public/selecao-de-fotos/clientes/selecao_studio-ensaio-gestante-muzgfzj5-f3c5c8.html",
+    "approved_at": "2026-10-08T11:30:17.263Z"
+  },
+  {
+    "id": "4f3f4ddf-9dee-4c36-8273-89a15e63f47f",
+    "nome": "Juliana e Rodrigo Casamento",
+    "email": "juliana@exemplo.com",
+    "link_pasta": "https://drive.google.com/drive/folders/casamento-juliana",
+    "token": "juliana-e-rodrigo-casamento-muzgehmj-567f33",
+    "status": "aprovado",
+    "fotos_selecionadas": [
+      "DSC_1024.JPG",
+      "DSC_1028.JPG",
+      "DSC_1033.JPG"
+    ],
+    "created_at": "2026-10-08T11:29:06.235Z",
+    "notes": "Por favor, caprichem na foto 1024 para a lâmina 1.",
+    "html_url": "https://twfhqhkzabvlzkgofjyj.supabase.co/storage/v1/object/public/selecao-de-fotos/clientes/selecao_juliana-e-rodrigo-casamento-muzgehmj-567f33.html",
+    "approved_at": "2026-10-08T11:29:07.865Z"
+  },
+  {
     "id": "422518df-add7-4a1c-8528-164acf8d93b8",
     "nome": "Studio Casamento VIP",
     "email": "casamento@villa7.com",

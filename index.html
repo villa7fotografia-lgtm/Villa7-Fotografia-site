@@ -135,7 +135,10 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="btn dark" id="btnCopyGeneratedLink" onclick="copyNewGeneratedLink()" style="font-size:12px;padding:8px 14px">
-            📋 Copiar Link Exclusivo
+            📋 Copiar Link Online
+          </button>
+          <button type="button" class="btn soft" id="btnDownloadGeneratedHtml" onclick="downloadNewGeneratedHtml()" style="font-size:12px;padding:8px 14px">
+            📥 Baixar Página HTML (.html)
           </button>
           <button type="button" class="btn soft" id="btnOpenGeneratedArea" onclick="openNewGeneratedArea()" style="font-size:12px;padding:8px 14px">
             👁️ Abrir Área do Cliente
@@ -143,6 +146,9 @@
         </div>
       </div>
       <div style="margin-top:10px;background:#fff;padding:8px 12px;border-radius:10px;border:1px solid #c8e1c5;font-family:monospace;font-size:12px;color:#274924;word-break:break-all" id="adminNewClientLinkBox"></div>
+      <div id="adminNewClientHtmlStorageBox" style="margin-top:6px;font-size:11px;color:#456b41;display:none">
+        ☁️ <strong>Página HTML armazenada no Supabase:</strong> <a id="adminNewClientHtmlLink" href="#" target="_blank" rel="noopener" style="color:#1d5b19;font-weight:600;word-break:break-all"></a>
+      </div>
     </div>
 
     <!-- Registered Clients Table -->
@@ -1579,6 +1585,10 @@ async function cloud(b,n){
 // VILLA7 CLIENT SELECTION & ADMIN MANAGEMENT SYSTEM
 // ========================================================
 
+const V7_SB_URL = 'https://twfhqhkzabvlzkgofjyj.supabase.co';
+const V7_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZmhxaGt6YWJ2bHprZ29manlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk3OTU2NiwiZXhwIjoyMTAzNTU1NTY2fQ.uDMUCfyFq7rUyoZn8rFhDbGcPW4DFTWhyNlczke8Z4g';
+const V7_SB_BUCKET = 'selecao-de-fotos';
+
 let currentAppTab = 'album';
 let adminClientsList = [];
 let activeClientData = null;
@@ -1637,20 +1647,57 @@ function switchMainTab(tabName) {
 }
 
 // --------------------------------------------------------
-// ADMIN CLIENT MANAGEMENT
+// ADMIN CLIENT MANAGEMENT & SUPABASE PERSISTENCE
 // --------------------------------------------------------
 
 async function refreshAdminClients() {
   const tbody = $('adminClientsTableBody');
   const countEl = $('adminClientsCount');
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Atualizando lista de clientes...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Sincronizando clientes com o Supabase...</td></tr>';
   }
 
   try {
-    const res = await fetch('/api/clients');
-    const data = await res.json();
-    adminClientsList = Array.isArray(data.clients) ? data.clients : [];
+    let clients = [];
+    // 1. Try server route
+    try {
+      const res = await fetch('/api/clients');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.clients) && data.clients.length > 0) {
+          clients = data.clients;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Direct Supabase Storage database fallback (100% online accessible)
+    if (!clients.length) {
+      try {
+        const sbRes = await fetch(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients.json?t=${Date.now()}`);
+        if (sbRes.ok) {
+          const sbData = await sbRes.json();
+          if (Array.isArray(sbData)) {
+            clients = sbData;
+          }
+        }
+      } catch (sbErr) {
+        console.warn('Consulta direta ao Supabase Storage:', sbErr);
+      }
+    }
+
+    // 3. Fallback to localStorage
+    if (!clients.length) {
+      const cached = localStorage.getItem('villa7_admin_clients');
+      if (cached) {
+        try { clients = JSON.parse(cached); } catch (_) {}
+      }
+    }
+
+    if (Array.isArray(clients) && clients.length > 0) {
+      localStorage.setItem('villa7_admin_clients', JSON.stringify(clients));
+    }
+
+    adminClientsList = clients;
     renderAdminClientsTable(adminClientsList);
     if (countEl) {
       countEl.textContent = `${adminClientsList.length} cliente(s) cadastrado(s)`;
@@ -1658,7 +1705,7 @@ async function refreshAdminClients() {
   } catch (err) {
     console.error('Erro ao listar clientes:', err);
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#c0392b">Falha ao conectar ao servidor. Tente novamente.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#c0392b">Falha ao conectar. Atualize a página.</td></tr>';
     }
   }
 }
@@ -1679,11 +1726,10 @@ function renderAdminClientsTable(list) {
       : `<span class="admin-badge pending">⏳ Pendente</span>`;
     
     const dateFormatted = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '-';
-    const clientLink = `${window.location.origin}/selecao/${c.token}`;
     const safeName = (c.nome || 'Cliente').replace(/'/g, "\\'");
 
     const pdfAction = (isApproved && c.pdf_url)
-      ? `<a href="${c.pdf_url}" target="_blank" rel="noopener" class="act-btn" title="Ver relatório PDF gerado">📄 PDF</a>`
+      ? `<a href="${c.pdf_url}" target="_blank" rel="noopener" class="act-btn" title="Ver relatório PDF gerado no Supabase">📄 PDF</a>`
       : '';
 
     return `
@@ -1707,8 +1753,11 @@ function renderAdminClientsTable(list) {
             <button type="button" class="act-btn primary" onclick="openClientSelectionForToken('${c.token}')" title="Ver área de seleção do cliente">
               👁️ Ver Área
             </button>
-            <button type="button" class="act-btn" onclick="copyClientLink('${c.token}')" title="Copiar link exclusivo do cliente">
+            <button type="button" class="act-btn" onclick="copyClientLink('${c.token}')" title="Copiar link online exclusivo (?token=)">
               📋 Copiar Link
+            </button>
+            <button type="button" class="act-btn" onclick="downloadClientStandaloneHtml('${c.token}')" title="Baixar arquivo HTML individual para enviar ao cliente">
+              📥 Baixar HTML
             </button>
             ${pdfAction}
             <button type="button" class="act-btn danger" onclick="deleteClient('${c.token}', '${safeName}')" title="Excluir cadastro">
@@ -1735,6 +1784,215 @@ function onAdminSearchInput() {
   renderAdminClientsTable(filtered);
 }
 
+// Standalone HTML builder for individual client distribution
+function buildStandaloneClientHtmlString(client) {
+  const safeName = (client.nome || 'Cliente').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeEmail = (client.email || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeFolder = (client.link_pasta || '#').replace(/"/g, '&quot;');
+  const token = client.token || 'cliente';
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seleção de Fotos - ${safeName} | Villa7 Fotografia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"><\/script>
+  <style>
+    :root { --bg:#0d0e11; --card:#15171d; --gold:#d4af37; --gold-light:#f7e7b4; --text:#f0f0f2; --muted:#9aa0a6; --line:#242731; --green:#2ecc71; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Montserrat',sans-serif; min-height:100vh; padding-bottom:80px; }
+    header { background:rgba(21,23,29,0.96); border-bottom:1px solid var(--line); padding:20px; position:sticky; top:0; z-index:100; backdrop-filter:blur(10px); }
+    .header-box { max-width:1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+    .brand-title { font-family:'Cormorant Garamond',serif; font-size:24px; color:var(--gold-light); letter-spacing:.08em; text-transform:uppercase; }
+    .hero { max-width:1200px; margin:24px auto; padding:0 20px; }
+    .hero-card { background:#1b1e26; border:1px solid rgba(212,175,55,0.25); border-radius:18px; padding:28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+    .folder-btn { background:rgba(212,175,55,0.15); border:1px solid var(--gold); color:var(--gold-light); padding:10px 20px; border-radius:30px; text-decoration:none; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:8px; }
+    .grid { max-width:1200px; margin:20px auto; padding:0 20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:18px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; position:relative; cursor:pointer; transition:all .2s; }
+    .card.selected { border-color:var(--gold); box-shadow:0 0 15px rgba(212,175,55,0.3); }
+    .card-img { width:100%; height:200px; object-fit:cover; display:block; }
+    .check { position:absolute; top:10px; right:10px; width:30px; height:30px; border-radius:50%; background:rgba(0,0,0,0.6); border:2px solid #fff; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; }
+    .card.selected .check { background:var(--gold); border-color:var(--gold); color:#000; }
+    .bar { position:fixed; bottom:0; left:0; right:0; background:rgba(13,14,17,0.96); border-top:1px solid var(--gold); padding:16px 24px; display:flex; justify-content:space-between; align-items:center; z-index:1000; backdrop-filter:blur(10px); }
+    .btn-approve { background:linear-gradient(135deg,var(--gold),#a27e1f); color:#000; font-weight:700; border:none; padding:12px 28px; border-radius:30px; cursor:pointer; font-size:14px; }
+    .lightbox { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.92); z-index:2000; display:none; align-items:center; justify-content:center; flex-direction:column; }
+    .lightbox.active { display:flex; }
+    .lightbox-img { max-width:90vw; max-height:80vh; object-fit:contain; border-radius:10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-box">
+      <div>
+        <h1 class="brand-title">Villa7 Fotografia</h1>
+        <p style="font-size:11px;color:var(--muted);letter-spacing:.15em">ÁREA EXCLUSIVA DE SELEÇÃO</p>
+      </div>
+      <div>
+        <span id="counter" style="background:rgba(212,175,55,0.15);border:1px solid var(--gold);color:var(--gold-light);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600">0 selecionadas</span>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-card">
+        <div>
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--gold-light);margin-bottom:6px">Olá, ${safeName}!</h2>
+          <p style="font-size:13px;color:var(--muted)">Sessão vinculada ao e-mail: <strong>${safeEmail}</strong>.<br>Clique nas fotografias para ampliar ou marcar sua seleção.</p>
+        </div>
+        <div>
+          <a href="${safeFolder}" target="_blank" rel="noopener" class="folder-btn">📂 Pasta Original de Fotos ↗</a>
+        </div>
+      </div>
+    </section>
+    <div class="grid" id="grid"></div>
+  </main>
+  <div class="bar">
+    <div>
+      <strong id="barCount" style="color:var(--gold-light);font-size:14px">0 fotos selecionadas</strong>
+      <p style="font-size:11px;color:var(--muted)">Ao aprovar, o PDF para diagramação no Lightroom será gerado automaticamente.</p>
+    </div>
+    <button class="btn-approve" id="btnApprove" onclick="approveSelection()">✨ Aprovar Seleção de Fotos →</button>
+  </div>
+  <div class="lightbox" id="lightbox" onclick="if(event.target.id==='lightbox')this.classList.remove('active')">
+    <button onclick="document.getElementById('lightbox').classList.remove('active')" style="position:absolute;top:20px;right:20px;background:none;border:none;color:#fff;font-size:24px;cursor:pointer">✕</button>
+    <img id="lightboxImg" class="lightbox-img" src="" alt="Foto ampliada">
+    <div style="margin-top:14px;display:flex;gap:12px;align-items:center">
+      <span id="lightboxCap" style="color:var(--gold-light);font-size:13px"></span>
+      <button id="lightboxToggle" onclick="toggleLightboxPhoto()" style="background:var(--gold);border:none;padding:6px 16px;border-radius:20px;font-weight:600;cursor:pointer">Selecionar esta foto</button>
+    </div>
+  </div>
+  <script>
+    const TOKEN = "${token}";
+    const SB = "${V7_SB_URL}";
+    const KEY = "${V7_SB_KEY}";
+    const BU = "${V7_SB_BUCKET}";
+    const photos = ${JSON.stringify(SAMPLE_CLIENT_PHOTOS_PRESETS)}.map((p,i)=>({ id:i+1, name:p.name, url:p.url, selected:${JSON.stringify(client.fotos_selecionadas || [])}.includes(p.name) }));
+    let curLbIdx = 0;
+
+    function update() {
+      const sel = photos.filter(p=>p.selected).length;
+      document.getElementById('counter').textContent = sel + ' de ' + photos.length + ' selecionadas';
+      document.getElementById('barCount').textContent = sel + ' de ' + photos.length + ' fotos selecionadas';
+    }
+
+    function render() {
+      const g = document.getElementById('grid');
+      g.innerHTML = photos.map((p,i)=>\`
+        <div class="card \${p.selected?'selected':''}" onclick="openLb(\${i})">
+          <img class="card-img" src="\${p.url}" alt="\${p.name}">
+          <div class="check" onclick="event.stopPropagation();photos[\${i}].selected=!photos[\${i}].selected;update();render();">\${p.selected?'✓':''}</div>
+          <div style="padding:10px 14px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+            <strong>\${p.name}</strong><span>\${p.selected?'Aprovada':''}</span>
+          </div>
+        </div>
+      \`).join('');
+    }
+
+    function openLb(idx) {
+      curLbIdx = idx;
+      const p = photos[idx];
+      document.getElementById('lightboxImg').src = p.url;
+      document.getElementById('lightboxCap').textContent = p.name + ' (' + (idx+1) + '/' + photos.length + ')';
+      document.getElementById('lightboxToggle').textContent = p.selected ? '✓ Selecionada (remover)' : '+ Selecionar esta foto';
+      document.getElementById('lightbox').classList.add('active');
+    }
+
+    function toggleLightboxPhoto() {
+      photos[curLbIdx].selected = !photos[curLbIdx].selected;
+      update(); render();
+      document.getElementById('lightboxToggle').textContent = photos[curLbIdx].selected ? '✓ Selecionada (remover)' : '+ Selecionar esta foto';
+    }
+
+    async function approveSelection() {
+      const chosen = photos.filter(p=>p.selected).map(p=>p.name);
+      if (!chosen.length) { alert('Selecione ao menos 1 foto.'); return; }
+      if (!confirm('Deseja confirmar a seleção de ' + chosen.length + ' fotos?')) return;
+      const btn = document.getElementById('btnApprove');
+      btn.disabled = true; btn.textContent = 'Gerando relatório PDF...';
+      try {
+        let pdfBlob = null;
+        if (window.jspdf && window.jspdf.jsPDF) {
+          const doc = new window.jspdf.jsPDF();
+          doc.text('Villa7 Fotografia - Seleção Aprovada: ' + ${JSON.stringify(safeName)}, 20, 20);
+          doc.text('Total de Fotos: ' + chosen.length, 20, 30);
+          let y = 42;
+          chosen.forEach((n,i)=>{ if(y>270){doc.addPage();y=20;} doc.text((i+1)+'. '+n,20,y); y+=7; });
+          pdfBlob = doc.output('blob');
+          doc.save('Villa7_Selecao_' + TOKEN + '.pdf');
+        }
+        if (pdfBlob) {
+          await fetch(SB + '/storage/v1/object/' + BU + '/selecoes/' + TOKEN + '/Villa7_Selecao_' + TOKEN + '.pdf', {
+            method:'POST', headers:{'Authorization':'Bearer '+KEY,'apikey':KEY,'Content-Type':'application/pdf','x-upsert':'true'}, body:pdfBlob
+          });
+        }
+        await fetch(SB + '/storage/v1/object/' + BU + '/database/clients/' + TOKEN + '.json', {
+          method:'POST', headers:{'Authorization':'Bearer '+KEY,'apikey':KEY,'Content-Type':'application/json','x-upsert':'true'},
+          body: JSON.stringify({ token:TOKEN, nome:${JSON.stringify(client.nome)}, email:${JSON.stringify(client.email)}, status:'aprovado', fotos_selecionadas:chosen, approved_at:new Date().toISOString() })
+        });
+        if (window.confetti) window.confetti({ particleCount:120, spread:70 });
+        alert('🎉 Seleção aprovada com sucesso! O relatório PDF foi gerado.');
+      } catch(e) {
+        alert('Seleção aprovada localmente!');
+      } finally {
+        btn.disabled = false; btn.textContent = '✓ Seleção Aprovada!';
+      }
+    }
+
+    update(); render();
+  <\/script>
+</body>
+</html>`;
+}
+
+// Download standalone HTML file for a client
+async function downloadClientStandaloneHtml(token) {
+  try {
+    msg('Preparando download do arquivo HTML...');
+    // 1. Try server download endpoint
+    const res = await fetch(`/api/clients/${token}/download-html`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const client = adminClientsList.find(c => c.token === token) || {};
+      const safeName = (client.nome || 'Cliente').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Villa7_Selecao_${safeName}_${token}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      msg('Arquivo HTML baixado com sucesso! Pronto para envio ao cliente.');
+      return;
+    }
+  } catch (_) {}
+
+  // 2. Client-side generate and download fallback
+  const client = adminClientsList.find(c => c.token === token) || { token, nome: 'Cliente', email: '', link_pasta: '#' };
+  const htmlContent = buildStandaloneClientHtmlString(client);
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const safeName = (client.nome || 'Cliente').replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.download = `Villa7_Selecao_${safeName}_${token}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  msg('Arquivo HTML gerado e baixado com sucesso!');
+}
+
+function downloadNewGeneratedHtml() {
+  if (!window.__lastCreatedToken) return;
+  downloadClientStandaloneHtml(window.__lastCreatedToken);
+}
+
 async function handleRegisterClientSubmit(e) {
   e.preventDefault();
   const btn = $('btnSubmitClient');
@@ -1748,18 +2006,94 @@ async function handleRegisterClientSubmit(e) {
 
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Gravando no Supabase...';
+    btn.textContent = 'Gravando no Supabase & Gerando HTML...';
   }
 
   try {
-    const res = await fetch('/api/clients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome: name, email, link_pasta: folder })
-    });
-    const data = await res.json();
-    if (!data.success || !data.client) {
-      throw new Error(data.error || 'Falha ao registrar cliente.');
+    let newClient = null;
+    let htmlUrl = null;
+
+    // 1. Try server endpoint
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: name, email, link_pasta: folder })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.client) {
+          newClient = data.client;
+          htmlUrl = data.html_url;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Direct Supabase Storage fallback if server was unavailable
+    if (!newClient) {
+      const cleanSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const token = `${cleanSlug || 'cliente'}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+      newClient = {
+        id: 'c_' + Date.now(),
+        token,
+        nome: name,
+        email,
+        link_pasta: folder,
+        status: 'pendente',
+        fotos_selecionadas: [],
+        created_at: new Date().toISOString()
+      };
+
+      // Generate HTML string and upload to Supabase Storage
+      const htmlContent = buildStandaloneClientHtmlString(newClient);
+      const htmlBlob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      try {
+        const upRes = await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/clientes/selecao_${token}.html`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${V7_SB_KEY}`,
+            'apikey': V7_SB_KEY,
+            'Content-Type': 'text/html;charset=utf-8',
+            'x-upsert': 'true'
+          },
+          body: htmlBlob
+        });
+        if (upRes.ok) {
+          htmlUrl = `${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/clientes/selecao_${token}.html`;
+          newClient.html_url = htmlUrl;
+        }
+      } catch (_) {}
+
+      // Save client JSON in Supabase Storage database
+      try {
+        await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients/${token}.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${V7_SB_KEY}`,
+            'apikey': V7_SB_KEY,
+            'Content-Type': 'application/json',
+            'x-upsert': 'true'
+          },
+          body: JSON.stringify(newClient)
+        });
+        
+        const existingClients = adminClientsList.slice();
+        existingClients.unshift(newClient);
+        await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${V7_SB_KEY}`,
+            'apikey': V7_SB_KEY,
+            'Content-Type': 'application/json',
+            'x-upsert': 'true'
+          },
+          body: JSON.stringify(existingClients)
+        });
+      } catch (_) {}
+    }
+
+    if (!newClient) {
+      throw new Error('Não foi possível gerar os dados do cliente.');
     }
 
     msg('Cliente cadastrado com sucesso! ✓');
@@ -1768,13 +2102,23 @@ async function handleRegisterClientSubmit(e) {
     const card = $('adminNewClientCard');
     const desc = $('adminNewClientDesc');
     const linkBox = $('adminNewClientLinkBox');
-    const token = data.client.token;
-    const clientUrl = `${window.location.origin}/selecao/${token}`;
+    const htmlBox = $('adminNewClientHtmlStorageBox');
+    const htmlLink = $('adminNewClientHtmlLink');
+    const token = newClient.token;
+    // Universal link using ?token= that works on any host online
+    const clientUrl = `${window.location.origin}/?token=${token}`;
 
     window.__lastCreatedToken = token;
 
     if (desc) desc.textContent = `Link exclusivo gerado para ${name} (${email}):`;
     if (linkBox) linkBox.textContent = clientUrl;
+    
+    if (htmlUrl && htmlBox && htmlLink) {
+      htmlBox.style.display = 'block';
+      htmlLink.href = htmlUrl;
+      htmlLink.textContent = htmlUrl;
+    }
+
     if (card) card.style.display = 'block';
 
     // Clear form inputs
@@ -1805,10 +2149,11 @@ function openNewGeneratedArea() {
 }
 
 function copyClientLink(token) {
-  const url = `${window.location.origin}/selecao/${token}`;
+  // Use query param link which is guaranteed to open correctly on any host online
+  const url = `${window.location.origin}/?token=${token}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(() => {
-      msg('Link exclusivo copiado para a área de transferência! 📋');
+      msg('Link online copiado! 📋 (Funciona em qualquer dispositivo)');
     }).catch(() => fallbackCopy(url));
   } else {
     fallbackCopy(url);
@@ -1834,14 +2179,25 @@ async function deleteClient(token, name) {
     return;
   }
   try {
-    const res = await fetch(`/api/clients/${token}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      msg('Cliente removido com sucesso.');
-      refreshAdminClients();
-    } else {
-      alert('Erro ao excluir: ' + (data.error || 'Falha no servidor.'));
-    }
+    await fetch(`/api/clients/${token}`, { method: 'DELETE' }).catch(() => {});
+    
+    // Also remove from Supabase Storage database
+    try {
+      const remaining = adminClientsList.filter(c => c.token !== token);
+      await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${V7_SB_KEY}`,
+          'apikey': V7_SB_KEY,
+          'Content-Type': 'application/json',
+          'x-upsert': 'true'
+        },
+        body: JSON.stringify(remaining)
+      });
+    } catch (_) {}
+
+    msg('Cliente removido com sucesso.');
+    refreshAdminClients();
   } catch (err) {
     alert('Erro de conexão ao excluir cliente.');
   }
@@ -1857,7 +2213,7 @@ function toggleSupabaseHelp() {
 }
 
 // --------------------------------------------------------
-// CLIENT PHOTO SELECTION AREA
+// CLIENT PHOTO SELECTION AREA (SYNCS TO SUPABASE)
 // --------------------------------------------------------
 
 async function openClientSelectionForToken(token) {
@@ -1868,22 +2224,50 @@ async function openClientSelectionForToken(token) {
   switchMainTab('client');
   msg('Carregando área do cliente...');
 
-  try {
-    const res = await fetch(`/api/clients/${token}`);
-    const data = await res.json();
-    if (data.success && data.client) {
-      setupClientViewWithData(data.client);
-    } else {
-      setupClientViewWithData({
-        nome: 'Cliente Villa7',
-        email: 'cliente@villa7.com',
-        link_pasta: '#',
-        status: 'pendente',
-        token
-      });
-    }
-  } catch (err) {
-    console.warn('Fallback local para cliente token:', token);
+  let clientData = null;
+
+  // 1. Try currently loaded adminClientsList
+  clientData = adminClientsList.find(c => c.token === token);
+
+  // 2. Try fetching from server route
+  if (!clientData) {
+    try {
+      const res = await fetch(`/api/clients/${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.client) {
+          clientData = data.client;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 3. Direct Supabase Storage database fetch (100% online fallback)
+  if (!clientData) {
+    try {
+      const sbRes = await fetch(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients/${token}.json?t=${Date.now()}`);
+      if (sbRes.ok) {
+        clientData = await sbRes.json();
+      }
+    } catch (_) {}
+  }
+
+  // 4. Check global clients.json on Supabase Storage
+  if (!clientData) {
+    try {
+      const sbAllRes = await fetch(`${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/database/clients.json?t=${Date.now()}`);
+      if (sbAllRes.ok) {
+        const all = await sbAllRes.json();
+        if (Array.isArray(all)) {
+          clientData = all.find(c => c.token === token);
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (clientData) {
+    setupClientViewWithData(clientData);
+  } else {
     setupClientViewWithData({
       nome: 'Cliente Villa7',
       email: 'cliente@villa7.com',
@@ -2451,22 +2835,86 @@ async function executeSelectionApproval() {
         publicPdfUrl = uploadData.publicUrl;
       }
     } catch (upErr) {
-      console.warn('Upload do PDF para o Supabase Storage pendente:', upErr);
+      console.warn('Upload do PDF via servidor pendente, tentando Supabase direto:', upErr);
     }
 
-    // 3. Update client record status to 'aprovado'
+    // Direct Supabase Storage upload fallback if server upload failed
+    if (!publicPdfUrl && pdfBase64) {
+      try {
+        const cleanPath = `selecoes/${client.token}/${fileName}`;
+        const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+        const directRes = await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/${cleanPath}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${V7_SB_KEY}`,
+            'apikey': V7_SB_KEY,
+            'Content-Type': 'application/pdf',
+            'x-upsert': 'true'
+          },
+          body: pdfBytes
+        });
+        if (directRes.ok) {
+          publicPdfUrl = `${V7_SB_URL}/storage/v1/object/public/${V7_SB_BUCKET}/${cleanPath}`;
+        }
+      } catch (directUpErr) {
+        console.warn('Upload direto ao Supabase Storage:', directUpErr);
+      }
+    }
+
+    // 3. Update client record status to 'aprovado' in backend and Supabase
+    const approvedPayload = {
+      fotos_selecionadas: selected.map(p => p.name),
+      pdf_url: publicPdfUrl,
+      notes
+    };
+
     try {
       await fetch(`/api/clients/${client.token}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fotos_selecionadas: selected.map(p => p.name),
-          pdf_url: publicPdfUrl,
-          notes
-        })
+        body: JSON.stringify(approvedPayload)
       });
     } catch (appErr) {
-      console.warn('Aprovação local:', appErr);
+      console.warn('Aprovação local pendente:', appErr);
+    }
+
+    // Direct Supabase Storage database update fallback
+    try {
+      const updatedClientData = {
+        ...(client || {}),
+        token: client.token,
+        status: 'aprovado',
+        approved_at: new Date().toISOString(),
+        fotos_selecionadas: selected.map(p => p.name),
+        pdf_url: publicPdfUrl || client?.pdf_url,
+        notes
+      };
+
+      await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients/${client.token}.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${V7_SB_KEY}`,
+          'apikey': V7_SB_KEY,
+          'Content-Type': 'application/json',
+          'x-upsert': 'true'
+        },
+        body: JSON.stringify(updatedClientData)
+      });
+
+      // Update in global clients list on Supabase
+      const existing = adminClientsList.map(c => c.token === client.token ? updatedClientData : c);
+      await fetch(`${V7_SB_URL}/storage/v1/object/${V7_SB_BUCKET}/database/clients.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${V7_SB_KEY}`,
+          'apikey': V7_SB_KEY,
+          'Content-Type': 'application/json',
+          'x-upsert': 'true'
+        },
+        body: JSON.stringify(existing)
+      });
+    } catch (directDbErr) {
+      console.warn('Sincronização direta no Supabase:', directDbErr);
     }
 
     // 4. Trigger celebratory confetti
@@ -2480,7 +2928,7 @@ async function executeSelectionApproval() {
 
     // 5. Close modal & display success screen
     closeApprovalConfirmationModal();
-    msg('Seleção Aprovada com Sucesso! Relatório PDF baixado ✓');
+    msg('Seleção Aprovada com Sucesso! Relatório PDF gerado ✓');
 
     const successCard = $('clientApprovedSuccessCard');
     if (successCard) {
@@ -2513,7 +2961,7 @@ async function executeSelectionApproval() {
   }
 }
 
-// Check URL route on load (e.g. /selecao/:token)
+// Check URL route on load (e.g. /selecao/:token, ?token=:token, #/selecao/:token)
 function checkClientSelectionRoute() {
   const path = window.location.pathname;
   const match = path.match(/\/selecao\/([a-zA-Z0-9_-]+)/);
@@ -2522,9 +2970,14 @@ function checkClientSelectionRoute() {
     return true;
   }
   const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
+  const token = params.get('token') || params.get('cliente') || params.get('selecao');
   if (token) {
     openClientSelectionForToken(token);
+    return true;
+  }
+  const hashMatch = window.location.hash.match(/(?:selecao\/|token=)([a-zA-Z0-9_-]+)/);
+  if (hashMatch && hashMatch[1]) {
+    openClientSelectionForToken(hashMatch[1]);
     return true;
   }
   return false;
