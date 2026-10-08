@@ -1,0 +1,49 @@
+[
+  {
+    "id": "422518df-add7-4a1c-8528-164acf8d93b8",
+    "nome": "Studio Casamento VIP",
+    "email": "casamento@villa7.com",
+    "link_pasta": "https://drive.google.com/drive/folders/casamento123",
+    "token": "v7_97c8a3a66961",
+    "status": "aprovado",
+    "fotos_selecionadas": [
+      "VILLA7_001.JPG",
+      "VILLA7_002.JPG",
+      "VILLA7_003.JPG"
+    ],
+    "pdf_url": "https://twfhqhkzabvlzkgofjyj.supabase.co/storage/v1/object/public/selecao-de-fotos/selecoes/v7_97c8a3a66961/selecao_v7_97c8a3a66961.pdf",
+    "created_at": "2026-10-08T10:46:10.372Z",
+    "approved_at": "2026-10-08T10:46:10.763Z",
+    "notes": ""
+  },
+  {
+    "id": "15f0a2ed-7def-4a78-98c4-20a282262689",
+    "nome": "Cliente Teste Automatizado",
+    "email": "teste@villa7.com.br",
+    "link_pasta": "https://drive.google.com/drive/folders/teste-villa7",
+    "token": "v7_2385c851f9a3",
+    "status": "aprovado",
+    "fotos_selecionadas": [
+      "VILLA7_001.JPG",
+      "VILLA7_005.JPG",
+      "VILLA7_012.JPG"
+    ],
+    "pdf_url": "https://twfhqhkzabvlzkgofjyj.supabase.co/storage/v1/object/public/selecao-de-fotos/teste.pdf",
+    "created_at": "2026-10-08T10:45:34.962Z",
+    "approved_at": "2026-10-08T10:45:35.226Z",
+    "notes": ""
+  },
+  {
+    "id": "dd672188-6011-4ea2-9855-e3831b95202e",
+    "nome": "Casamento Ana e Lucas",
+    "email": "ana.lucas@exemplo.com",
+    "link_pasta": "https://photos.app.goo.gl/exemplo123",
+    "token": "v7_156b572ce46a",
+    "status": "pendente",
+    "fotos_selecionadas": [],
+    "pdf_url": null,
+    "created_at": "2026-10-08T10:40:52.293Z",
+    "approved_at": null,
+    "notes": ""
+  }
+]

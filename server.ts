@@ -1,5 +1,7 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 
@@ -70,6 +72,328 @@ app.post('/api/admin/authorize', (req, res) => {
     success: false,
     error: 'Senha incorreta. Acesso exclusivo à equipe de produção Villa7.',
   });
+});
+
+// ==========================================
+// CLIENTS & PHOTO SELECTION MANAGEMENT ROUTES
+// ==========================================
+const CLIENTS_FILE = path.join(process.cwd(), 'data', 'clients.json');
+
+function getLocalClients(): any[] {
+  try {
+    if (fs.existsSync(CLIENTS_FILE)) {
+      const data = fs.readFileSync(CLIENTS_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('[Local Clients Read Warning]:', e);
+  }
+  return [];
+}
+
+function saveLocalClients(clients: any[]) {
+  try {
+    fs.mkdirSync(path.dirname(CLIENTS_FILE), { recursive: true });
+    fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2), 'utf-8');
+  } catch (e) {
+    console.warn('[Local Clients Save Warning]:', e);
+  }
+}
+
+// GET /api/clients - List all registered clients
+app.get('/api/clients', async (req, res) => {
+  try {
+    let clients = getLocalClients();
+    // Try syncing with Supabase table if available
+    try {
+      const sbRes = await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?select=*&order=created_at.desc`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
+          'apikey': JWT_SERVICE_ROLE_KEY,
+        },
+      });
+      if (sbRes.ok) {
+        const sbClients = await sbRes.json();
+        if (Array.isArray(sbClients) && sbClients.length > 0) {
+          // Merge Supabase clients with local clients
+          const map = new Map<string, any>();
+          clients.forEach(c => map.set(c.token, c));
+          sbClients.forEach(c => map.set(c.token, { ...map.get(c.token), ...c }));
+          clients = Array.from(map.values()).sort(
+            (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+          );
+          saveLocalClients(clients);
+        }
+      }
+    } catch (sbErr) {
+      console.warn('[Supabase Clients Query Notice]:', sbErr);
+    }
+    return res.json({ success: true, clients });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao carregar clientes.' });
+  }
+});
+
+// POST /api/clients - Register a new client and generate exclusive link
+app.post('/api/clients', async (req, res) => {
+  try {
+    const { nome, email, link_pasta, pasta_drive } = req.body || {};
+    const effectiveLink = link_pasta || pasta_drive;
+    if (!nome || !String(nome).trim()) {
+      return res.status(400).json({ success: false, error: 'O Nome do Cliente é obrigatório.' });
+    }
+    if (!email || !String(email).trim()) {
+      return res.status(400).json({ success: false, error: 'O E-mail do Cliente é obrigatório.' });
+    }
+    if (!effectiveLink || !String(effectiveLink).trim()) {
+      return res.status(400).json({ success: false, error: 'O Link da Pasta de fotos é obrigatório.' });
+    }
+
+    const cleanNome = String(nome).trim();
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanLinkPasta = String(effectiveLink).trim();
+    const token = 'v7_' + crypto.randomBytes(6).toString('hex');
+    const newClient = {
+      id: crypto.randomUUID(),
+      nome: cleanNome,
+      email: cleanEmail,
+      link_pasta: cleanLinkPasta,
+      token,
+      status: 'pendente', // 'pendente' | 'aprovado'
+      fotos_selecionadas: [],
+      pdf_url: null,
+      created_at: new Date().toISOString(),
+      approved_at: null,
+      notes: '',
+    };
+
+    // Save locally
+    const clients = getLocalClients();
+    clients.unshift(newClient);
+    saveLocalClients(clients);
+
+    // Attempt to persist to Supabase table
+    let savedToSupabase = false;
+    try {
+      const sbRes = await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
+          'apikey': JWT_SERVICE_ROLE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(newClient),
+      });
+      if (sbRes.ok) {
+        savedToSupabase = true;
+      }
+    } catch (sbErr) {
+      console.warn('[Supabase Insert Notice]:', sbErr);
+    }
+
+    return res.json({
+      success: true,
+      client: newClient,
+      savedToSupabase,
+      message: 'Cliente cadastrado com sucesso!',
+    });
+  } catch (err: any) {
+    console.error('[Create Client Error]:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao cadastrar cliente.' });
+  }
+});
+
+// GET /api/clients/:token - Fetch client by exclusive token for the selection area
+app.get('/api/clients/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token não fornecido.' });
+    }
+
+    let clients = getLocalClients();
+    let client = clients.find(c => c.token === token);
+
+    // Try finding in Supabase
+    try {
+      const sbRes = await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?token=eq.${encodeURIComponent(token)}&select=*`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
+          'apikey': JWT_SERVICE_ROLE_KEY,
+        },
+      });
+      if (sbRes.ok) {
+        const sbClients = await sbRes.json();
+        if (Array.isArray(sbClients) && sbClients.length > 0) {
+          client = { ...client, ...sbClients[0] };
+        }
+      }
+    } catch (sbErr) {
+      console.warn('[Supabase Client Find Notice]:', sbErr);
+    }
+
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'Cliente ou link de seleção não encontrado.' });
+    }
+
+    return res.json({ success: true, client });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao buscar cliente.' });
+  }
+});
+
+// POST /api/clients/:token/approve - Save client approval and selected photos
+app.post('/api/clients/:token/approve', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { fotos_selecionadas, pdf_url, notes } = req.body || {};
+
+    const clients = getLocalClients();
+    const index = clients.findIndex(c => c.token === token);
+    const approved_at = new Date().toISOString();
+
+    let client = index >= 0 ? clients[index] : null;
+    if (client) {
+      client.status = 'aprovado';
+      client.fotos_selecionadas = Array.isArray(fotos_selecionadas) ? fotos_selecionadas : [];
+      client.approved_at = approved_at;
+      if (pdf_url) client.pdf_url = pdf_url;
+      if (notes !== undefined) client.notes = notes;
+      clients[index] = client;
+      saveLocalClients(clients);
+    }
+
+    // Update in Supabase
+    try {
+      await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?token=eq.${encodeURIComponent(token)}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
+          'apikey': JWT_SERVICE_ROLE_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'aprovado',
+          fotos_selecionadas: Array.isArray(fotos_selecionadas) ? fotos_selecionadas : [],
+          approved_at,
+          pdf_url: pdf_url || client?.pdf_url || null,
+          notes: notes || client?.notes || '',
+        }),
+      });
+    } catch (sbErr) {
+      console.warn('[Supabase Client Update Notice]:', sbErr);
+    }
+
+    return res.json({
+      success: true,
+      client,
+      message: 'Seleção aprovada com sucesso!',
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao aprovar seleção.' });
+  }
+});
+
+// DELETE /api/clients/:token - Delete client
+app.delete('/api/clients/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    let clients = getLocalClients();
+    clients = clients.filter(c => c.token !== token);
+    saveLocalClients(clients);
+
+    try {
+      await fetch(`${SERVER_SUPABASE_URL}/rest/v1/clientes_selecao?token=eq.${encodeURIComponent(token)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
+          'apikey': JWT_SERVICE_ROLE_KEY,
+        },
+      });
+    } catch (sbErr) {
+      console.warn('[Supabase Client Delete Notice]:', sbErr);
+    }
+
+    return res.json({ success: true, message: 'Cliente removido com sucesso.' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao remover cliente.' });
+  }
+});
+
+// POST /api/selection-pdf-upload - Upload generated selection PDF to Supabase storage bucket 'selecao-de-fotos'
+app.post('/api/selection-pdf-upload', async (req, res) => {
+  try {
+    const { token, nome, email, fileName, filename, name, pdfBase64, base64 } = req.body || {};
+    const targetFile = fileName || filename || name;
+    const targetData = pdfBase64 || base64;
+    if (!targetData || !targetFile) {
+      return res.status(400).json({ success: false, error: 'PDF ou nome de arquivo não fornecido.' });
+    }
+
+    const buffer = Buffer.from(targetData, 'base64');
+    const targetBucket = 'selecao-de-fotos';
+    const cleanFileName = targetFile
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_.-]+/g, '_');
+    const folder = token ? `selecoes/${token}` : 'selecoes';
+    const cleanPath = `${folder}/${cleanFileName}`;
+
+    console.log(`[Supabase Selection Upload] Enviando "${cleanPath}" (${(buffer.length / 1024).toFixed(1)} KB) para bucket "${targetBucket}"...`);
+
+    const headers = {
+      'Authorization': `Bearer ${JWT_SERVICE_ROLE_KEY}`,
+      'apikey': JWT_SERVICE_ROLE_KEY,
+      'Content-Type': 'application/pdf',
+      'x-upsert': 'true',
+    };
+
+    let uploadRes = await fetch(`${SERVER_SUPABASE_URL}/storage/v1/object/${targetBucket}/${cleanPath}`, {
+      method: 'POST',
+      headers,
+      body: buffer,
+    });
+
+    // If bucket was not found, fallback to 'pdfs'
+    let actualBucket = targetBucket;
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.warn(`[Supabase Upload failed on ${targetBucket}]: ${errText}. Tentando bucket "pdfs"...`);
+      uploadRes = await fetch(`${SERVER_SUPABASE_URL}/storage/v1/object/pdfs/${cleanPath}`, {
+        method: 'POST',
+        headers,
+        body: buffer,
+      });
+      if (uploadRes.ok) {
+        actualBucket = 'pdfs';
+      }
+    }
+
+    if (uploadRes.ok) {
+      const publicUrl = `${SERVER_SUPABASE_URL}/storage/v1/object/public/${actualBucket}/${cleanPath}`;
+      console.log(`[Supabase Selection Upload Success]: ${publicUrl}`);
+      return res.json({
+        success: true,
+        publicUrl,
+        bucket: actualBucket,
+        path: cleanPath,
+        fileName: cleanFileName,
+      });
+    }
+
+    const finalErr = await uploadRes.text();
+    return res.status(400).json({
+      success: false,
+      error: `Erro no Supabase Storage: ${finalErr}`,
+    });
+  } catch (err: any) {
+    console.error('[Selection PDF Upload Error]:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao enviar PDF.' });
+  }
 });
 
 // Gemini AI Cover Art Direction & Composition endpoint
