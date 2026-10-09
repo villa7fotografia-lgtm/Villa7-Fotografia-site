@@ -19,7 +19,7 @@ const app = express();
 const PORT = 3000;
 
 // Admin password configuration
-const VILLA7_APPROVAL_PASSWORD = (process.env.VILLA7_APPROVAL_PASSWORD || 'Villapaz26').trim();
+const VILLA7_APPROVAL_PASSWORD = (process.env.VILLA7_APPROVAL_PASSWORD || 'villa2026@').trim();
 
 // Body parser for JSON with large payload support (up to 100MB for print-ready PDFs)
 app.use(express.json({ limit: '100mb' }));
@@ -70,7 +70,7 @@ app.post('/api/admin/authorize', (req, res) => {
     return res.status(400).json({ success: false, error: 'Senha não fornecida.' });
   }
   const cleanPassword = String(password).trim();
-  if (cleanPassword === VILLA7_APPROVAL_PASSWORD || cleanPassword === 'Villapaz26') {
+  if (cleanPassword === 'villa2026@' || cleanPassword === VILLA7_APPROVAL_PASSWORD || cleanPassword === 'Villapaz26') {
     return res.json({
       success: true,
       authorized: true,
@@ -908,7 +908,11 @@ async function start() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: false },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+        ws: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -920,8 +924,30 @@ async function start() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Villa7 Album server running on http://0.0.0.0:${PORT}`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`  ➜  Local:   http://localhost:${PORT}/`);
+    console.log(`  ➜  Network: http://0.0.0.0:${PORT}/`);
+    console.log(`Villa7 Album server ready on http://0.0.0.0:${PORT}`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[Server] Port ${PORT} is in use. Retrying in 1s...`);
+      setTimeout(() => {
+        server.close();
+        server.listen(PORT, '0.0.0.0');
+      }, 1000);
+    } else {
+      console.error('[Server Error]:', err);
+    }
+  });
+
+  process.on('SIGTERM', () => {
+    server.close(() => process.exit(0));
+  });
+
+  process.on('SIGINT', () => {
+    server.close(() => process.exit(0));
   });
 }
 

@@ -92,7 +92,12 @@
         <h2>Gestão de Clientes & Seleção de Fotos</h2>
         <p class="lead" style="margin-bottom:0">Cadastre clientes, gere links exclusivos e seguros para seleção e acompanhe a aprovação automatizada integrada ao Supabase.</p>
       </div>
-      <span class="admin-badge approved" style="font-size:12px;padding:6px 14px">⚡ Supabase Ativo</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="admin-badge approved" style="font-size:12px;padding:6px 14px">⚡ Supabase Ativo</span>
+        <button type="button" class="btn soft" onclick="logoutAdmin()" style="font-size:11px;padding:6px 12px" title="Bloquear acesso à Gestão de Clientes">
+          🔒 Bloquear / Sair
+        </button>
+      </div>
     </div>
 
     <!-- Registration Form -->
@@ -386,6 +391,44 @@ CREATE POLICY "Permitir insercao e update" ON public.clientes_selecao FOR ALL US
     </div>
   </div>
 </div><!-- /viewClient --><footer style="margin-top:36px;padding:28px 12px 16px;text-align:center;font-size:12px;color:var(--muted);border-top:1px solid var(--line);letter-spacing:0.02em"><div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px"><img src="/images/icon.svg" alt="Villa7 Icon" style="height:32px;width:auto;opacity:0.9"></div>Idealizado e programado por <a href="https://instagram.com/eupaulohenriqui" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">@eupaulohenriqui</a></footer></main>
+
+<!-- MODAL: ADMIN ACCESS AUTHENTICATION -->
+<div id="adminAuthModal" class="modal">
+  <div class="modalBox" style="width:min(440px,94vw);padding:24px;border-radius:22px;border:1.5px solid var(--gold);box-shadow:0 20px 50px rgba(36,29,24,0.35);background:#fff">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="width:54px;height:54px;background:rgba(181,150,109,0.15);border:1.5px solid var(--gold);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px">
+        🔒
+      </div>
+      <h3 style="margin:0 0 6px;font-family:Georgia,serif;font-size:20px;color:var(--ink)">Gestão de Clientes &amp; Seleção</h3>
+      <p style="margin:0;font-size:12px;color:var(--muted);line-height:1.5">
+        Área de acesso restrito à equipe Villa7 Fotografia. Digite a senha para gerenciar clientes, links e seleções de fotos.
+      </p>
+    </div>
+
+    <form id="adminAuthForm" onsubmit="handleAdminAuthSubmit(event)">
+      <label style="display:block;font-size:12px;font-weight:800;color:var(--ink);margin-bottom:6px">
+        Senha de Acesso *
+      </label>
+      <div style="position:relative">
+        <input id="adminAuthPasswordInput" type="password" placeholder="Digite a senha de acesso..." required autofocus style="width:100%;box-sizing:border-box;padding:12px 38px 12px 14px;border-radius:12px;border:1.5px solid var(--line);font-size:14px;outline:none" autocomplete="current-password">
+        <button type="button" onclick="toggleAdminPasswordVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px" title="Mostrar/ocultar senha">👁️</button>
+      </div>
+
+      <div id="adminAuthError" style="display:none;color:#c0392b;font-size:12px;font-weight:600;margin-top:10px;background:#fdeeed;padding:8px 12px;border-radius:8px;border:1px solid #fadbd8">
+        ❌ Senha incorreta. Tente novamente.
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button type="button" class="btn soft" onclick="closeAdminAuthModal()" style="flex:1;padding:11px 16px;font-size:13px">
+          Voltar ao Álbum
+        </button>
+        <button type="submit" id="btnAdminAuthSubmit" class="btn gold" style="flex:1.4;padding:11px 18px;font-size:13px;font-weight:800;box-shadow:0 4px 14px rgba(181,150,109,0.3)">
+          Entrar →
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- MODAL: APPROVAL CONFIRMATION & LIGHTROOM PDF GENERATION -->
 <div id="approvalConfirmModal" class="modal">
@@ -1294,7 +1337,7 @@ function renderReviewVisuals(){
  setFlipbookPage(0);
 }
 function approveLaminaDiagramation(){let emptySlots=0;lays.forEach(l=>{if(l&&l.slots){emptySlots+=l.slots.filter(s=>s===null||s===undefined).length}});if(emptySlots>0){if(!confirm(`Atenção: Existem ${emptySlots} espaço(s) sem foto nas 10 lâminas. Deseja aprovar a diagramação e edições do álbum e continuar para a revisão final?`)){return}}colorApproved=true;setProjectStatus('LÂMINAS E EDIÇÕES APROVADAS');msg('Lâminas e edições aprovadas com sucesso! ✓');review()}
-function review(){colorApproved=true;setProjectStatus('AGUARDANDO APROVAÇÃO');const sum=$('summary');if(sum)sum.innerHTML=`<li><b>Álbum:</b> ${v('name','Sem título')}${v('sub')?' ('+v('sub')+')':''}</li><li><b>Adquirido por:</b> ${v('buyer','não informado')}</li><li><b>WhatsApp:</b> ${v('whatsapp','não informado')}</li><li><b>Pedido ML:</b> ${v('order','não informado')}</li><li><b>Fotos:</b> ${photos.length} fotos em 10 lâminas</li><li><b>Filtro:</b> ${EDIT_PRESETS[photos[0]?.edit?.preset||'natural']?.label||'Natural'}</li>`;renderReviewVisuals();show(2);preparePdfForApproval()}function productionPassword(){return String.fromCharCode(86,105,108,108,97,112,97,122,50,54)}async function approve(){if(!$('c1')?.checked)return msg('Marque a caixa de aprovação');let a=v('auth'),ord=v('order').replace(/\W/g,''),ok=ord&&a.replace(/\W/g,'')===ord,pass=a===productionPassword();if(!ok&&!pass)return msg('Senha ou pedido não confere');albumApproved=true;approvedAt=Date.now();approvedBy=v('buyer','Cliente');setProjectStatus('APROVADO');show(3);if($('ps'))$('ps').textContent='Gerando PDF de alta qualidade...';if($('ds'))$('ds').textContent='Aguardando geração...';if($('cs'))$('cs').textContent='Iniciando processamento do PDF... 0%';if($('bar'))$('bar').style.width='5%';const btn=$('approveBtn');if(btn){btn.disabled=true;btn.textContent='Processando PDF…'}try{const blob=await ensurePdfReady(true);if(!blob)throw new Error('Falha ao gerar o PDF');setProjectStatus('PDF GERADO');if($('ps'))$('ps').textContent=`PDF A3 · 1 capa + 10 lâminas · ${(blob.size/1048576).toFixed(1)} MB`;if($('bar'))$('bar').style.width='85%';if($('cs'))$('cs').textContent='PDF montado! Iniciando download... 85%';setDownloadReady();const downloaded=blobDownload(blob,lastName);if($('ds'))$('ds').textContent=downloaded?'Download automático iniciado ✓':'Toque em “Baixar PDF final”';await uploadApprovedPdf()}catch(e){const msgText=(e&&typeof e==='object'&&'message'in e&&e.message)?e.message:(typeof e==='string'?e:'Não foi possível gerar o PDF');console.error('Erro na geração do PDF:',e);if($('ps'))$('ps').textContent='Erro na geração';if($('cs'))$('cs').textContent='Erro: '+msgText;msg(msgText)}}
+function review(){colorApproved=true;setProjectStatus('AGUARDANDO APROVAÇÃO');const sum=$('summary');if(sum)sum.innerHTML=`<li><b>Álbum:</b> ${v('name','Sem título')}${v('sub')?' ('+v('sub')+')':''}</li><li><b>Adquirido por:</b> ${v('buyer','não informado')}</li><li><b>WhatsApp:</b> ${v('whatsapp','não informado')}</li><li><b>Pedido ML:</b> ${v('order','não informado')}</li><li><b>Fotos:</b> ${photos.length} fotos em 10 lâminas</li><li><b>Filtro:</b> ${EDIT_PRESETS[photos[0]?.edit?.preset||'natural']?.label||'Natural'}</li>`;renderReviewVisuals();show(2);preparePdfForApproval()}function productionPassword(){return 'villa2026@'}async function approve(){if(!$('c1')?.checked)return msg('Marque a caixa de aprovação');let a=v('auth'),ord=v('order').replace(/\W/g,''),ok=ord&&a.replace(/\W/g,'')===ord,pass=(a==='villa2026@'||a==='Villapaz26'||a===productionPassword());if(!ok&&!pass)return msg('Senha ou pedido não confere');albumApproved=true;approvedAt=Date.now();approvedBy=v('buyer','Cliente');setProjectStatus('APROVADO');show(3);if($('ps'))$('ps').textContent='Gerando PDF de alta qualidade...';if($('ds'))$('ds').textContent='Aguardando geração...';if($('cs'))$('cs').textContent='Iniciando processamento do PDF... 0%';if($('bar'))$('bar').style.width='5%';const btn=$('approveBtn');if(btn){btn.disabled=true;btn.textContent='Processando PDF…'}try{const blob=await ensurePdfReady(true);if(!blob)throw new Error('Falha ao gerar o PDF');setProjectStatus('PDF GERADO');if($('ps'))$('ps').textContent=`PDF A3 · 1 capa + 10 lâminas · ${(blob.size/1048576).toFixed(1)} MB`;if($('bar'))$('bar').style.width='85%';if($('cs'))$('cs').textContent='PDF montado! Iniciando download... 85%';setDownloadReady();const downloaded=blobDownload(blob,lastName);if($('ds'))$('ds').textContent=downloaded?'Download automático iniciado ✓':'Toque em “Baixar PDF final”';await uploadApprovedPdf()}catch(e){const msgText=(e&&typeof e==='object'&&'message'in e&&e.message)?e.message:(typeof e==='string'?e:'Não foi possível gerar o PDF');console.error('Erro na geração do PDF:',e);if($('ps'))$('ps').textContent='Erro na geração';if($('cs'))$('cs').textContent='Erro: '+msgText;msg(msgText)}}
 const load=u=>new Promise((resolve)=>{
  const sources=[];
  if(u instanceof Blob||u instanceof File){try{sources.push(URL.createObjectURL(u))}catch(_){}}
@@ -1683,7 +1726,73 @@ const SAMPLE_CLIENT_PHOTOS_PRESETS = [
   { name: 'DSC_1190.JPG', url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=800&q=80' }
 ];
 
+let isAdminAuthenticated = sessionStorage.getItem('villa7_admin_auth') === 'villa2026@';
+
+function openAdminAuthModal() {
+  const modal = $('adminAuthModal');
+  const input = $('adminAuthPasswordInput');
+  const err = $('adminAuthError');
+  if (err) err.style.display = 'none';
+  if (input) {
+    input.value = '';
+    setTimeout(() => input.focus(), 120);
+  }
+  if (modal) modal.classList.add('on');
+}
+
+function closeAdminAuthModal() {
+  const modal = $('adminAuthModal');
+  if (modal) modal.classList.remove('on');
+  if (!isAdminAuthenticated && currentAppTab === 'admin') {
+    switchMainTab('album');
+  }
+}
+
+function handleAdminAuthSubmit(e) {
+  if (e) e.preventDefault();
+  const input = $('adminAuthPasswordInput');
+  const err = $('adminAuthError');
+  const entered = (input?.value || '').trim();
+
+  if (entered === 'villa2026@' || entered === 'Villapaz26') {
+    isAdminAuthenticated = true;
+    sessionStorage.setItem('villa7_admin_auth', 'villa2026@');
+    if (err) err.style.display = 'none';
+    const modal = $('adminAuthModal');
+    if (modal) modal.classList.remove('on');
+    switchMainTab('admin');
+    msg('✓ Acesso autorizado à Gestão de Clientes & Seleção!');
+  } else {
+    if (err) {
+      err.style.display = 'block';
+      err.textContent = '❌ Senha incorreta. Tente novamente.';
+    }
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  }
+}
+
+function logoutAdmin() {
+  isAdminAuthenticated = false;
+  sessionStorage.removeItem('villa7_admin_auth');
+  switchMainTab('album');
+  msg('Sessão administrativa bloqueada com sucesso.');
+}
+
+function toggleAdminPasswordVisibility() {
+  const input = $('adminAuthPasswordInput');
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
 function switchMainTab(tabName) {
+  if (tabName === 'admin' && !isAdminAuthenticated) {
+    openAdminAuthModal();
+    return;
+  }
+
   currentAppTab = tabName;
   ['album', 'admin', 'client'].forEach(t => {
     const btn = $(`navTab_${t}`);
